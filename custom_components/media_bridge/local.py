@@ -1,5 +1,6 @@
 """Local Vistoda adapters that deliberately reuse Home Assistant state."""
 
+import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -8,12 +9,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import BLINK_BRIDGE_DOMAIN
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class BlinkAdapterCoordinator(DataUpdateCoordinator[str]):
     """Report the loaded Blink relay without creating a second login."""
 
     def __init__(self, hass: HomeAssistant) -> None:
-        super().__init__(hass, name="Vistoda Blink adapter", update_interval=None)
+        super().__init__(hass, logger=_LOGGER, name="Vistoda Blink adapter", update_interval=None)
 
     async def _async_update_data(self) -> str:
         runtime: Any = self.hass.data.get(BLINK_BRIDGE_DOMAIN, {}).get("runtime")

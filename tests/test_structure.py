@@ -73,3 +73,8 @@ def test_every_maintained_file_stays_within_250_lines() -> None:
 def test_repository_contains_no_secret_artifacts() -> None:
     forbidden_names = {"secrets.yaml", ".env", "token.json", "session.json"}
     assert not [path for path in ROOT.rglob("*") if path.name in forbidden_names]
+
+
+def test_local_coordinator_supplies_the_ha_2026_logger_contract() -> None:
+    source = (COMPONENT / "local.py").read_text(encoding="utf-8")
+    assert "logger=_LOGGER" in source
