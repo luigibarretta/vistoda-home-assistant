@@ -46,6 +46,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         self._discovery_token: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        self._set_flow_title()
         if user_input is not None:
             self._provider = user_input[CONF_PROVIDER]
             if self._provider == PROVIDER_BLINK:
@@ -72,7 +73,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         if discovery_info.get(CONF_PROVIDER) != PROVIDER_BLINK:
             return self.async_abort(reason="unsupported_provider")
         self._provider = PROVIDER_BLINK
-        self._set_discovery_title()
+        self._set_flow_title()
         return await self.async_step_blink()
 
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> FlowResult:
@@ -95,7 +96,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         )
         await self.async_set_unique_id(self._unique_id())
         self._abort_if_unique_id_configured()
-        self._set_discovery_title()
+        self._set_flow_title()
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
@@ -117,7 +118,12 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_ring_credentials()
                 return await self._finish()
         schema = vol.Schema({}) if self._discovery_token else discovered_schema()
-        return self.async_show_form(step_id="discovery_confirm", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="discovery_confirm",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"provider": self._provider.upper()},
+        )
 
     async def async_step_bridge(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         errors: dict[str, str] = {}
@@ -144,9 +150,10 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(self, user_input=None) -> FlowResult:
         entry = self._get_reconfigure_entry()
         provider = entry.data[CONF_PROVIDER]
+        self._provider = provider
+        self._set_flow_title()
         if provider == PROVIDER_BLINK:
             return self.async_abort(reason="local_adapter")
-        self._provider = provider
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -187,9 +194,12 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
             (self._provider, self._bridge_data[CONF_URL], self._bridge_data[CONF_ALIAS])
         )
 
-    def _set_discovery_title(self) -> None:
-        """Expose the provider name in Home Assistant's discovered-flow list."""
-        self.context["title_placeholders"] = {"provider": self._provider.upper()}
+    def _set_flow_title(self) -> None:
+        """Supply the title placeholder for manual and discovered flows."""
+        name = "Vistoda"
+        if self.context.get("source") != config_entries.SOURCE_USER:
+            name = f"{name} · {self._provider.upper()}"
+        self.context["title_placeholders"] = {"name": name}
 
     def _require_client(self) -> BridgeClient:
         if self._client is None:
