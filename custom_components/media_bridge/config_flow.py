@@ -5,6 +5,7 @@ from __future__ import annotations
 from ipaddress import ip_address
 from typing import Any
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.zeroconf import ZeroconfServiceInfo
 from homeassistant.data_entry_flow import FlowResult
@@ -114,7 +115,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
                 if self._provider == PROVIDER_RING:
                     return await self.async_step_ring_credentials()
                 return await self._finish()
-        schema = None if self._discovery_token else discovered_schema()
+        schema = vol.Schema({}) if self._discovery_token else discovered_schema()
         return self.async_show_form(step_id="discovery_confirm", data_schema=schema, errors=errors)
 
     async def async_step_bridge(self, user_input: dict[str, Any] | None = None) -> FlowResult:
