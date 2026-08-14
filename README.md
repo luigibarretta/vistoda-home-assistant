@@ -19,9 +19,13 @@ backend consumers. Do not add a public Traefik route.
 
 ## Installation
 
-Add this repository as a HACS custom integration, install **Media Bridge**, then
-restart Home Assistant once to load the Python component. Go to Settings →
-Devices & services → Add integration → Media Bridge.
+The production deployment is SHA-pinned and managed by the private Ansible
+playbook `deploy-ha-media-bridge.yml`. After the play loads the component, go
+to Settings → Devices & services → Add integration → Media Bridge.
+
+The repository keeps the standard HACS integration layout and metadata for a
+possible future public release. HACS cannot install a private GitHub repository,
+so do not present the current private mirror as a HACS custom repository.
 
 For EZVIZ, enter the private bridge URL, API token and configured camera alias.
 The resulting camera uses the bridge's on-demand snapshot and MPEG-TS contract.

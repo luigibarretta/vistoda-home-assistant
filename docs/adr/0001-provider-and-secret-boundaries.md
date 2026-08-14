@@ -8,9 +8,11 @@ native entities without becoming a second owner of rotating vendor sessions.
 
 ## Decision
 
-Provider protocols remain in separate Rust bridge repositories. This HACS
-integration is one thin provider-neutral adapter with one config entry per
-bridge device. It stores only:
+Provider protocols remain in separate Rust bridge repositories. This private
+custom integration is one thin provider-neutral adapter with one config entry
+per bridge device. Its layout is HACS-compatible for a possible future public
+release, while the current private deployment remains SHA-pinned through
+Ansible. It stores only:
 
 - provider and private bridge URL;
 - independent bridge API token;
