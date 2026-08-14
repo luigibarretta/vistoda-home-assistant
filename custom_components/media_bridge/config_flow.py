@@ -72,6 +72,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         if discovery_info.get(CONF_PROVIDER) != PROVIDER_BLINK:
             return self.async_abort(reason="unsupported_provider")
         self._provider = PROVIDER_BLINK
+        self._set_discovery_title()
         return await self.async_step_blink()
 
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> FlowResult:
@@ -94,7 +95,7 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         )
         await self.async_set_unique_id(self._unique_id())
         self._abort_if_unique_id_configured()
-        self.context["title_placeholders"] = {"provider": provider.upper()}
+        self._set_discovery_title()
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
@@ -185,6 +186,10 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         return ":".join(
             (self._provider, self._bridge_data[CONF_URL], self._bridge_data[CONF_ALIAS])
         )
+
+    def _set_discovery_title(self) -> None:
+        """Expose the provider name in Home Assistant's discovered-flow list."""
+        self.context["title_placeholders"] = {"provider": self._provider.upper()}
 
     def _require_client(self) -> BridgeClient:
         if self._client is None:

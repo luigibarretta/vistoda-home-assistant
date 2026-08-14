@@ -1,6 +1,7 @@
 {
   "title": "Vistoda",
   "config": {
+    "flow_title": "Vistoda · {provider}",
     "step": {
       "user": {
         "title": "Set up Vistoda",

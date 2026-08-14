@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.3.0"
+    assert manifest["version"] == "0.3.1"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -48,6 +48,7 @@ def test_config_flow_guidance_is_complete_in_every_language() -> None:
     }
     for document in documents:
         assert document["title"] == "Vistoda"
+        assert document["config"]["flow_title"] == "Vistoda · {provider}"
         for step_name, fields in required_fields.items():
             step = document["config"]["step"][step_name]
             assert step["description"].strip()
@@ -78,3 +79,9 @@ def test_repository_contains_no_secret_artifacts() -> None:
 def test_local_coordinator_supplies_the_ha_2026_logger_contract() -> None:
     source = (COMPONENT / "local.py").read_text(encoding="utf-8")
     assert "logger=_LOGGER" in source
+
+
+def test_every_discovery_path_sets_the_provider_title_placeholder() -> None:
+    source = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+    assert source.count("self._set_discovery_title()") == 2
+    assert 'self.context["title_placeholders"] = {"provider": self._provider.upper()}' in source
