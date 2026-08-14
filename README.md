@@ -4,6 +4,8 @@ Vistoda is the native Home Assistant control plane for private, provider-specifi
 Rust media bridges. The name joins *vista* and *custodia*: one guarded view over
 the cameras and intercoms that remain inside the trusted network.
 
+- Blink local adapter: adopts the already authenticated Home Assistant relay
+  and its existing live camera entities without a second login or duplicates;
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment today, media entities
   only after the Rust bridge advertises verified capabilities.
@@ -41,6 +43,10 @@ retrying. Home Assistant never persists the account password, OTP or Ring token.
 The internal Home Assistant domain remains `media_bridge`. This deliberately
 stable identifier preserves existing config entries, entities and automations;
 Vistoda is the user-facing product identity.
+
+Remote bridges announce `_vistoda._tcp.local.` with provider and alias metadata.
+Discovery pre-fills their private endpoint but never broadcasts the API token.
+The loaded Blink Live Bridge initiates equivalent local-adapter discovery.
 
 ## Development
 

@@ -20,6 +20,8 @@ async def async_setup_entry(
     if entry.data[CONF_PROVIDER] != PROVIDER_EZVIZ:
         return
     runtime: BridgeRuntime = hass.data[DOMAIN][entry.entry_id]
+    if runtime.client is None:
+        return
     async_add_entities([EzvizBridgeCamera(runtime, entry.data[CONF_ALIAS])])
 
 
@@ -33,6 +35,7 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
     def __init__(self, runtime: BridgeRuntime, alias: str) -> None:
         CoordinatorEntity.__init__(self, runtime.coordinator)
         Camera.__init__(self)
+        assert runtime.client is not None
         self._client = runtime.client
         self._alias = alias
         self._attr_unique_id = f"ezviz-{alias}-bridge-camera"

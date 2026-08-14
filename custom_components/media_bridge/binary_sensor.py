@@ -7,7 +7,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN
+from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK
 
 
 async def async_setup_entry(
@@ -31,11 +31,12 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         provider = entry.data[CONF_PROVIDER]
         alias = entry.data[CONF_ALIAS]
         self._attr_unique_id = f"{provider}-{alias}-bridge-connectivity"
+        local = provider == PROVIDER_BLINK
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{provider}:{alias}")},
             "name": f"Vistoda · {provider.upper()}",
             "manufacturer": "Vistoda",
-            "model": "Private Rust bridge",
+            "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
         }
 
     @property
@@ -46,4 +47,5 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         """Expose only non-secret version metadata."""
-        return {"version": self.coordinator.data or "unknown"}
+        key = "cameras" if self._attr_unique_id.startswith("blink-") else "version"
+        return {key: self.coordinator.data or "unknown"}

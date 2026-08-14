@@ -4,12 +4,26 @@
     "step": {
       "user": {
         "title": "Set up Vistoda",
-        "description": "Choose the private bridge that Vistoda should connect to. EZVIZ must already be enrolled in its Rust bridge. Ring account enrollment happens later in this flow.",
+        "description": "Choose Blink's local Home Assistant adapter or a private EZVIZ/Ring bridge. Discovered remote bridges appear automatically; manual setup remains available.",
         "data": {
           "provider": "Provider"
         },
         "data_description": {
-          "provider": "Select EZVIZ VTM for an enrolled EZVIZ video bridge, or Ring Intercom for a Ring bridge that you want to enroll."
+          "provider": "Blink reuses the loaded Home Assistant session. EZVIZ and Ring connect to separate private Rust bridges."
+        }
+      },
+      "blink": {
+        "title": "Adopt the local Blink adapter",
+        "description": "Vistoda found Blink Live Bridge and will reuse its five existing live camera entities and authenticated Blink session. It will not create another login or duplicate cameras."
+      },
+      "discovery_confirm": {
+        "title": "Connect discovered {provider} bridge",
+        "description": "Vistoda discovered the private endpoint and device alias over mDNS. Confirm ownership with the dedicated bridge API token; vendor credentials are not requested here.",
+        "data": {
+          "api_token": "Bridge API token"
+        },
+        "data_description": {
+          "api_token": "Dedicated high-entropy token configured in the discovered bridge. It is never broadcast over mDNS."
         }
       },
       "bridge": {
@@ -75,12 +89,16 @@
       "rate_limited": "The bridge or Ring is rate limiting enrollment. Wait before trying again."
     },
     "abort": {
-      "already_configured": "This bridge device is already configured in Vistoda."
+      "already_configured": "This bridge device is already configured in Vistoda.",
+      "blink_not_loaded": "Blink Live Bridge must be loaded before Vistoda can adopt it.",
+      "local_adapter": "The local Blink adapter follows Blink Live Bridge and has no remote connection settings.",
+      "unsupported_provider": "The discovered service is not a supported Vistoda provider."
     }
   },
   "selector": {
     "provider": {
       "options": {
+        "blink": "Blink (local adapter)",
         "ezviz": "EZVIZ VTM",
         "ring": "Ring Intercom"
       }

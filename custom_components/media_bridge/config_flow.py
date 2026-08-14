@@ -1,41 +1,38 @@
-"""Native config flow for Vistoda private media bridges."""
+"""Native Config Flow for local and remote Vistoda providers."""
 
 from __future__ import annotations
 
+from ipaddress import ip_address
 from typing import Any
 
-import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components.zeroconf import ZeroconfServiceInfo
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import BridgeClient, normalize_url
 from .const import (
     CONF_ALIAS,
     CONF_API_TOKEN,
+    CONF_DISCOVERY_TOKENS,
     CONF_PROVIDER,
     CONF_URL,
-    DEFAULT_EZVIZ_ALIAS,
-    DEFAULT_RING_ALIAS,
+    DEFAULT_BLINK_ALIAS,
     DOMAIN,
+    PROVIDER_BLINK,
     PROVIDER_EZVIZ,
     PROVIDER_RING,
-    PROVIDERS,
 )
-from .errors import (
-    CannotConnectError,
-    EnrollmentBusyError,
-    EnrollmentExpiredError,
-    InvalidBridgeAuthError,
-    InvalidOtpError,
-    InvalidVendorAuthError,
-    RateLimitedError,
-)
+from .errors import CannotConnectError, InvalidBridgeAuthError
+from .local import blink_adapter_available
+from .ring_flow import RingEnrollmentMixin
+from .schemas import bridge_schema, discovered_schema, provider_schema
+
+REMOTE_PROVIDERS = frozenset({PROVIDER_EZVIZ, PROVIDER_RING})
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Configure a bridge without retaining vendor credentials in HA."""
+class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
+    """Configure a provider without retaining vendor credentials in HA."""
 
     VERSION = 1
 
@@ -45,37 +42,87 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._client: BridgeClient | None = None
         self._enrollment_id: str | None = None
         self._credentials_error: str | None = None
+        self._discovery_token: str | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Choose the provider-specific Rust bridge."""
         if user_input is not None:
             self._provider = user_input[CONF_PROVIDER]
+            if self._provider == PROVIDER_BLINK:
+                return await self.async_step_blink()
             return await self.async_step_bridge()
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_PROVIDER, default=PROVIDER_EZVIZ): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=PROVIDERS,
-                            translation_key="provider",
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
-            ),
+        return self.async_show_form(step_id="user", data_schema=provider_schema())
+
+    async def async_step_blink(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Adopt the loaded Blink relay without a second vendor login."""
+        if not blink_adapter_available(self.hass):
+            return self.async_abort(reason="blink_not_loaded")
+        await self.async_set_unique_id("blink:local")
+        self._abort_if_unique_id_configured()
+        if user_input is None:
+            return self.async_show_form(step_id="blink")
+        self._bridge_data = {
+            CONF_PROVIDER: PROVIDER_BLINK,
+            CONF_ALIAS: DEFAULT_BLINK_ALIAS,
+        }
+        return await self._finish()
+
+    async def async_step_integration_discovery(self, discovery_info: dict[str, Any]) -> FlowResult:
+        """Receive a local adapter discovery initiated by Blink Live Bridge."""
+        if discovery_info.get(CONF_PROVIDER) != PROVIDER_BLINK:
+            return self.async_abort(reason="unsupported_provider")
+        self._provider = PROVIDER_BLINK
+        return await self.async_step_blink()
+
+    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> FlowResult:
+        """Prefill a remote bridge announced on the private LAN."""
+        properties = {str(key): str(value) for key, value in discovery_info.properties.items()}
+        provider = properties.get(CONF_PROVIDER, "").casefold()
+        if provider not in REMOTE_PROVIDERS:
+            return self.async_abort(reason="unsupported_provider")
+        alias = properties.get(CONF_ALIAS) or (
+            "entrance" if provider == PROVIDER_RING else "front-door"
         )
+        self._provider = provider
+        self._bridge_data = {
+            CONF_PROVIDER: provider,
+            CONF_URL: service_url(discovery_info.host, discovery_info.port),
+            CONF_ALIAS: alias,
+        }
+        self._discovery_token = (
+            self.hass.data.get(DOMAIN, {}).get(CONF_DISCOVERY_TOKENS, {}).get(provider)
+        )
+        await self.async_set_unique_id(self._unique_id())
+        self._abort_if_unique_id_configured()
+        self.context["title_placeholders"] = {"provider": provider.upper()}
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            token = self._discovery_token or user_input.get(CONF_API_TOKEN, "")
+            try:
+                client = await self._validated_client(self._bridge_data[CONF_URL], token)
+            except InvalidBridgeAuthError:
+                errors["base"] = "invalid_bridge_auth"
+            except CannotConnectError:
+                errors["base"] = "cannot_connect"
+            else:
+                self._bridge_data[CONF_API_TOKEN] = token
+                self._client = client
+                if self._provider == PROVIDER_RING:
+                    return await self.async_step_ring_credentials()
+                return await self._finish()
+        schema = None if self._discovery_token else discovered_schema()
+        return self.async_show_form(step_id="discovery_confirm", data_schema=schema, errors=errors)
 
     async def async_step_bridge(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Validate the private endpoint and independent API token."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 url = normalize_url(user_input[CONF_URL])
-                client = BridgeClient(
-                    async_get_clientsession(self.hass), url, user_input[CONF_API_TOKEN]
-                )
-                await client.validate(self._provider)
+                client = await self._validated_client(url, user_input[CONF_API_TOKEN])
             except ValueError:
                 errors["base"] = "invalid_url"
             except InvalidBridgeAuthError:
@@ -83,102 +130,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except CannotConnectError:
                 errors["base"] = "cannot_connect"
             else:
-                self._bridge_data = {
-                    CONF_PROVIDER: self._provider,
-                    CONF_URL: url,
-                    CONF_API_TOKEN: user_input[CONF_API_TOKEN],
-                    CONF_ALIAS: user_input[CONF_ALIAS],
-                }
+                self._bridge_data = {CONF_PROVIDER: self._provider, **user_input, CONF_URL: url}
                 self._client = client
                 if self._provider == PROVIDER_RING:
                     return await self.async_step_ring_credentials()
                 return await self._finish()
         return self.async_show_form(
-            step_id="bridge",
-            data_schema=bridge_schema(self._provider, user_input),
-            errors=errors,
+            step_id="bridge", data_schema=bridge_schema(self._provider, user_input), errors=errors
         )
 
-    async def async_step_ring_credentials(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Start one explicit Ring password/MFA enrollment."""
-        errors: dict[str, str] = {}
-        if self._credentials_error:
-            errors["base"] = self._credentials_error
-            self._credentials_error = None
-        if user_input is not None:
-            try:
-                enrollment = await self._require_client().start_ring_enrollment(
-                    user_input["email"], user_input["password"]
-                )
-            except InvalidVendorAuthError:
-                errors["base"] = "invalid_auth"
-            except EnrollmentBusyError:
-                errors["base"] = "enrollment_busy"
-            except RateLimitedError:
-                errors["base"] = "rate_limited"
-            except CannotConnectError:
-                errors["base"] = "cannot_connect"
-            else:
-                if enrollment.next_step == "complete":
-                    return await self._finish()
-                self._enrollment_id = enrollment.enrollment_id
-                return await self.async_step_otp()
-        return self.async_show_form(
-            step_id="ring_credentials",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("email"): selector.TextSelector(
-                        selector.TextSelectorConfig(type=selector.TextSelectorType.EMAIL)
-                    ),
-                    vol.Required("password"): selector.TextSelector(
-                        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
-                    ),
-                }
-            ),
-            errors=errors,
-        )
-
-    async def async_step_otp(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Consume exactly one SMS code."""
-        if user_input is not None:
-            try:
-                await self._require_client().verify_ring_enrollment(
-                    self._enrollment_id or "", user_input["code"]
-                )
-            except InvalidOtpError:
-                return await self._restart_credentials("invalid_otp_restart")
-            except EnrollmentExpiredError:
-                return await self._restart_credentials("enrollment_expired")
-            except RateLimitedError:
-                return await self._restart_credentials("rate_limited")
-            except CannotConnectError:
-                return await self._restart_credentials("cannot_connect_restart")
-            return await self._finish()
-        return self.async_show_form(
-            step_id="otp",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("code"): selector.TextSelector(
-                        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
-                    )
-                }
-            ),
-        )
-
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Update only bridge connection data; vendor session remains bridge-owned."""
+    async def async_step_reconfigure(self, user_input=None) -> FlowResult:
         entry = self._get_reconfigure_entry()
         provider = entry.data[CONF_PROVIDER]
+        if provider == PROVIDER_BLINK:
+            return self.async_abort(reason="local_adapter")
+        self._provider = provider
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 url = normalize_url(user_input[CONF_URL])
-                client = BridgeClient(
-                    async_get_clientsession(self.hass), url, user_input[CONF_API_TOKEN]
-                )
-                await client.validate(provider)
+                await self._validated_client(url, user_input[CONF_API_TOKEN])
             except ValueError:
                 errors["base"] = "invalid_url"
             except InvalidBridgeAuthError:
@@ -187,13 +158,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             else:
                 return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates={
-                        **entry.data,
-                        CONF_URL: url,
-                        CONF_API_TOKEN: user_input[CONF_API_TOKEN],
-                        CONF_ALIAS: user_input[CONF_ALIAS],
-                    },
+                    entry, data_updates={**entry.data, **user_input, CONF_URL: url}
                 )
         return self.async_show_form(
             step_id="reconfigure",
@@ -201,23 +166,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def _restart_credentials(self, reason: str) -> FlowResult:
-        self._enrollment_id = None
-        self._credentials_error = reason
-        return await self.async_step_ring_credentials()
+    async def _validated_client(self, url: str, token: str) -> BridgeClient:
+        client = BridgeClient(async_get_clientsession(self.hass), url, token)
+        await client.validate(self._provider)
+        return client
 
     async def _finish(self) -> FlowResult:
-        unique_id = ":".join(
-            (
-                self._bridge_data[CONF_PROVIDER],
-                self._bridge_data[CONF_URL],
-                self._bridge_data[CONF_ALIAS],
-            )
-        )
-        await self.async_set_unique_id(unique_id)
+        await self.async_set_unique_id(self._unique_id())
         self._abort_if_unique_id_configured()
-        provider = self._bridge_data[CONF_PROVIDER].upper()
-        return self.async_create_entry(title=f"Vistoda · {provider}", data=self._bridge_data)
+        return self.async_create_entry(
+            title=f"Vistoda · {self._provider.upper()}", data=self._bridge_data
+        )
+
+    def _unique_id(self) -> str:
+        if self._provider == PROVIDER_BLINK:
+            return "blink:local"
+        return ":".join(
+            (self._provider, self._bridge_data[CONF_URL], self._bridge_data[CONF_ALIAS])
+        )
 
     def _require_client(self) -> BridgeClient:
         if self._client is None:
@@ -225,18 +191,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self._client
 
 
-def bridge_schema(provider: str, values: dict[str, Any] | None) -> vol.Schema:
-    """Build connection fields with provider-specific safe defaults."""
-    values = values or {}
-    alias = DEFAULT_RING_ALIAS if provider == PROVIDER_RING else DEFAULT_EZVIZ_ALIAS
-    return vol.Schema(
-        {
-            vol.Required(CONF_URL, default=values.get(CONF_URL, "http://")): str,
-            vol.Required(
-                CONF_API_TOKEN, default=values.get(CONF_API_TOKEN, "")
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
-            ),
-            vol.Required(CONF_ALIAS, default=values.get(CONF_ALIAS, alias)): str,
-        }
-    )
+def service_url(host: str, port: int) -> str:
+    """Render a discovery address without corrupting IPv6 literals."""
+    parsed = ip_address(host)
+    authority = f"[{parsed}]" if parsed.version == 6 else str(parsed)
+    return f"http://{authority}:{port}"
