@@ -18,6 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["config_flow"] is True
     assert manifest["version"] == "0.1.0"
+    assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
 
 
