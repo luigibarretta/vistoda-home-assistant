@@ -1,4 +1,4 @@
-"""Native config flow for private media bridges."""
+"""Native config flow for Vistoda private media bridges."""
 
 from __future__ import annotations
 
@@ -217,7 +217,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured()
         provider = self._bridge_data[CONF_PROVIDER].upper()
-        return self.async_create_entry(title=f"{provider} Media Bridge", data=self._bridge_data)
+        return self.async_create_entry(title=f"Vistoda · {provider}", data=self._bridge_data)
 
     def _require_client(self) -> BridgeClient:
         if self._client is None:

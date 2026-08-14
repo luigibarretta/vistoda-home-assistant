@@ -1,26 +1,101 @@
 {
-  "title": "Media Bridge",
+  "title": "Vistoda",
   "config": {
     "step": {
-      "user": {"title": "Scegli il media bridge", "data": {"provider": "Provider"}},
-      "bridge": {"title": "Connetti il bridge", "data": {"url": "URL del bridge", "api_token": "Token API del bridge", "alias": "Alias dispositivo"}},
-      "ring_credentials": {"title": "Registra l'account Ring", "data": {"email": "Account Ring", "password": "Password"}},
-      "otp": {"title": "Verifica SMS Ring", "data": {"code": "Codice di verifica"}},
-      "reconfigure": {"title": "Riconfigura il bridge", "data": {"url": "URL del bridge", "api_token": "Token API del bridge", "alias": "Alias dispositivo"}}
+      "user": {
+        "title": "Configura Vistoda",
+        "description": "Scegli il bridge privato al quale collegare Vistoda. EZVIZ deve essere già registrato nel relativo bridge Rust. La registrazione dell'account Ring avviene più avanti in questa procedura.",
+        "data": {
+          "provider": "Provider"
+        },
+        "data_description": {
+          "provider": "Scegli EZVIZ VTM per un bridge video EZVIZ già registrato, oppure Ring Intercom per registrare un bridge Ring."
+        }
+      },
+      "bridge": {
+        "title": "Collega Vistoda al bridge privato",
+        "description": "Questi sono i dati di connessione del bridge, non le credenziali del produttore. Per EZVIZ, registra prima account e codice di verifica del dispositivo nel bridge Rust EZVIZ. Per Ring, account e password verranno richiesti nella schermata successiva.",
+        "data": {
+          "url": "URL privato del bridge",
+          "api_token": "Token API del bridge",
+          "alias": "Alias del dispositivo"
+        },
+        "data_description": {
+          "url": "URL HTTP o HTTPS di base raggiungibile da Home Assistant, per esempio http://192.168.50.20:8787. Non inserire l'URL di Home Assistant, del cloud del produttore o di Traefik pubblico.",
+          "api_token": "Token dedicato ad alta entropia configurato per questo bridge Rust. Non inserire il codice di verifica EZVIZ, la password Ring o un token del produttore.",
+          "alias": "Alias esatto del dispositivo configurato nel bridge, per esempio ingresso. Vistoda lo usa per richiedere stream e snapshot."
+        }
+      },
+      "ring_credentials": {
+        "title": "Registra l'account Ring",
+        "description": "Vistoda inoltra queste credenziali una sola volta al tuo bridge Ring privato tramite la connessione configurata. Home Assistant non le salva. Ring potrebbe poi inviare un codice SMS.",
+        "data": {
+          "email": "Email dell'account Ring",
+          "password": "Password dell'account Ring"
+        },
+        "data_description": {
+          "email": "Indirizzo email usato per accedere all'app Ring. Non inserire un utente Home Assistant o un account del bridge.",
+          "password": "Password attuale dell'account Ring. Viene inviata una sola volta al bridge privato e non viene mai salvata nella voce di configurazione di Home Assistant."
+        }
+      },
+      "otp": {
+        "title": "Verifica l'SMS Ring",
+        "description": "Inserisci entro due minuti il codice a sei cifre inviato da Ring. La verifica è monouso: un codice errato o scaduto richiede di ricominciare la registrazione.",
+        "data": {
+          "code": "Codice SMS a sei cifre"
+        },
+        "data_description": {
+          "code": "Usa soltanto l'SMS più recente inviato da Ring per questa registrazione. Non è il codice di verifica EZVIZ né il token API del bridge."
+        }
+      },
+      "reconfigure": {
+        "title": "Riconfigura Vistoda",
+        "description": "Aggiorna il modo in cui Home Assistant raggiunge il bridge privato. La sessione dell'account del produttore resta gestita dal bridge e qui non viene modificata.",
+        "data": {
+          "url": "URL privato del bridge",
+          "api_token": "Token API del bridge",
+          "alias": "Alias del dispositivo"
+        },
+        "data_description": {
+          "url": "Nuovo URL di base raggiungibile da Home Assistant, senza credenziali né percorso API.",
+          "api_token": "Token API dedicato attualmente configurato nel bridge Rust privato.",
+          "alias": "Alias esatto del dispositivo attualmente configurato nel bridge. Cambiarlo può modificare lo stream richiesto da Vistoda."
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Impossibile connettersi al bridge.",
-      "cannot_connect_restart": "Verifica non completata. Avvia una nuova registrazione.",
-      "invalid_url": "Inserisci un URL HTTP o HTTPS senza credenziali o percorsi.",
-      "invalid_bridge_auth": "Il token API del bridge non è valido.",
-      "invalid_auth": "Ring ha rifiutato le credenziali dell'account.",
-      "invalid_otp_restart": "Ring ha rifiutato il codice. La verifica era monouso: ricomincia.",
+      "cannot_connect": "Impossibile connettersi al bridge. Controlla indirizzo privato, porta, stato del servizio e accesso firewall da Home Assistant.",
+      "cannot_connect_restart": "Verifica non completata. Controlla la connessione al bridge e avvia una nuova registrazione.",
+      "invalid_url": "Inserisci un URL HTTP o HTTPS di base senza credenziali né percorsi API.",
+      "invalid_bridge_auth": "Il token API del bridge non è valido. Usa il token dedicato configurato nel bridge Rust.",
+      "invalid_auth": "Ring ha rifiutato l'email o la password dell'account.",
+      "invalid_otp_restart": "Ring ha rifiutato il codice. Ricomincia: la precedente verifica monouso è stata consumata.",
       "enrollment_busy": "Sul bridge è già in corso un'altra registrazione.",
       "enrollment_expired": "La registrazione è scaduta o è già stata usata. Ricomincia.",
       "rate_limited": "Il bridge o Ring limita i tentativi. Attendi prima di riprovare."
     },
-    "abort": {"already_configured": "Questo dispositivo bridge è già configurato."}
+    "abort": {
+      "already_configured": "Questo dispositivo bridge è già configurato in Vistoda."
+    }
   },
-  "selector": {"provider": {"options": {"ezviz": "EZVIZ VTM", "ring": "Ring Intercom"}}},
-  "entity": {"binary_sensor": {"connectivity": {"name": "Connessione"}}, "camera": {"live": {"name": "Live"}}}
+  "selector": {
+    "provider": {
+      "options": {
+        "ezviz": "EZVIZ VTM",
+        "ring": "Ring Intercom"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Connessione"
+      }
+    },
+    "camera": {
+      "live": {
+        "name": "Live"
+      }
+    }
+  }
 }

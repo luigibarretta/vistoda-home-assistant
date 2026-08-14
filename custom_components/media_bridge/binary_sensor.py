@@ -33,9 +33,9 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         self._attr_unique_id = f"{provider}-{alias}-bridge-connectivity"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"{provider}:{alias}")},
-            "name": f"{provider.upper()} Media Bridge",
-            "manufacturer": "Luigi Barretta",
-            "model": "Private Rust media bridge",
+            "name": f"Vistoda · {provider.upper()}",
+            "manufacturer": "Vistoda",
+            "model": "Private Rust bridge",
         }
 
     @property

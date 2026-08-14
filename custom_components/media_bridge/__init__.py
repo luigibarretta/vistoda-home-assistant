@@ -1,4 +1,4 @@
-"""Media Bridge integration setup."""
+"""Vistoda integration setup."""
 
 from dataclasses import dataclass
 
@@ -26,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.data[CONF_URL],
         entry.data[CONF_API_TOKEN],
     )
-    coordinator = BridgeCoordinator(hass, client, f"{entry.data[CONF_PROVIDER]} media bridge")
+    coordinator = BridgeCoordinator(hass, client, f"Vistoda {entry.data[CONF_PROVIDER]} bridge")
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BridgeRuntime(
         client=client, coordinator=coordinator

@@ -1,7 +1,8 @@
-# Home Assistant Media Bridge
+# Vistoda for Home Assistant
 
-Native Home Assistant Config Flow and entities for the provider-specific Rust
-media bridges:
+Vistoda is the native Home Assistant control plane for private, provider-specific
+Rust media bridges. The name joins *vista* and *custodia*: one guarded view over
+the cameras and intercoms that remain inside the trusted network.
 
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment today, media entities
@@ -21,19 +22,25 @@ backend consumers. Do not add a public Traefik route.
 
 The production deployment is SHA-pinned and managed by the private Ansible
 playbook `deploy-ha-media-bridge.yml`. After the play loads the component, go
-to Settings → Devices & services → Add integration → Media Bridge.
+to Settings → Devices & services → Add integration → Vistoda.
 
 The repository keeps the standard HACS integration layout and metadata for a
 possible future public release. HACS cannot install a private GitHub repository,
 so do not present the current private mirror as a HACS custom repository.
 
-For EZVIZ, enter the private bridge URL, API token and configured camera alias.
-The resulting camera uses the bridge's on-demand snapshot and MPEG-TS contract.
+For EZVIZ, enter the private bridge URL, its dedicated API token and the camera
+alias already configured in the bridge. Enroll the EZVIZ account and device
+verification code in the Rust bridge first; they do not belong in Vistoda. The
+resulting camera uses the bridge's on-demand snapshot and MPEG-TS contract.
 
 For Ring, enter the bridge connection first, then the Ring account and password
 inside the native flow. If Ring sends an SMS, enter its six-digit code within
 two minutes. An incorrect code consumes the challenge; start again instead of
 retrying. Home Assistant never persists the account password, OTP or Ring token.
+
+The internal Home Assistant domain remains `media_bridge`. This deliberately
+stable identifier preserves existing config entries, entities and automations;
+Vistoda is the user-facing product identity.
 
 ## Development
 

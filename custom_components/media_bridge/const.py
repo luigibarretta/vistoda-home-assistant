@@ -1,4 +1,4 @@
-"""Constants for Media Bridge."""
+"""Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
 PLATFORMS = ["binary_sensor", "camera"]

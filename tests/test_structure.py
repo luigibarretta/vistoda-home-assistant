@@ -16,8 +16,9 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     manifest = load(COMPONENT / "manifest.json")
     hacs = load(ROOT / "hacs.json")
     assert manifest["domain"] == "media_bridge"
+    assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.2.0"
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
 
@@ -28,6 +29,28 @@ def test_translation_error_contracts_match() -> None:
     source = load(COMPONENT / "strings.json")
     assert english["config"]["error"].keys() == italian["config"]["error"].keys()
     assert english["config"]["error"].keys() == source["config"]["error"].keys()
+
+
+def test_config_flow_guidance_is_complete_in_every_language() -> None:
+    documents = [
+        load(COMPONENT / "strings.json"),
+        load(COMPONENT / "translations" / "en.json"),
+        load(COMPONENT / "translations" / "it.json"),
+    ]
+    required_fields = {
+        "user": {"provider"},
+        "bridge": {"url", "api_token", "alias"},
+        "ring_credentials": {"email", "password"},
+        "otp": {"code"},
+        "reconfigure": {"url", "api_token", "alias"},
+    }
+    for document in documents:
+        assert document["title"] == "Vistoda"
+        for step_name, fields in required_fields.items():
+            step = document["config"]["step"][step_name]
+            assert step["description"].strip()
+            assert fields == step["data"].keys()
+            assert fields == step["data_description"].keys()
 
 
 def test_every_maintained_file_stays_within_250_lines() -> None:

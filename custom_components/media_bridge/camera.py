@@ -38,9 +38,9 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
         self._attr_unique_id = f"ezviz-{alias}-bridge-camera"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"ezviz:{alias}")},
-            "name": "EZVIZ Media Bridge",
+            "name": "Vistoda · EZVIZ",
             "manufacturer": "EZVIZ",
-            "model": "VTM bridge",
+            "model": "Vistoda VTM bridge",
         }
 
     async def async_camera_image(

@@ -1,26 +1,101 @@
 {
-  "title": "Media Bridge",
+  "title": "Vistoda",
   "config": {
     "step": {
-      "user": {"title": "Choose media bridge", "data": {"provider": "Provider"}},
-      "bridge": {"title": "Connect to bridge", "data": {"url": "Bridge URL", "api_token": "Bridge API token", "alias": "Device alias"}},
-      "ring_credentials": {"title": "Enroll Ring account", "data": {"email": "Ring account", "password": "Password"}},
-      "otp": {"title": "Verify Ring SMS", "data": {"code": "Verification code"}},
-      "reconfigure": {"title": "Reconfigure bridge", "data": {"url": "Bridge URL", "api_token": "Bridge API token", "alias": "Device alias"}}
+      "user": {
+        "title": "Set up Vistoda",
+        "description": "Choose the private bridge that Vistoda should connect to. EZVIZ must already be enrolled in its Rust bridge. Ring account enrollment happens later in this flow.",
+        "data": {
+          "provider": "Provider"
+        },
+        "data_description": {
+          "provider": "Select EZVIZ VTM for an enrolled EZVIZ video bridge, or Ring Intercom for a Ring bridge that you want to enroll."
+        }
+      },
+      "bridge": {
+        "title": "Connect Vistoda to the private bridge",
+        "description": "These are bridge connection values, not vendor credentials. For EZVIZ, first enroll the account and device verification code in the EZVIZ Rust bridge. For Ring, the account and password are requested on the next screen.",
+        "data": {
+          "url": "Private bridge URL",
+          "api_token": "Bridge API token",
+          "alias": "Device alias"
+        },
+        "data_description": {
+          "url": "Base HTTP or HTTPS URL reachable from Home Assistant, for example http://192.168.50.20:8787. Do not enter the Home Assistant, vendor-cloud or public Traefik URL.",
+          "api_token": "Dedicated high-entropy token configured for this Rust bridge. Do not enter an EZVIZ verification code, Ring password or vendor token.",
+          "alias": "Exact device alias configured in the bridge, for example entrance_door. Vistoda uses it to address the stream and snapshot."
+        }
+      },
+      "ring_credentials": {
+        "title": "Enroll the Ring account",
+        "description": "Vistoda forwards these credentials once to your private Ring bridge over the configured connection. Home Assistant does not save them. Ring may then send an SMS code.",
+        "data": {
+          "email": "Ring account email",
+          "password": "Ring account password"
+        },
+        "data_description": {
+          "email": "Email address used to sign in to the Ring app. Do not enter a Home Assistant user or bridge account.",
+          "password": "Current password for that Ring account. It is sent once to the private bridge and is never persisted in the Home Assistant config entry."
+        }
+      },
+      "otp": {
+        "title": "Verify the Ring SMS",
+        "description": "Enter the six-digit code from Ring within two minutes. The challenge is single-use: a wrong or expired code requires restarting enrollment.",
+        "data": {
+          "code": "Six-digit SMS code"
+        },
+        "data_description": {
+          "code": "Use only the newest SMS sent by Ring for this enrollment. This is not an EZVIZ device verification code or a bridge API token."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Vistoda",
+        "description": "Update how Home Assistant reaches the private bridge. The vendor account session remains owned by the bridge and is not changed here.",
+        "data": {
+          "url": "Private bridge URL",
+          "api_token": "Bridge API token",
+          "alias": "Device alias"
+        },
+        "data_description": {
+          "url": "New base URL reachable from Home Assistant, without credentials or an API path.",
+          "api_token": "Dedicated API token currently configured by the private Rust bridge.",
+          "alias": "Exact device alias currently configured in the bridge. Changing it may change which stream Vistoda requests."
+        }
+      }
     },
     "error": {
-      "cannot_connect": "Cannot connect to the bridge.",
-      "cannot_connect_restart": "Verification could not complete. Start a fresh enrollment.",
-      "invalid_url": "Enter a plain HTTP or HTTPS bridge URL without credentials or paths.",
-      "invalid_bridge_auth": "The bridge API token is invalid.",
-      "invalid_auth": "Ring rejected the account credentials.",
-      "invalid_otp_restart": "Ring rejected the code. Start a fresh enrollment; the old challenge was consumed.",
+      "cannot_connect": "Cannot connect to the bridge. Check its private address, port, service status and firewall access from Home Assistant.",
+      "cannot_connect_restart": "Verification could not complete. Check the bridge connection and start a fresh enrollment.",
+      "invalid_url": "Enter a base HTTP or HTTPS bridge URL without credentials or API paths.",
+      "invalid_bridge_auth": "The bridge API token is invalid. Use the dedicated token configured in the Rust bridge.",
+      "invalid_auth": "Ring rejected the account email or password.",
+      "invalid_otp_restart": "Ring rejected the code. Start a fresh enrollment; the old single-use challenge was consumed.",
       "enrollment_busy": "Another enrollment is active on this bridge.",
       "enrollment_expired": "The enrollment expired or was consumed. Start again.",
       "rate_limited": "The bridge or Ring is rate limiting enrollment. Wait before trying again."
     },
-    "abort": {"already_configured": "This bridge device is already configured."}
+    "abort": {
+      "already_configured": "This bridge device is already configured in Vistoda."
+    }
   },
-  "selector": {"provider": {"options": {"ezviz": "EZVIZ VTM", "ring": "Ring Intercom"}}},
-  "entity": {"binary_sensor": {"connectivity": {"name": "Connection"}}, "camera": {"live": {"name": "Live"}}}
+  "selector": {
+    "provider": {
+      "options": {
+        "ezviz": "EZVIZ VTM",
+        "ring": "Ring Intercom"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Connection"
+      }
+    },
+    "camera": {
+      "live": {
+        "name": "Live"
+      }
+    }
+  }
 }
