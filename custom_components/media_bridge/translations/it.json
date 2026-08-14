@@ -1,0 +1,26 @@
+{
+  "title": "Media Bridge",
+  "config": {
+    "step": {
+      "user": {"title": "Scegli il media bridge", "data": {"provider": "Provider"}},
+      "bridge": {"title": "Connetti il bridge", "data": {"url": "URL del bridge", "api_token": "Token API del bridge", "alias": "Alias dispositivo"}},
+      "ring_credentials": {"title": "Registra l'account Ring", "data": {"email": "Account Ring", "password": "Password"}},
+      "otp": {"title": "Verifica SMS Ring", "data": {"code": "Codice di verifica"}},
+      "reconfigure": {"title": "Riconfigura il bridge", "data": {"url": "URL del bridge", "api_token": "Token API del bridge", "alias": "Alias dispositivo"}}
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi al bridge.",
+      "cannot_connect_restart": "Verifica non completata. Avvia una nuova registrazione.",
+      "invalid_url": "Inserisci un URL HTTP o HTTPS senza credenziali o percorsi.",
+      "invalid_bridge_auth": "Il token API del bridge non è valido.",
+      "invalid_auth": "Ring ha rifiutato le credenziali dell'account.",
+      "invalid_otp_restart": "Ring ha rifiutato il codice. La verifica era monouso: ricomincia.",
+      "enrollment_busy": "Sul bridge è già in corso un'altra registrazione.",
+      "enrollment_expired": "La registrazione è scaduta o è già stata usata. Ricomincia.",
+      "rate_limited": "Il bridge o Ring limita i tentativi. Attendi prima di riprovare."
+    },
+    "abort": {"already_configured": "Questo dispositivo bridge è già configurato."}
+  },
+  "selector": {"provider": {"options": {"ezviz": "EZVIZ VTM", "ring": "Ring Intercom"}}},
+  "entity": {"binary_sensor": {"connectivity": {"name": "Connessione"}}, "camera": {"live": {"name": "Live"}}}
+}

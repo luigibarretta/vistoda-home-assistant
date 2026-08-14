@@ -1,0 +1,51 @@
+{
+  "title": "Media Bridge",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose media bridge",
+        "description": "Choose the provider-specific private Rust bridge.",
+        "data": {"provider": "Provider"}
+      },
+      "bridge": {
+        "title": "Connect to bridge",
+        "description": "The API token authenticates Home Assistant to the private bridge. Vendor credentials are not stored in this entry.",
+        "data": {"url": "Bridge URL", "api_token": "Bridge API token", "alias": "Device alias"}
+      },
+      "ring_credentials": {
+        "title": "Enroll Ring account",
+        "description": "Credentials are sent once to the private bridge and are never saved by Home Assistant.",
+        "data": {"email": "Ring account", "password": "Password"}
+      },
+      "otp": {
+        "title": "Verify Ring SMS",
+        "description": "Enter the six-digit SMS code. The challenge is single-use, including after an incorrect code.",
+        "data": {"code": "Verification code"}
+      },
+      "reconfigure": {
+        "title": "Reconfigure bridge",
+        "description": "Update local bridge access without changing the vendor-owned session.",
+        "data": {"url": "Bridge URL", "api_token": "Bridge API token", "alias": "Device alias"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the bridge.",
+      "cannot_connect_restart": "Verification could not complete. Start a fresh enrollment.",
+      "invalid_url": "Enter a plain HTTP or HTTPS bridge URL without credentials or paths.",
+      "invalid_bridge_auth": "The bridge API token is invalid.",
+      "invalid_auth": "Ring rejected the account credentials.",
+      "invalid_otp_restart": "Ring rejected the code. Start a fresh enrollment; the old challenge was consumed.",
+      "enrollment_busy": "Another enrollment is active on this bridge.",
+      "enrollment_expired": "The enrollment expired or was consumed. Start again.",
+      "rate_limited": "The bridge or Ring is rate limiting enrollment. Wait before trying again."
+    },
+    "abort": {"already_configured": "This bridge device is already configured."}
+  },
+  "selector": {
+    "provider": {"options": {"ezviz": "EZVIZ VTM", "ring": "Ring Intercom"}}
+  },
+  "entity": {
+    "binary_sensor": {"connectivity": {"name": "Connection"}},
+    "camera": {"live": {"name": "Live"}}
+  }
+}
