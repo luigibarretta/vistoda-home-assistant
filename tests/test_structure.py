@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.4.1"
+    assert manifest["version"] == "0.4.2"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -108,10 +108,10 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "vol.Length(min=1, max=65536)" in websocket
 
 
-def test_ring_can_link_to_one_explicit_ha_device() -> None:
-    setup = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
+def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     sensor = (COMPONENT / "binary_sensor.py").read_text(encoding="utf-8")
-    assert "CONF_LINKED_DEVICE_IDS" in setup
-    assert "approved {provider} device link is invalid" in setup
+    assert '"identifiers": {(DOMAIN, f"{provider}:{alias}")}' in sensor
+    assert '_attr_name = "Audio Vistoda"' in sensor
+    assert 'self._attr_device_info["configuration_url"]' in sensor
     assert '"panel_path": "/vistoda-ring"' in sensor
     assert '"full_duplex": "true"' in sensor

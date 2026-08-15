@@ -63,7 +63,7 @@ export class RingAudioSession {
       this.onState({ phase: "active", mode });
     } catch (error) {
       await this.deleteRemote();
-      this.disposePeer();
+      await this.disposePeer();
       if (error?.code === "cooldown") {
         this.cooldownUntil = Date.now() + COOLDOWN_MS;
         this.startCooldown("Ring sta chiudendo la sessione precedente");
@@ -164,7 +164,7 @@ export class RingAudioSession {
   async performStop(message) {
     const hadSession = Boolean(this.remoteId);
     await this.deleteRemote();
-    this.disposePeer();
+    await this.disposePeer();
     if (!hadSession) return this.onState({ phase: "idle", message });
     this.cooldownUntil = Date.now() + COOLDOWN_MS;
     this.startCooldown(message);
@@ -183,13 +183,13 @@ export class RingAudioSession {
     } catch (_error) {}
   }
 
-  disposePeer() {
+  async disposePeer() {
     clearTimeout(this.expiry);
     const pc = this.pc;
     this.pc = null;
     pc?.close();
     this.sender = null;
-    this.localMedia?.release();
+    await this.localMedia?.release();
     this.localMedia = null;
     this.audio.srcObject = null;
     this.mode = null;

@@ -39,11 +39,11 @@ audio or negotiating a second Ring session. After an explicit stop, the panel
 shows the bounded provider cooldown and re-enables both start controls when it
 expires instead of failing an immediate restart opaquely.
 
-An optional, explicitly configured Home Assistant device ID lets the
-connectivity entity join the existing provider device. The ID is validated
-against a config entry for that provider; Vistoda never guesses by name. This
-keeps the diagnostic entity visible on the physical Ring device while the
-interactive microphone remains correctly owned by the browser panel.
+The Vistoda Ring device owns a diagnostic **Audio Vistoda** connectivity entity
+and links to the provider-specific panel through its configuration URL. It is
+kept separate from the official Ring integration device because the two config
+entries have different ownership and lifecycle. The interactive microphone
+remains correctly owned by the browser panel.
 
 The JavaScript asset is shipped inside the custom component, served by an
 async static path and registered through Home Assistant's supported

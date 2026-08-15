@@ -27,11 +27,10 @@ after its button is pressed and keeps inbound audio active. Switching modes
 replaces the local track inside the existing call. Sessions stop after two
 minutes, show Ring's short restart cooldown and are never recorded.
 
-Deployments may explicitly link the Vistoda connectivity entity to an existing
-Home Assistant Ring device ID. Vistoda validates provider ownership and never
-guesses a target by its friendly name. The interactive audio remains a panel
-because microphone capture requires a browser gesture; it cannot be modeled as
-a background Home Assistant button entity safely.
+The **Vistoda · RING** device owns an **Audio Vistoda** diagnostic entity and a
+link to the provider-specific panel. It deliberately remains separate from the
+official Ring integration device: microphone capture requires a browser
+gesture and cannot be modeled as a background Home Assistant button safely.
 
 ## Installation
 

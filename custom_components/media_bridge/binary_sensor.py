@@ -35,15 +35,12 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         alias = entry.data[CONF_ALIAS]
         self._attr_unique_id = f"{provider}-{alias}-bridge-connectivity"
         local = provider == PROVIDER_BLINK
-        if runtime.linked_identifiers:
-            self._attr_device_info = {"identifiers": runtime.linked_identifiers}
-        else:
-            self._attr_device_info = {
-                "identifiers": {(DOMAIN, f"{provider}:{alias}")},
-                "name": f"Vistoda · {provider.upper()}",
-                "manufacturer": "Vistoda",
-                "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
-            }
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{provider}:{alias}")},
+            "name": f"Vistoda · {provider.upper()}",
+            "manufacturer": "Vistoda",
+            "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
+        }
         if runtime.panel_url:
             self._attr_device_info["configuration_url"] = runtime.panel_url
 

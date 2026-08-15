@@ -1,4 +1,4 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.4.1";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.4.2";
 
 class VistodaPanel extends HTMLElement {
   constructor() {
