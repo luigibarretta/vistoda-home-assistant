@@ -50,10 +50,15 @@ class BridgeRuntime:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Load optional secret bootstrap tokens for zero-copy discovery."""
+    from .panel import async_register as async_register_panel
+    from .websocket import async_register as async_register_websocket
+
     settings = config.get(DOMAIN, {})
     hass.data.setdefault(DOMAIN, {})[CONF_DISCOVERY_TOKENS] = settings.get(
         CONF_DISCOVERY_TOKENS, {}
     )
+    await async_register_panel(hass)
+    async_register_websocket(hass)
     return True
 
 

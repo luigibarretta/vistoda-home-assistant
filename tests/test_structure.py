@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.3.2"
+    assert manifest["version"] == "0.4.0"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -86,3 +86,16 @@ def test_every_flow_path_supplies_required_translation_placeholders() -> None:
     assert source.count("self._set_flow_title()") == 4
     assert 'self.context["title_placeholders"] = {"name": name}' in source
     assert 'description_placeholders={"provider": self._provider.upper()}' in source
+
+
+def test_ring_panel_has_private_authenticated_boundaries() -> None:
+    manifest = load(COMPONENT / "manifest.json")
+    panel = (COMPONENT / "frontend" / "vistoda-panel.js").read_text(encoding="utf-8")
+    websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
+    assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
+    assert "getUserMedia" in panel
+    assert 'mode === "talk"' in panel
+    assert "media_bridge/ring/session/delete" in panel
+    assert "api_token" not in panel
+    assert "Authorization" not in panel
+    assert "vol.Length(min=1, max=65536)" in websocket

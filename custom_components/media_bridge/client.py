@@ -18,11 +18,12 @@ from .errors import (
     InvalidVendorAuthError,
     RateLimitedError,
 )
-from .models import BridgeHealth, Enrollment
+from .models import AudioSession, BridgeHealth, Enrollment, IceCandidate
 
 JSON_LIMIT = 64 * 1024
 IMAGE_LIMIT = 12 * 1024 * 1024
 TIMEOUT = ClientTimeout(total=20, connect=5)
+SESSION_TIMEOUT = ClientTimeout(total=30, connect=5)
 
 
 class BridgeClient:
@@ -70,6 +71,23 @@ class BridgeClient:
             if response.status not in (204, 404):
                 self._raise_status(response.status)
 
+    async def start_ring_audio(self, alias: str, offer_sdp: str, mode: str) -> AudioSession:
+        payload = await self._json(
+            "POST",
+            f"/v1/devices/{quote(alias, safe='')}/audio/sessions",
+            json={"offer_sdp": offer_sdp, "mode": mode},
+            timeout=SESSION_TIMEOUT,
+        )
+        return parse_audio_session(payload)
+
+    async def stop_ring_audio(self, alias: str, session_id: str) -> None:
+        path = f"/v1/devices/{quote(alias, safe='')}/audio/sessions/{quote(session_id, safe='')}"
+        response = await self._request("DELETE", path)
+        async with response:
+            await self._bounded(response, JSON_LIMIT)
+            if response.status != 204:
+                self._raise_status(response.status)
+
     async def snapshot(self, alias: str) -> bytes:
         response = await self._request("GET", f"/v1/cameras/{quote(alias, safe='')}/snapshot.jpg")
         async with response:
@@ -104,9 +122,10 @@ class BridgeClient:
 
     async def _request(self, method: str, path: str, *, authenticated: bool = True, **kwargs: Any):
         headers = {"Authorization": f"Bearer {self._token}"} if authenticated else {}
+        timeout = kwargs.pop("timeout", TIMEOUT)
         try:
             return await self._session.request(
-                method, f"{self.base_url}{path}", headers=headers, timeout=TIMEOUT, **kwargs
+                method, f"{self.base_url}{path}", headers=headers, timeout=timeout, **kwargs
             )
         except (ClientError, TimeoutError) as error:
             raise CannotConnectError from error
@@ -175,3 +194,38 @@ def error_code(body: bytes) -> str:
     except (ValueError, TypeError):
         return ""
     return payload.get("error", "") if isinstance(payload, dict) else ""
+
+
+def parse_audio_session(payload: dict[str, Any]) -> AudioSession:
+    try:
+        raw_candidates = payload["ice_candidates"]
+        candidates = tuple(
+            IceCandidate(
+                candidate=str(item["candidate"]),
+                sdp_mline_index=int(item["sdp_mline_index"]),
+            )
+            for item in raw_candidates
+        )
+        result = AudioSession(
+            session_id=str(payload["session_id"]),
+            answer_sdp=str(payload["answer_sdp"]),
+            ice_candidates=candidates,
+            expires_in=int(payload["expires_in"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise CannotConnectError from error
+    if (
+        not result.session_id
+        or not result.answer_sdp.startswith("v=0")
+        or len(result.answer_sdp) > JSON_LIMIT
+        or len(result.ice_candidates) > 64
+        or not 1 <= result.expires_in <= 120
+        or any(
+            not candidate.candidate
+            or len(candidate.candidate) > 4096
+            or not 0 <= candidate.sdp_mline_index <= 16
+            for candidate in result.ice_candidates
+        )
+    ):
+        raise CannotConnectError
+    return result

@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from custom_components.media_bridge.client import BridgeClient, normalize_url
-from custom_components.media_bridge.errors import InvalidOtpError
+from custom_components.media_bridge.client import BridgeClient, normalize_url, parse_audio_session
+from custom_components.media_bridge.errors import CannotConnectError, InvalidOtpError
 
 
 class FakeContent:
@@ -77,6 +77,51 @@ def test_stream_url_uses_basic_auth_without_mutating_base_url() -> None:
         "http://homeassistant:token%2Fvalue@[fd00::1]:8765/v1/cameras/front-door/live.ts"
     )
     assert client.base_url == "http://[fd00::1]:8765"
+
+
+@pytest.mark.asyncio
+async def test_ring_audio_session_is_bounded_and_token_stays_in_header() -> None:
+    session = FakeSession(
+        [
+            response(
+                201,
+                {
+                    "session_id": "synthetic",
+                    "answer_sdp": "v=0\r\nm=audio 9 RTP/AVP 0\r\na=sendrecv\r\n",
+                    "ice_candidates": [{"candidate": "candidate:synthetic", "sdp_mline_index": 0}],
+                    "expires_in": 120,
+                },
+            )
+        ]
+    )
+    client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
+    negotiated = await client.start_ring_audio("entrance", "v=0", "listen")
+    assert negotiated.session_id == "synthetic"
+    assert session.requests[0][1].endswith("/v1/devices/entrance/audio/sessions")
+    assert session.requests[0][2]["headers"]["Authorization"] == f"Bearer {'x' * 32}"
+    assert "x" * 32 not in session.requests[0][1]
+
+
+@pytest.mark.asyncio
+async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
+    session = FakeSession([FakeResponse(204, b"")])
+    client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
+    await client.stop_ring_audio("entrance", "synthetic")
+    assert session.requests[0][0] == "DELETE"
+
+
+def test_ring_audio_response_rejects_oversized_candidate_sets() -> None:
+    with pytest.raises(CannotConnectError):
+        parse_audio_session(
+            {
+                "session_id": "synthetic",
+                "answer_sdp": "v=0\r\n",
+                "ice_candidates": [
+                    {"candidate": f"candidate:{index}", "sdp_mline_index": 0} for index in range(65)
+                ],
+                "expires_in": 120,
+            }
+        )
 
 
 @pytest.mark.parametrize(
