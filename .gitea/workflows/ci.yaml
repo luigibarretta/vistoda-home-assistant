@@ -19,3 +19,4 @@ jobs:
       - run: python -m compileall -q custom_components tests scripts
       - run: python scripts/check_loc.py
       - run: python -m pytest
+      - run: node --test tests/ring_audio_session.mjs

@@ -7,8 +7,8 @@ the cameras and intercoms that remain inside the trusted network.
 - Blink local adapter: adopts the already authenticated Home Assistant relay
   and its existing live camera entities without a second login or duplicates;
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
-- Ring Intercom Bridge: secure password/SMS enrollment plus explicit listen and
-  talk actions in the local Vistoda panel.
+- Ring Intercom Bridge: secure password/SMS enrollment plus listen-only and
+  full-duplex conversation in the local **Vistoda · Ring** panel.
 
 ## Security boundary
 
@@ -20,10 +20,18 @@ its rotating vendor session. There is no unlock action in this integration.
 Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
 
-The Vistoda sidebar panel proxies Ring signaling through Home Assistant's
+The Vistoda · Ring sidebar panel proxies signaling through Home Assistant's
 authenticated WebSocket. “Ascolta” sends locally generated silence and never
-opens a microphone. “Parla” requests microphone permission only after its
-button is pressed. Sessions stop after two minutes and are never recorded.
+opens a microphone. “Parla e ascolta” requests microphone permission only
+after its button is pressed and keeps inbound audio active. Switching modes
+replaces the local track inside the existing call. Sessions stop after two
+minutes, show Ring's short restart cooldown and are never recorded.
+
+Deployments may explicitly link the Vistoda connectivity entity to an existing
+Home Assistant Ring device ID. Vistoda validates provider ownership and never
+guesses a target by its friendly name. The interactive audio remains a panel
+because microphone capture requires a browser gesture; it cannot be modeled as
+a background Home Assistant button entity safely.
 
 ## Installation
 

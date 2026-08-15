@@ -1,8 +1,9 @@
 """Bridge availability entity."""
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -24,7 +25,9 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
     """Report whether the private bridge answers its health contract."""
 
     _attr_has_entity_name = True
-    _attr_name = "Connessione"
+    _attr_name = "Audio Vistoda"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, runtime: BridgeRuntime, entry: ConfigEntry) -> None:
         super().__init__(runtime.coordinator)
@@ -32,12 +35,17 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         alias = entry.data[CONF_ALIAS]
         self._attr_unique_id = f"{provider}-{alias}-bridge-connectivity"
         local = provider == PROVIDER_BLINK
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{provider}:{alias}")},
-            "name": f"Vistoda · {provider.upper()}",
-            "manufacturer": "Vistoda",
-            "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
-        }
+        if runtime.linked_identifiers:
+            self._attr_device_info = {"identifiers": runtime.linked_identifiers}
+        else:
+            self._attr_device_info = {
+                "identifiers": {(DOMAIN, f"{provider}:{alias}")},
+                "name": f"Vistoda · {provider.upper()}",
+                "manufacturer": "Vistoda",
+                "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
+            }
+        if runtime.panel_url:
+            self._attr_device_info["configuration_url"] = runtime.panel_url
 
     @property
     def is_on(self) -> bool:
@@ -48,4 +56,13 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, str]:
         """Expose only non-secret version metadata."""
         key = "cameras" if self._attr_unique_id.startswith("blink-") else "version"
-        return {key: self.coordinator.data or "unknown"}
+        attributes = {key: self.coordinator.data or "unknown"}
+        if self._attr_unique_id.startswith("ring-"):
+            attributes.update(
+                {
+                    "panel_path": "/vistoda-ring",
+                    "audio_modes": "listen,talk",
+                    "full_duplex": "true",
+                }
+            )
+        return attributes

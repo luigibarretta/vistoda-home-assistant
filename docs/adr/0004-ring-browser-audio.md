@@ -19,18 +19,31 @@ delete it idempotently. The Python backend resolves the config entry, reads the
 private client already owned by the integration and proxies only bounded SDP,
 ICE and lifecycle data. It never returns bridge URL, token or Ring identity.
 
-The panel exposes two distinct actions:
+The provider-specific **Vistoda · Ring** panel exposes two distinct actions:
 
 - **Ascolta** generates a zero-gain local audio track and never requests a
   microphone;
-- **Parla** calls `getUserMedia` only inside the click handler and applies echo
-  cancellation, noise suppression and automatic gain control.
+- **Parla e ascolta** calls `getUserMedia` only inside the click handler and
+  applies echo cancellation, noise suppression and automatic gain control.
 
 Both actions create one `sendrecv` PCMU transceiver because that is the Ring
 transport proven by the owned-device canary. The panel fully gathers local ICE,
 submits the offer through Home Assistant, applies the answer and bounded remote
 candidates, and attempts delete after stop, failure, disconnect or expiry. A
 session lasts at most 120 seconds.
+
+The user may switch between listen-only and full-duplex conversation inside
+the same call. The browser uses `RTCRtpSender.replaceTrack` to replace the
+silent track with the microphone, or vice versa, without dropping inbound
+audio or negotiating a second Ring session. After an explicit stop, the panel
+shows the bounded provider cooldown and re-enables both start controls when it
+expires instead of failing an immediate restart opaquely.
+
+An optional, explicitly configured Home Assistant device ID lets the
+connectivity entity join the existing provider device. The ID is validated
+against a config entry for that provider; Vistoda never guesses by name. This
+keeps the diagnostic entity visible on the physical Ring device while the
+interactive microphone remains correctly owned by the browser panel.
 
 The JavaScript asset is shipped inside the custom component, served by an
 async static path and registered through Home Assistant's supported

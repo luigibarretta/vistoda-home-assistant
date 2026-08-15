@@ -8,6 +8,7 @@ CONF_URL = "url"
 CONF_API_TOKEN = "api_token"
 CONF_ALIAS = "alias"
 CONF_DISCOVERY_TOKENS = "discovery_tokens"
+CONF_LINKED_DEVICE_IDS = "linked_device_ids"
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"

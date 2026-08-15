@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.4.0"
+    assert manifest["version"] == "0.4.1"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -91,11 +91,27 @@ def test_every_flow_path_supplies_required_translation_placeholders() -> None:
 def test_ring_panel_has_private_authenticated_boundaries() -> None:
     manifest = load(COMPONENT / "manifest.json")
     panel = (COMPONENT / "frontend" / "vistoda-panel.js").read_text(encoding="utf-8")
+    session = (COMPONENT / "frontend" / "ring-audio-session.js").read_text(encoding="utf-8")
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
     assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
-    assert "getUserMedia" in panel
-    assert 'mode === "talk"' in panel
-    assert "media_bridge/ring/session/delete" in panel
+    assert "Vistoda · Ring" in panel
+    assert "Parla e ascolta" in panel
+    assert "getUserMedia" in session
+    assert "replaceTrack" in session
+    assert 'direction: "sendrecv"' in session
+    assert "media_bridge/ring/session/delete" in session
+    assert "COOLDOWN_MS" in session
     assert "api_token" not in panel
     assert "Authorization" not in panel
+    assert "api_token" not in session
+    assert "Authorization" not in session
     assert "vol.Length(min=1, max=65536)" in websocket
+
+
+def test_ring_can_link_to_one_explicit_ha_device() -> None:
+    setup = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
+    sensor = (COMPONENT / "binary_sensor.py").read_text(encoding="utf-8")
+    assert "CONF_LINKED_DEVICE_IDS" in setup
+    assert "approved {provider} device link is invalid" in setup
+    assert '"panel_path": "/vistoda-ring"' in sensor
+    assert '"full_duplex": "true"' in sensor

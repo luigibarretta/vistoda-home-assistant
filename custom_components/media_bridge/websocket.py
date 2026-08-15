@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
-from .errors import BridgeError, EnrollmentBusyError
+from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 
 
 @callback
@@ -67,6 +67,9 @@ async def ws_ring_start(
         result = await runtime.client.start_ring_audio(alias, msg["offer_sdp"], msg["mode"])
     except EnrollmentBusyError:
         connection.send_error(msg["id"], "session_busy", "Ring audio is already in use")
+        return
+    except RateLimitedError:
+        connection.send_error(msg["id"], "cooldown", "Ring audio is cooling down")
         return
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "Ring audio is unavailable")
