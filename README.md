@@ -7,8 +7,8 @@ the cameras and intercoms that remain inside the trusted network.
 - Blink local adapter: adopts the already authenticated Home Assistant relay
   and its existing live camera entities without a second login or duplicates;
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
-- Ring Intercom Bridge: secure password/SMS enrollment plus listen-only and
-  full-duplex conversation in the local **Vistoda · Ring** panel.
+- Ring Intercom Bridge: secure password/SMS enrollment, one listen-first
+  full-duplex session and private import of official call recordings.
 
 ## Security boundary
 
@@ -21,14 +21,21 @@ Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
 
 The Vistoda · Ring sidebar panel proxies signaling through Home Assistant's
-authenticated WebSocket. “Ascolta” sends locally generated silence and never
-opens a microphone. “Parla e ascolta” requests microphone permission only
-after its button is pressed and keeps inbound audio active. Switching modes
-replaces the local track inside the existing call. Sessions stop after two
-minutes, show Ring's short restart cooldown and are never recorded.
+authenticated WebSocket. **Avvia comunicazione** sends locally generated
+silence and never opens a microphone. **Attiva microfono** requests permission
+only after its button is pressed. Disabling it replaces the captured track with
+silence and releases the microphone without ending inbound audio.
 
-The **Vistoda · RING** device owns an **Audio Vistoda** diagnostic entity and a
-link to the provider-specific panel. It deliberately remains separate from the
+The official Ring integration's ding event can call
+`media_bridge.import_ring_recording`. Vistoda queues a bounded post-call import
+from Ring's official Call Recording feature; it never opens a competing live
+session. The private bridge stores only completed MP4 recordings for 30 days,
+up to 512 MiB. Ring Call Recording must be enabled in the Ring app and may
+require an eligible subscription; Ring plays its recording notice before the
+conversation begins.
+
+The **Vistoda · RING** device owns **Audio Vistoda** and a recording inventory
+sensor, plus a link to the provider-specific panel. It remains separate from the
 official Ring integration device: microphone capture requires a browser
 gesture and cannot be modeled as a background Home Assistant button safely.
 

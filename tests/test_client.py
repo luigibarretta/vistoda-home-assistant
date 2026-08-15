@@ -110,6 +110,37 @@ async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
     assert session.requests[0][0] == "DELETE"
 
 
+@pytest.mark.asyncio
+async def test_ring_recording_import_and_inventory_are_private() -> None:
+    session = FakeSession(
+        [
+            response(202, {"import_id": "synthetic", "state": "pending"}),
+            response(
+                200,
+                {
+                    "recordings": [
+                        {
+                            "recording_id": "recording-1",
+                            "event_at": 1786800000,
+                            "saved_at": 1786800010,
+                            "bytes": 2048,
+                            "media_type": "audio/mp4",
+                        }
+                    ]
+                },
+            ),
+        ]
+    )
+    client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
+    assert await client.import_ring_recording("entrance", 1786800000) == "synthetic"
+    recordings = await client.ring_recordings("entrance")
+    assert recordings[0].bytes == 2048
+    assert all(
+        request[2]["headers"]["Authorization"].startswith("Bearer ") for request in session.requests
+    )
+    assert all("x" * 32 not in request[1] for request in session.requests)
+
+
 def test_ring_audio_response_rejects_oversized_candidate_sets() -> None:
     with pytest.raises(CannotConnectError):
         parse_audio_session(

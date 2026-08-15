@@ -115,6 +115,11 @@
       "live": {
         "name": "Live"
       }
+    },
+    "sensor": {
+      "recordings": {
+        "name": "Registrazioni chiamate"
+      }
     }
   }
 }

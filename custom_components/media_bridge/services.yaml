@@ -1,0 +1,14 @@
+import_ring_recording:
+  name: Import Ring call recording
+  description: Queue the official Ring recording associated with a recent intercom ding.
+  fields:
+    triggered_at:
+      name: Ding timestamp
+      description: Unix timestamp of the Ring intercom ding event.
+      required: true
+      example: 1786800000
+      selector:
+        number:
+          min: 0
+          max: 4102444800
+          mode: box

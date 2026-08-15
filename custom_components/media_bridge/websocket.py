@@ -18,6 +18,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_ring_info)
     websocket_api.async_register_command(hass, ws_ring_start)
     websocket_api.async_register_command(hass, ws_ring_stop)
+    websocket_api.async_register_command(hass, ws_ring_recordings)
 
 
 @websocket_api.websocket_command({vol.Required("type"): "media_bridge/ring/info"})
@@ -125,3 +126,41 @@ def resolve_ring(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str
     ):
         return None
     return runtime, entry.data[CONF_ALIAS]
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ring/recordings/list",
+        vol.Required("entry_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_ring_recordings(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return bounded archive metadata without bridge credentials or URLs."""
+    resolved = resolve_ring(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        recordings = await runtime.client.ring_recordings(alias)
+    except BridgeError:
+        connection.send_error(msg["id"], "unavailable", "Ring archive is unavailable")
+        return
+    connection.send_result(
+        msg["id"],
+        {
+            "recordings": [
+                {
+                    "recording_id": item.recording_id,
+                    "event_at": item.event_at,
+                    "bytes": item.bytes,
+                }
+                for item in recordings
+            ]
+        },
+    )

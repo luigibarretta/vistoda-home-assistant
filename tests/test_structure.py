@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.4.2"
+    assert manifest["version"] == "0.5.0"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -95,7 +95,9 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
     assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
     assert "Vistoda · Ring" in panel
-    assert "Parla e ascolta" in panel
+    assert "Avvia comunicazione" in panel
+    assert "Attiva microfono" in panel
+    assert "Archivio chiamate" in panel
     assert "getUserMedia" in session
     assert "replaceTrack" in session
     assert 'direction: "sendrecv"' in session
@@ -106,6 +108,16 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "api_token" not in session
     assert "Authorization" not in session
     assert "vol.Length(min=1, max=65536)" in websocket
+    assert "media_bridge/ring/recordings/list" in websocket
+
+
+def test_ring_recording_service_is_bounded_and_visible() -> None:
+    service = (COMPONENT / "services.py").read_text(encoding="utf-8")
+    definition = (COMPONENT / "services.yaml").read_text(encoding="utf-8")
+    assert definition.startswith("import_ring_recording:\n")
+    assert 'SERVICE_IMPORT_RING_RECORDING = "import_ring_recording"' in service
+    assert 'vol.Required("triggered_at")' in service
+    assert "api_token" not in service
 
 
 def test_ring_device_exposes_its_panel_and_audio_contract() -> None:

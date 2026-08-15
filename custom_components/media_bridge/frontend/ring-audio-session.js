@@ -148,13 +148,6 @@ export class RingAudioSession {
     if (["failed", "closed"].includes(state)) this.stop("Connessione terminata");
   }
 
-  toggleMute() {
-    const track = this.localMedia?.stream.getAudioTracks()[0];
-    if (!track || this.mode !== "talk") return true;
-    track.enabled = !track.enabled;
-    return !track.enabled;
-  }
-
   stop(message = "Sessione terminata") {
     if (this.stopping) return this.stopping;
     this.stopping = this.performStop(message).finally(() => { this.stopping = null; });

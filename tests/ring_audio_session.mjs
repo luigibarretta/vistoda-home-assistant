@@ -37,3 +37,28 @@ test("listen upgrades to full duplex without replacing the peer", async () => {
   assert.equal(silent.track.stopped, true);
   assert.deepEqual(states.at(-1), { phase: "active", mode: "talk" });
 });
+
+test("disabling the microphone returns to silence and releases capture", async () => {
+  const session = new RingAudioSession({}, {}, {}, () => {});
+  const microphone = media("microphone");
+  const silence = media("silence");
+  let replacement = null;
+  session.pc = { identity: "same-call" };
+  session.sender = { replaceTrack: async (track) => { replacement = track; } };
+  session.localMedia = {
+    stream: microphone.stream,
+    release: async () => microphone.track.stop(),
+  };
+  session.mode = "talk";
+  session.createMedia = async () => ({
+    stream: silence.stream,
+    release: async () => silence.track.stop(),
+  });
+
+  await session.switchMode("listen");
+
+  assert.equal(session.mode, "listen");
+  assert.equal(replacement, silence.track);
+  assert.equal(microphone.track.stopped, true);
+  assert.equal(session.pc.identity, "same-call");
+});

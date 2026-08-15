@@ -1,4 +1,4 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.4.2";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.5.0";
 
 class VistodaPanel extends HTMLElement {
   constructor() {
@@ -46,6 +46,8 @@ class VistodaPanel extends HTMLElement {
         button:disabled { opacity:.48; cursor:not-allowed; }
         .privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid var(--divider-color);
           color:var(--secondary-text-color); font-size:14px; line-height:1.5; }
+        .archive { margin-top:16px; display:flex; justify-content:space-between; gap:16px; align-items:center; }
+        .archive strong { font-size:18px; } .archive p { margin:4px 0 0; }
         audio { width:100%; height:0; display:block; }
         @media (max-width:520px) { main{padding:18px 12px 36px}.card{padding:18px}.actions{grid-template-columns:1fr} }
       </style>
@@ -62,22 +64,24 @@ class VistodaPanel extends HTMLElement {
           </div>
           <div class="status"><span class="dot" id="dot"></span><span id="status">Pronto</span></div>
           <div class="actions">
-            <button class="primary" id="listen">Ascolta</button>
-            <button class="talk" id="talk">Parla e ascolta</button>
-            <button id="mute" hidden>Disattiva microfono</button>
+            <button class="primary" id="start">Avvia comunicazione</button>
+            <button class="talk" id="microphone" disabled>Attiva microfono</button>
             <button id="stop" disabled>Termina</button>
           </div>
-          <p class="privacy">Puoi passare da ascolto a conversazione senza interrompere la chiamata.
-            Il microfono viene richiesto solo con “Parla e ascolta”; Vistoda non registra l’audio.
-            Dopo “Termina” il breve conto alla rovescia protegge il servizio Ring da chiamate ripetute.</p>
+          <p class="privacy">La sessione parte in solo ascolto. Il browser richiede il microfono soltanto
+            quando lo attivi e lo rilascia quando torni al solo ascolto. Dopo “Termina” un breve conto alla
+            rovescia protegge Ring da chiamate ripetute.</p>
           <audio id="remote" autoplay></audio>
+        </section>
+        <section class="card archive">
+          <div><strong>Archivio chiamate</strong><p class="hint" id="archive-detail">Caricamento…</p></div>
+          <span class="badge" id="archive-count">—</span>
         </section>
       </main>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
-    this.$("listen").addEventListener("click", () => this._audio?.start("listen"));
-    this.$("talk").addEventListener("click", () => this._audio?.start("talk"));
+    this.$("start").addEventListener("click", () => this._audio?.start("listen"));
+    this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
     this.$("stop").addEventListener("click", () => this._audio?.stop());
-    this.$("mute").addEventListener("click", () => this._toggleMute());
     await this._loadEntry();
   }
 
@@ -94,6 +98,7 @@ class VistodaPanel extends HTMLElement {
         this._audio = new RingAudioSession(
           this._hass, this._entry, this.$("remote"), (state) => this._renderState(state),
         );
+        await this._loadRecordings();
       }
       this._renderState(this._entry ? { phase: "idle" } : {
         phase: "error", message: "Nessun bridge Ring configurato",
@@ -108,7 +113,6 @@ class VistodaPanel extends HTMLElement {
     const active = state.phase === "active";
     const locked = ["starting", "connecting", "switching", "cooldown"].includes(state.phase);
     const talk = active && state.mode === "talk";
-    const listen = active && state.mode === "listen";
     let message = state.message;
     if (!message && state.phase === "idle") message = "Pronto";
     if (!message && state.phase === "starting") message = state.mode === "talk"
@@ -120,18 +124,33 @@ class VistodaPanel extends HTMLElement {
       ? "Conversazione full-duplex attiva" : "Ascolto attivo";
     if (state.phase === "cooldown") message = `Nuova sessione disponibile tra ${state.seconds} s`;
     this._status(message || "Audio Ring non disponibile", active);
-    this.$("listen").disabled = !this._available || locked || listen;
-    this.$("talk").disabled = !this._available || locked || talk;
+    this.$("start").disabled = !this._available || locked || active;
+    this.$("microphone").disabled = !active || locked;
     this.$("stop").disabled = !active;
-    this.$("listen").textContent = talk ? "Solo ascolto" : listen ? "In ascolto" : "Ascolta";
-    this.$("talk").textContent = talk ? "Microfono attivo" : "Parla e ascolta";
-    this.$("mute").hidden = !talk;
-    if (!talk) this.$("mute").textContent = "Disattiva microfono";
+    this.$("start").textContent = active ? "Comunicazione attiva" : "Avvia comunicazione";
+    this.$("microphone").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
   }
 
-  _toggleMute() {
-    const muted = this._audio?.toggleMute();
-    this.$("mute").textContent = muted ? "Riattiva microfono" : "Disattiva microfono";
+  _toggleMicrophone() {
+    if (!this._audio) return;
+    this._audio.switchMode(this._audio.mode === "talk" ? "listen" : "talk");
+  }
+
+  async _loadRecordings() {
+    try {
+      const result = await this._hass.callWS({
+        type: "media_bridge/ring/recordings/list", entry_id: this._entry.entry_id,
+      });
+      const recordings = result.recordings || [];
+      this.$("archive-count").textContent = String(recordings.length);
+      const latest = recordings[0];
+      this.$("archive-detail").textContent = latest
+        ? `Ultima: ${new Date(latest.event_at * 1000).toLocaleString("it-IT")}`
+        : "Nessuna registrazione importata · conservazione 30 giorni";
+    } catch (_error) {
+      this.$("archive-count").textContent = "!";
+      this.$("archive-detail").textContent = "Archivio temporaneamente non disponibile";
+    }
   }
 
   _status(text, live = false) {
