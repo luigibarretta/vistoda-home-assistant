@@ -44,6 +44,6 @@ async def async_register(hass: HomeAssistant) -> None:
         webcomponent_name="vistoda-panel",
         sidebar_title="Vistoda · Ring",
         sidebar_icon="mdi:phone-in-talk",
-        module_url=f"{STATIC_URL}?v=0.6.4",
+        module_url=f"{STATIC_URL}?v=0.6.5",
         config_panel_domain="media_bridge",
     )

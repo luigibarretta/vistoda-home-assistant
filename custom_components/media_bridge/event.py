@@ -56,7 +56,7 @@ class RingEvent(RingFacadeEntity, EventEntity):
         restored = await super().async_get_last_state()
         source = self.source_state
         if restored is None or source is None:
-            return restored
+            return None
         return restored if timestamps_match(restored.state, source.state) else None
 
     @callback
