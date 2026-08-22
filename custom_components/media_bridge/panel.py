@@ -37,13 +37,13 @@ async def async_register(hass: HomeAssistant) -> None:
         ]
     )
     if frontend.async_panel_exists(hass, PANEL_PATH):
-        return
+        frontend.async_remove_panel(hass, PANEL_PATH)
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_PATH,
         webcomponent_name="vistoda-panel",
         sidebar_title="Vistoda · Ring",
         sidebar_icon="mdi:phone-in-talk",
-        module_url=f"{STATIC_URL}?v=0.6.3",
+        module_url=f"{STATIC_URL}?v=0.6.4",
         config_panel_domain="media_bridge",
     )
