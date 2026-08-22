@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-PLATFORMS = ["binary_sensor", "camera", "sensor"]
+PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor"]
 
 CONF_PROVIDER = "provider"
 CONF_URL = "url"

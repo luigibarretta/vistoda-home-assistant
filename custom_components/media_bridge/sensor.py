@@ -1,15 +1,23 @@
-"""Private Ring recording inventory sensor."""
+"""Private recordings and official Ring Intercom sensor facade."""
 
 from datetime import UTC, datetime
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError
+from .ring_contract import BATTERY, LAST_ACTIVITY, RingSourceSpec
+from .ring_facade import RingFacadeEntity
+
+RING_SENSORS = (
+    (BATTERY, "ring_battery", SensorDeviceClass.BATTERY),
+    (LAST_ACTIVITY, "ring_last_activity", SensorDeviceClass.TIMESTAMP),
+)
 
 
 async def async_setup_entry(
@@ -17,9 +25,66 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add an archive sensor only for Ring."""
+    """Add private archive and provider-owned Ring sensors."""
     if entry.data[CONF_PROVIDER] == PROVIDER_RING:
-        async_add_entities([RingRecordingArchive(hass.data[DOMAIN][entry.entry_id], entry)])
+        async_add_entities(
+            [RingRecordingArchive(hass.data[DOMAIN][entry.entry_id], entry)]
+            + [
+                RingOfficialSensor(hass, entry, spec, translation_key, device_class)
+                for spec, translation_key, device_class in RING_SENSORS
+            ]
+        )
+
+
+class RingOfficialSensor(RingFacadeEntity, SensorEntity):
+    """Mirror one active diagnostic from the official Ring integration."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        spec: RingSourceSpec,
+        translation_key: str,
+        device_class: SensorDeviceClass,
+    ) -> None:
+        super().__init__(hass, entry, spec)
+        self._attr_translation_key = translation_key
+        self._attr_device_class = device_class
+        if device_class == SensorDeviceClass.BATTERY:
+            self._attr_native_unit_of_measurement = "%"
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def native_value(self):
+        """Return a typed copy of the provider-owned source value."""
+        state = self.source_state
+        if state is None:
+            return None
+        if self.device_class == SensorDeviceClass.BATTERY:
+            try:
+                return int(state.state)
+            except ValueError:
+                return None
+        return dt_util.parse_datetime(state.state)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Preserve useful activity metadata and delegation evidence."""
+        attributes = super().extra_state_attributes
+        if self.device_class == SensorDeviceClass.TIMESTAMP and self.source_state:
+            attributes.update(
+                {
+                    key: value
+                    for key, value in self.source_state.attributes.items()
+                    if key
+                    not in {
+                        "friendly_name",
+                        "attribution",
+                        "device_class",
+                    }
+                }
+            )
+        return attributes
 
 
 class RingRecordingArchive(SensorEntity):

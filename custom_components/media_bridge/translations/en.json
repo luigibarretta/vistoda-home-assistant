@@ -111,12 +111,42 @@
         "name": "Connection"
       }
     },
+    "button": {
+      "ring_open_door": {
+        "name": "Open door"
+      }
+    },
     "camera": {
       "live": {
         "name": "Live"
       }
     },
+    "event": {
+      "ring_ding": {
+        "name": "Doorbell call"
+      },
+      "ring_intercom_unlock": {
+        "name": "Door unlock"
+      }
+    },
+    "number": {
+      "ring_doorbell_volume": {
+        "name": "Doorbell volume"
+      },
+      "ring_mic_volume": {
+        "name": "Microphone volume"
+      },
+      "ring_voice_volume": {
+        "name": "Voice volume"
+      }
+    },
     "sensor": {
+      "ring_battery": {
+        "name": "Battery"
+      },
+      "ring_last_activity": {
+        "name": "Last activity"
+      },
       "recordings": {
         "name": "Call recordings"
       }

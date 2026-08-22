@@ -111,12 +111,42 @@
         "name": "Connessione"
       }
     },
+    "button": {
+      "ring_open_door": {
+        "name": "Apri portone"
+      }
+    },
     "camera": {
       "live": {
         "name": "Live"
       }
     },
+    "event": {
+      "ring_ding": {
+        "name": "Chiamata al citofono"
+      },
+      "ring_intercom_unlock": {
+        "name": "Apertura portone"
+      }
+    },
+    "number": {
+      "ring_doorbell_volume": {
+        "name": "Volume citofono"
+      },
+      "ring_mic_volume": {
+        "name": "Volume microfono"
+      },
+      "ring_voice_volume": {
+        "name": "Volume voce"
+      }
+    },
     "sensor": {
+      "ring_battery": {
+        "name": "Batteria"
+      },
+      "ring_last_activity": {
+        "name": "Ultima attività"
+      },
       "recordings": {
         "name": "Registrazioni chiamate"
       }

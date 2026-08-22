@@ -8,14 +8,22 @@ the cameras and intercoms that remain inside the trusted network.
   and its existing live camera entities without a second login or duplicates;
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment, one listen-first
-  full-duplex session and private import of official call recordings.
+  full-duplex session, private import of official call recordings and a native
+  facade over the official Ring Intercom controls, sensors and events.
 
 ## Security boundary
 
 Home Assistant stores only the private bridge URL, its independent high-entropy
 API token and a device alias. Ring password and SMS code pass once from the HA
 backend to the bridge and are never saved in the config entry. The bridge owns
-its rotating vendor session. There is no unlock action in this integration.
+its rotating vendor session.
+
+Vistoda never opens a second Ring cloud control session. Its door button,
+three volume controls, battery and last-activity sensors, ding event and unlock
+event resolve the single official `ring` integration's Intercom device and
+delegate to its entities. Resolution requires exactly one Ring Intercom source
+for each capability and fails closed on missing or ambiguous sources. Door
+opening is one-shot and is never retried automatically.
 
 Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
@@ -34,10 +42,12 @@ up to 512 MiB. Ring Call Recording must be enabled in the Ring app and may
 require an eligible subscription; Ring plays its recording notice before the
 conversation begins.
 
-The **Vistoda · RING** device owns **Audio Vistoda** and a recording inventory
-sensor, plus a link to the provider-specific panel. It remains separate from the
-official Ring integration device: microphone capture requires a browser
-gesture and cannot be modeled as a background Home Assistant button safely.
+The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
+a recording inventory sensor and a link to the provider-specific panel. The
+official Ring device remains the cloud source of truth; Vistoda adds answering,
+full-duplex browser audio and the private recording workflow. Microphone capture
+requires a browser gesture and cannot be modeled as a background Home Assistant
+button safely.
 
 ## Installation
 

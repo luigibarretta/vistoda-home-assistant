@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.5.0"
+    assert manifest["version"] == "0.6.0"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -127,3 +127,19 @@ def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     assert 'self._attr_device_info["configuration_url"]' in sensor
     assert '"panel_path": "/vistoda-ring"' in sensor
     assert '"full_duplex": "true"' in sensor
+
+
+def test_ring_facade_delegates_to_the_official_integration() -> None:
+    constants = (COMPONENT / "const.py").read_text(encoding="utf-8")
+    facade = (COMPONENT / "ring_facade.py").read_text(encoding="utf-8")
+    contract = (COMPONENT / "ring_contract.py").read_text(encoding="utf-8")
+    button = (COMPONENT / "button.py").read_text(encoding="utf-8")
+    event = (COMPONENT / "event.py").read_text(encoding="utf-8")
+    assert '"button", "camera", "event", "number", "sensor"' in constants
+    assert 'candidate.platform == "ring"' in contract
+    assert 'candidate.manufacturer == "Ring"' in contract
+    assert 'candidate.model == "Intercom"' in contract
+    assert "await self.hass.services.async_call(" in facade
+    assert 'await self.call_source_service("button", "press", {})' in button
+    assert "never retry" in button
+    assert "self._trigger_event(event_type, attributes)" in event
