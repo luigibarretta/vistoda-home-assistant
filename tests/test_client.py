@@ -114,7 +114,18 @@ async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
 async def test_ring_recording_import_and_inventory_are_private() -> None:
     session = FakeSession(
         [
-            response(202, {"import_id": "synthetic", "state": "pending"}),
+            response(
+                202,
+                {"import_id": "synthetic", "state": "pending", "recording_id": None},
+            ),
+            response(
+                200,
+                {
+                    "import_id": "synthetic",
+                    "state": "complete",
+                    "recording_id": "recording-1",
+                },
+            ),
             response(
                 200,
                 {
@@ -132,7 +143,10 @@ async def test_ring_recording_import_and_inventory_are_private() -> None:
         ]
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    assert await client.import_ring_recording("entrance", 1786800000) == "synthetic"
+    recording_import = await client.import_ring_recording("entrance", 1786800000)
+    assert recording_import.import_id == "synthetic"
+    status = await client.ring_recording_import("entrance", recording_import.import_id)
+    assert status.state == "complete"
     recordings = await client.ring_recordings("entrance")
     assert recordings[0].bytes == 2048
     assert all(

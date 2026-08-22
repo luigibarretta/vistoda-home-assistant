@@ -48,6 +48,8 @@ class RingEvent(RingFacadeEntity, EventEntity):
     @callback
     def handle_source_event(self, event: Event) -> None:
         """Forward only real source transitions, never replay startup history."""
+        if event.data.get("old_state") is None:
+            return
         state = event.data.get("new_state")
         if state is None:
             return

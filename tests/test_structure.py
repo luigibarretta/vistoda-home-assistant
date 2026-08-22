@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.6.0"
+    assert manifest["version"] == "0.6.1"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -92,12 +92,22 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     manifest = load(COMPONENT / "manifest.json")
     panel = (COMPONENT / "frontend" / "vistoda-panel.js").read_text(encoding="utf-8")
     session = (COMPONENT / "frontend" / "ring-audio-session.js").read_text(encoding="utf-8")
+    controls = (COMPONENT / "frontend" / "ring-controls.js").read_text(encoding="utf-8")
+    recordings = (COMPONENT / "frontend" / "ring-recordings.js").read_text(encoding="utf-8")
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
+    recording_ws = (COMPONENT / "ring_recording_websocket.py").read_text(encoding="utf-8")
     assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
     assert "Vistoda · Ring" in panel
     assert "Avvia comunicazione" in panel
     assert "Attiva microfono" in panel
-    assert "Archivio chiamate" in panel
+    assert "vistoda-ring-recordings" in panel
+    assert "Archivio chiamate" in recordings
+    assert "Registra questa chiamata" in recordings
+    assert "media_bridge/ring/recordings/import/status" in recordings
+    assert "Apri portone" in controls
+    assert "window.confirm" in controls
+    assert 'callService("button", "press"' in controls
+    assert 'callService("number", "set_value"' in controls
     assert "getUserMedia" in session
     assert "replaceTrack" in session
     assert 'direction: "sendrecv"' in session
@@ -108,7 +118,8 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "api_token" not in session
     assert "Authorization" not in session
     assert "vol.Length(min=1, max=65536)" in websocket
-    assert "media_bridge/ring/recordings/list" in websocket
+    assert "media_bridge/ring/recordings/list" in recording_ws
+    assert '"controls": controls' in websocket
 
 
 def test_ring_recording_service_is_bounded_and_visible() -> None:
@@ -143,3 +154,4 @@ def test_ring_facade_delegates_to_the_official_integration() -> None:
     assert 'await self.call_source_service("button", "press", {})' in button
     assert "never retry" in button
     assert "self._trigger_event(event_type, attributes)" in event
+    assert 'event.data.get("old_state") is None' in event

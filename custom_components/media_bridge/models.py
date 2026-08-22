@@ -48,6 +48,15 @@ class Recording:
     media_type: str
 
 
+@dataclass(frozen=True, slots=True)
+class RecordingImport:
+    """One bounded asynchronous Ring recording import."""
+
+    import_id: str
+    state: str
+    recording_id: str | None
+
+
 def parse_audio_session(payload: dict) -> AudioSession:
     """Validate the bounded WebRTC answer."""
     from .client import JSON_LIMIT
@@ -109,5 +118,28 @@ def parse_recordings(payload: dict) -> tuple[Recording, ...]:
         or item.media_type != "audio/mp4"
         for item in result
     ):
+        raise CannotConnectError
+    return result
+
+
+def parse_recording_import(payload: dict) -> RecordingImport:
+    """Validate one recording-import transition."""
+    from .errors import CannotConnectError
+
+    try:
+        result = RecordingImport(
+            import_id=str(payload["import_id"]),
+            state=str(payload["state"]),
+            recording_id=(str(payload["recording_id"]) if payload["recording_id"] else None),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise CannotConnectError from error
+    if not result.import_id or result.state not in {
+        "pending",
+        "complete",
+        "unavailable",
+        "expired",
+        "failed",
+    }:
         raise CannotConnectError
     return result

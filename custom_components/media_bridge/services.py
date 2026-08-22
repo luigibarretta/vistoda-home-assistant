@@ -29,14 +29,14 @@ def async_register(hass: HomeAssistant) -> None:
         if runtime.client is None:
             raise ServiceValidationError("Vistoda Ring bridge is unavailable")
         try:
-            import_id = await runtime.client.import_ring_recording(
+            recording_import = await runtime.client.import_ring_recording(
                 entry.data[CONF_ALIAS], call.data["triggered_at"]
             )
         except BridgeError as error:
             raise ServiceValidationError("Ring recording import was rejected") from error
         hass.bus.async_fire(
             "vistoda_ring_recording_import_started",
-            {"entry_id": entry.entry_id, "import_id": import_id},
+            {"entry_id": entry.entry_id, "import_id": recording_import.import_id},
         )
 
     hass.services.async_register(

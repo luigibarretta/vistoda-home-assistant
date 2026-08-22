@@ -24,6 +24,7 @@ from .models import (
     Enrollment,
     Recording,
     parse_audio_session,
+    parse_recording_import,
     parse_recordings,
 )
 
@@ -96,16 +97,21 @@ class BridgeClient:
             if response.status != 204:
                 self._raise_status(response.status)
 
-    async def import_ring_recording(self, alias: str, triggered_at: int) -> str:
+    async def import_ring_recording(self, alias: str, triggered_at: int):
         payload = await self._json(
             "POST",
             f"/v1/devices/{quote(alias, safe='')}/recording-imports",
             json={"triggered_at": triggered_at},
         )
-        import_id = payload.get("import_id")
-        if not isinstance(import_id, str) or not import_id:
-            raise CannotConnectError
-        return import_id
+        return parse_recording_import(payload)
+
+    async def ring_recording_import(self, alias: str, import_id: str):
+        payload = await self._json(
+            "GET",
+            f"/v1/devices/{quote(alias, safe='')}/recording-imports/"
+            f"{quote(import_id, safe='')}",
+        )
+        return parse_recording_import(payload)
 
     async def ring_recordings(self, alias: str) -> tuple[Recording, ...]:
         payload = await self._json(

@@ -6,10 +6,14 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
+from .ring_recording_websocket import async_register as async_register_recordings
+
+CONTROL_KEYS = ("open_door", "doorbell_volume", "mic_volume", "voice_volume")
 
 
 @callback
@@ -18,7 +22,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_ring_info)
     websocket_api.async_register_command(hass, ws_ring_start)
     websocket_api.async_register_command(hass, ws_ring_stop)
-    websocket_api.async_register_command(hass, ws_ring_recordings)
+    async_register_recordings(hass)
 
 
 @websocket_api.websocket_command({vol.Required("type"): "media_bridge/ring/info"})
@@ -30,15 +34,25 @@ def ws_ring_info(
 ) -> None:
     """Return non-secret loaded Ring entries."""
     entries = []
+    registry = er.async_get(hass)
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.data.get(CONF_PROVIDER) != PROVIDER_RING:
             continue
         runtime: BridgeRuntime | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        controls = {}
+        prefix = f"ring-{entry.data[CONF_ALIAS]}-facade-"
+        for entity in registry.entities.values():
+            if entity.config_entry_id != entry.entry_id or not entity.unique_id.startswith(prefix):
+                continue
+            key = entity.unique_id.removeprefix(prefix)
+            if key in CONTROL_KEYS:
+                controls[key] = entity.entity_id
         entries.append(
             {
                 "entry_id": entry.entry_id,
                 "name": entry.title,
                 "available": bool(runtime and runtime.coordinator.last_update_success),
+                "controls": controls,
             }
         )
     connection.send_result(msg["id"], {"entries": entries})
@@ -126,41 +140,3 @@ def resolve_ring(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str
     ):
         return None
     return runtime, entry.data[CONF_ALIAS]
-
-
-@websocket_api.websocket_command(
-    {
-        vol.Required("type"): "media_bridge/ring/recordings/list",
-        vol.Required("entry_id"): str,
-    }
-)
-@websocket_api.async_response
-async def ws_ring_recordings(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Return bounded archive metadata without bridge credentials or URLs."""
-    resolved = resolve_ring(hass, msg["entry_id"])
-    if resolved is None:
-        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
-        return
-    runtime, alias = resolved
-    try:
-        recordings = await runtime.client.ring_recordings(alias)
-    except BridgeError:
-        connection.send_error(msg["id"], "unavailable", "Ring archive is unavailable")
-        return
-    connection.send_result(
-        msg["id"],
-        {
-            "recordings": [
-                {
-                    "recording_id": item.recording_id,
-                    "event_at": item.event_at,
-                    "bytes": item.bytes,
-                }
-                for item in recordings
-            ]
-        },
-    )

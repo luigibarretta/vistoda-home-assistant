@@ -32,7 +32,9 @@ The Vistoda · Ring sidebar panel proxies signaling through Home Assistant's
 authenticated WebSocket. **Avvia comunicazione** sends locally generated
 silence and never opens a microphone. **Attiva microfono** requests permission
 only after its button is pressed. Disabling it replaces the captured track with
-silence and releases the microphone without ending inbound audio.
+silence and releases the microphone without ending inbound audio. The same page
+delegates portone opening and all active Intercom volume levels to the official
+Ring integration; opening requires an explicit confirmation.
 
 The official Ring integration's ding event can call
 `media_bridge.import_ring_recording`. Vistoda queues a bounded post-call import
@@ -41,6 +43,10 @@ session. The private bridge stores only completed MP4 recordings for 30 days,
 up to 512 MiB. Ring Call Recording must be enabled in the Ring app and may
 require an eligible subscription; Ring plays its recording notice before the
 conversation begins.
+
+During an active panel call, **Registra questa chiamata** queues that official
+workflow and follows it through completion. It does not capture browser audio
+or bypass Ring's notice.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The
