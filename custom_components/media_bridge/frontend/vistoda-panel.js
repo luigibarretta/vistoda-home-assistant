@@ -1,6 +1,6 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.6.1";
-import "./ring-controls.js?v=0.6.1";
-import "./ring-recordings.js?v=0.6.1";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.6.2";
+import "./ring-controls.js?v=0.6.2";
+import "./ring-recordings.js?v=0.6.2";
 
 class VistodaPanel extends HTMLElement {
   constructor() {

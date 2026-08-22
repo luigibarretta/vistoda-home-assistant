@@ -6,6 +6,7 @@ from custom_components.media_bridge.ring_contract import (
     OPEN_DOOR,
     RingSourceCandidate,
     select_ring_source,
+    timestamps_match,
 )
 
 
@@ -70,3 +71,9 @@ def test_battery_falls_back_to_official_original_name() -> None:
         original_name="Other",
     )
     assert select_ring_source([wrong, expected], BATTERY) == expected.entity_id
+
+
+def test_event_restore_requires_the_same_source_transition() -> None:
+    assert timestamps_match("2026-08-22T11:05:19.233+00:00", "2026-08-22T11:05:21+00:00")
+    assert not timestamps_match("2026-08-22T11:05:19+00:00", "2026-08-11T10:00:00+00:00")
+    assert not timestamps_match("unknown", "2026-08-22T11:05:19+00:00")

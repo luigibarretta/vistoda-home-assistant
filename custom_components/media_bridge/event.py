@@ -6,7 +6,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_PROVIDER, PROVIDER_RING
-from .ring_contract import DING, INTERCOM_UNLOCK, RingSourceSpec
+from .ring_contract import DING, INTERCOM_UNLOCK, RingSourceSpec, timestamps_match
 from .ring_facade import RingFacadeEntity
 
 EVENTS = (
@@ -44,6 +44,14 @@ class RingEvent(RingFacadeEntity, EventEntity):
         self._attr_translation_key = translation_key
         self._attr_event_types = [event_type]
         self._attr_device_class = device_class
+
+    async def async_get_last_state(self):
+        """Restore only a facade event that matches the official source event."""
+        restored = await super().async_get_last_state()
+        source = self.source_state
+        if restored is None or source is None:
+            return restored
+        return restored if timestamps_match(restored.state, source.state) else None
 
     @callback
     def handle_source_event(self, event: Event) -> None:

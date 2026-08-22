@@ -1,6 +1,7 @@
 """Pure contract for the official Ring Intercom facade."""
 
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,3 +63,12 @@ def select_ring_source(candidates: list[RingSourceCandidate], spec: RingSourceSp
         )
     ]
     return matches[0] if len(matches) == 1 else None
+
+
+def timestamps_match(left: str, right: str) -> bool:
+    """Accept only facade/source timestamps from the same transition."""
+    try:
+        delta = datetime.fromisoformat(left) - datetime.fromisoformat(right)
+    except (TypeError, ValueError):
+        return False
+    return abs(delta.total_seconds()) <= 5
