@@ -9,7 +9,7 @@ the cameras and intercoms that remain inside the trusted network.
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment, one listen-first
   full-duplex session, private import of official call recordings and a native
-  facade over the official Ring Intercom controls, sensors and events.
+  facade with native or delegated controls, battery, sensors and events.
 
 ## Security boundary
 
@@ -18,12 +18,12 @@ API token and a device alias. Ring password and SMS code pass once from the HA
 backend to the bridge and are never saved in the config entry. The bridge owns
 its rotating vendor session.
 
-Vistoda never opens a second Ring cloud control session. Its door button,
-three volume controls, battery and last-activity sensors, ding event and unlock
-event resolve the single official `ring` integration's Intercom device and
-delegate to its entities. Resolution requires exactly one Ring Intercom source
-for each capability and fails closed on missing or ambiguous sources. Door
-opening is one-shot and is never retried automatically.
+Vistoda reuses the bridge's single rotating Ring session for native battery,
+last activity, volume and one-shot door controls. A global switch may delegate
+controls to the official `ring` integration when its complete control surface is
+detected. Native mode remains available without it. Ding and unlock events use
+the official event source during the push-event migration. Door opening is
+never retried automatically.
 
 Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
@@ -33,8 +33,9 @@ authenticated WebSocket. **Avvia comunicazione** sends locally generated
 silence and never opens a microphone. **Attiva microfono** requests permission
 only after its button is pressed. Disabling it replaces the captured track with
 silence and releases the microphone without ending inbound audio. The same page
-delegates portone opening and all active Intercom volume levels to the official
-Ring integration; opening requires an explicit confirmation.
+shows battery and lets the user switch portone and volume controls between the
+native Rust bridge and the official Ring integration. Opening requires an
+explicit confirmation.
 
 The official Ring integration's ding event can call
 `media_bridge.import_ring_recording`. Vistoda queues a bounded post-call import
@@ -44,16 +45,16 @@ up to 512 MiB. Ring Call Recording must be enabled in the Ring app and may
 require an eligible subscription; Ring plays its recording notice before the
 conversation begins.
 
-During an active panel call, **Registra questa chiamata** queues that official
-workflow and follows it through completion. It does not capture browser audio
-or bypass Ring's notice.
+During an active panel call, **Registra questa chiamata** queues that workflow.
+**Registra automaticamente** is persisted globally in the config entry, so it
+applies to every browser and automation. Neither path bypasses Ring's notice.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The
-official Ring device remains the cloud source of truth; Vistoda adds answering,
-full-duplex browser audio and the private recording workflow. Microphone capture
-requires a browser gesture and cannot be modeled as a background Home Assistant
-button safely.
+official Ring device remains an optional rollback/event source. Vistoda adds
+answering, full-duplex audio, battery, native controls and private recordings.
+Microphone capture requires a browser gesture and cannot be modeled as a
+background Home Assistant button safely.
 
 ## Installation
 

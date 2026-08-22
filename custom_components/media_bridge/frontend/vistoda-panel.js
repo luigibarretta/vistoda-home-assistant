@@ -1,6 +1,6 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.6.5";
-import "./ring-controls.js?v=0.6.5";
-import "./ring-recordings.js?v=0.6.5";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.6.6";
+import "./ring-controls.js?v=0.6.6";
+import "./ring-recordings.js?v=0.6.6";
 
 class VistodaPanel extends HTMLElement {
   constructor() {
@@ -16,6 +16,7 @@ class VistodaPanel extends HTMLElement {
     this._hass = value;
     if (!this._mounted) this._mount();
     if (this.$?.("controls")) this.$("controls").hass = value;
+    if (this.$?.("recordings")) this.$("recordings").hass = value;
   }
 
   set panel(value) { this._panel = value; }

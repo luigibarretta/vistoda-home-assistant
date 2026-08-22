@@ -1,13 +1,15 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor"]
+PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor", "switch"]
 
 CONF_PROVIDER = "provider"
 CONF_URL = "url"
 CONF_API_TOKEN = "api_token"
 CONF_ALIAS = "alias"
 CONF_DISCOVERY_TOKENS = "discovery_tokens"
+CONF_RING_AUTO_RECORD = "ring_auto_record"
+CONF_RING_DELEGATE_CONTROLS = "ring_delegate_controls"
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"
@@ -20,3 +22,4 @@ DEFAULT_RING_ALIAS = "entrance"
 
 BLINK_BRIDGE_DOMAIN = "blink_live_bridge"
 DISCOVERY_TYPE = "_vistoda._tcp.local."
+SIGNAL_RING_POLICY_CHANGED = f"{DOMAIN}_ring_policy_changed"

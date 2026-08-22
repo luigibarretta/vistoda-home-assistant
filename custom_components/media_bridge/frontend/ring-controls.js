@@ -32,13 +32,20 @@ class RingControls extends HTMLElement {
         button:disabled{opacity:.48;cursor:not-allowed}.levels{display:grid;gap:16px;margin-top:18px}
         label{display:grid;grid-template-columns:150px 1fr 32px;align-items:center;gap:12px}
         output{text-align:right;font-variant-numeric:tabular-nums}input{width:100%;accent-color:var(--primary-color)}
+        .policy{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:17px;
+          padding-bottom:17px;border-bottom:1px solid var(--divider-color)}.policy input{width:22px;height:22px}
         .feedback{min-height:18px;margin-top:13px;color:var(--secondary-text-color);font-size:13px}
+        .battery{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-weight:650}
         @media(max-width:520px){.card{padding:18px}.door{align-items:start;flex-direction:column}
           label{grid-template-columns:1fr 34px}label span{grid-column:1/-1}}
       </style>
       <section class="card">
+        <label class="policy"><span><strong>Delega a Ring ufficiale</strong><br>
+          <span class="hint" id="policy-hint">Verifica integrazione…</span></span>
+          <input id="delegate_controls" type="checkbox" disabled></label>
         <div class="door"><div><h2>Portone e volumi</h2>
-          <div class="hint">Controlli delegati all’integrazione Ring ufficiale</div></div>
+          <div class="hint" id="control-source">Sorgente controlli in verifica</div>
+          <div class="battery">🔋 <span id="battery">Batteria —</span></div></div>
           <button id="door">Apri portone</button></div>
         <div class="levels">
           ${this._slider("doorbell_volume", "Suoneria citofono")}
@@ -47,6 +54,7 @@ class RingControls extends HTMLElement {
         </div><div class="feedback" id="feedback"></div>
       </section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
+    this.$("delegate_controls").addEventListener("change", () => this._setDelegation());
     this.$("door").addEventListener("click", () => this._openDoor());
     for (const key of ["doorbell_volume", "mic_volume", "voice_volume"]) {
       const slider = this.$(key);
@@ -62,6 +70,20 @@ class RingControls extends HTMLElement {
 
   _refresh() {
     if (!this._hass || !this._mounted) return;
+    const delegation = this._state("delegate_controls");
+    const delegateToggle = this.$("delegate_controls");
+    const officialAvailable = delegation && delegation.state !== "unavailable";
+    delegateToggle.disabled = !officialAvailable;
+    delegateToggle.checked = delegation?.state === "on";
+    this.$("policy-hint").textContent = officialAvailable
+      ? "Puoi passare istantaneamente tra Vistoda nativo e Ring ufficiale"
+      : "Ring ufficiale non rilevato · Vistoda nativo obbligatorio";
+    this.$("control-source").textContent = delegateToggle.checked
+      ? "Sorgente: integrazione Ring ufficiale"
+      : "Sorgente: bridge Rust Vistoda";
+    const battery = this._state("battery");
+    this.$("battery").textContent = battery && !["unknown", "unavailable"].includes(battery.state)
+      ? `Batteria ${battery.state}%` : "Batteria non disponibile";
     this.$("door").disabled = !this._usable("open_door");
     for (const key of ["doorbell_volume", "mic_volume", "voice_volume"]) {
       const state = this._state(key);
@@ -94,6 +116,21 @@ class RingControls extends HTMLElement {
       this.$("feedback").textContent = "Apertura non riuscita: controlla l’integrazione Ring.";
     }
     finally { this._refresh(); }
+  }
+
+  async _setDelegation() {
+    const enabled = this.$("delegate_controls").checked;
+    try {
+      await this._hass.callService("switch", enabled ? "turn_on" : "turn_off", {
+        entity_id: this._controls.delegate_controls,
+      });
+      this.$("feedback").textContent = enabled
+        ? "Controlli delegati a Ring ufficiale."
+        : "Controlli affidati al bridge Vistoda nativo.";
+    } catch (_error) {
+      this.$("feedback").textContent = "Cambio sorgente non riuscito.";
+      this._refresh();
+    }
   }
 
   async _setVolume(key, value) {

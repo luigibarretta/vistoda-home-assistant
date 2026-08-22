@@ -95,10 +95,11 @@ async def test_ring_audio_session_is_bounded_and_token_stays_in_header() -> None
         ]
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    negotiated = await client.start_ring_audio("entrance", "v=0", "listen")
+    negotiated = await client.start_ring_audio("entrance", "v=0", "listen", 253)
     assert negotiated.session_id == "synthetic"
     assert session.requests[0][1].endswith("/v1/devices/entrance/audio/sessions")
     assert session.requests[0][2]["headers"]["Authorization"] == f"Bearer {'x' * 32}"
+    assert session.requests[0][2]["json"]["ice_gathering_ms"] == 253
     assert "x" * 32 not in session.requests[0][1]
 
 
@@ -106,8 +107,42 @@ async def test_ring_audio_session_is_bounded_and_token_stays_in_header() -> None
 async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
     session = FakeSession([FakeResponse(204, b"")])
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    await client.stop_ring_audio("entrance", "synthetic")
+    await client.stop_ring_audio("entrance", "synthetic", "user_stop")
     assert session.requests[0][0] == "DELETE"
+    assert session.requests[0][2]["params"] == {"reason": "user_stop"}
+
+
+@pytest.mark.asyncio
+async def test_native_ring_status_and_controls_are_bounded() -> None:
+    session = FakeSession(
+        [
+            response(
+                200,
+                {
+                    "battery": 73,
+                    "online": True,
+                    "doorbell_volume": 6,
+                    "mic_volume": 10,
+                    "voice_volume": 9,
+                    "last_activity": 1786800000,
+                },
+            ),
+            FakeResponse(204, b""),
+            FakeResponse(204, b""),
+        ]
+    )
+    client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
+    status = await client.ring_status("entrance")
+    assert status.battery == 73
+    assert status.online is True
+    await client.set_ring_volume("entrance", "mic_volume", 10)
+    await client.unlock_ring("entrance")
+    assert session.requests[1][0:2] == (
+        "PATCH",
+        "http://bridge.local:8775/v1/devices/entrance/settings",
+    )
+    assert session.requests[1][2]["json"] == {"mic_volume": 10}
+    assert session.requests[2][0] == "POST"
 
 
 @pytest.mark.asyncio

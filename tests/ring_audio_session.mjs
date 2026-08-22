@@ -8,6 +8,19 @@ function media(label) {
   return { stream: { getAudioTracks: () => [track], getTracks: () => [track] }, track };
 }
 
+function gatheringPeer(sdp) {
+  const listeners = new Map();
+  return {
+    iceGatheringState: "gathering",
+    localDescription: { sdp },
+    addEventListener: (name, callback) => listeners.set(name, callback),
+    removeEventListener: (name, callback) => {
+      if (listeners.get(name) === callback) listeners.delete(name);
+    },
+    listeners,
+  };
+}
+
 test("listen upgrades to full duplex without replacing the peer", async () => {
   const microphone = media("microphone");
   Object.defineProperty(globalThis, "navigator", {
@@ -61,4 +74,22 @@ test("disabling the microphone returns to silence and releases capture", async (
   assert.equal(replacement, silence.track);
   assert.equal(microphone.track.stopped, true);
   assert.equal(session.pc.identity, "same-call");
+});
+
+test("ICE timeout proceeds when the SDP already has a usable candidate", async () => {
+  const session = new RingAudioSession({}, {}, {}, () => {});
+  const peer = gatheringPeer("v=0\r\na=candidate:1 1 UDP 1 192.0.2.1 5000 typ host\r\n");
+
+  await session.waitForIce(peer, 1);
+
+  assert.equal(peer.listeners.size, 0);
+});
+
+test("ICE timeout remains fail-closed when no candidate was gathered", async () => {
+  const session = new RingAudioSession({}, {}, {}, () => {});
+  const peer = gatheringPeer("v=0\r\n");
+
+  await assert.rejects(session.waitForIce(peer, 1), /Raccolta ICE scaduta/);
+
+  assert.equal(peer.listeners.size, 0);
 });

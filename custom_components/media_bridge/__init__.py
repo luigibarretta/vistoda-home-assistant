@@ -10,6 +10,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import BridgeClient
 from .const import (
+    CONF_ALIAS,
     CONF_API_TOKEN,
     CONF_DISCOVERY_TOKENS,
     CONF_PROVIDER,
@@ -22,6 +23,7 @@ from .const import (
 )
 from .coordinator import BridgeCoordinator
 from .local import BlinkAdapterCoordinator
+from .ring_status import RingStatusCoordinator
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -46,6 +48,7 @@ class BridgeRuntime:
 
     client: BridgeClient | None
     coordinator: BridgeCoordinator | BlinkAdapterCoordinator
+    ring_status: RingStatusCoordinator | None = None
     panel_url: str | None = None
 
 
@@ -79,10 +82,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         coordinator = BridgeCoordinator(hass, client, f"Vistoda {provider} bridge")
     await coordinator.async_config_entry_first_refresh()
+    ring_status = None
+    if provider == PROVIDER_RING:
+        ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS])
+        await ring_status.async_config_entry_first_refresh()
     base_url = hass.config.external_url or hass.config.internal_url
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BridgeRuntime(
         client=client,
         coordinator=coordinator,
+        ring_status=ring_status,
         panel_url=f"{base_url.rstrip('/')}/vistoda-ring" if base_url else None,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

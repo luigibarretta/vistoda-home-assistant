@@ -12,12 +12,22 @@ class RingRecordings extends HTMLElement {
     this._hass = hass;
     this._entry = entry;
     if (!this.shadowRoot.hasChildNodes()) this._mount();
+    this._autoRecordEntity = entry.controls?.auto_record;
+    this._renderAutoRecord();
     this._load();
   }
 
+  set hass(value) {
+    this._hass = value;
+    this._renderAutoRecord();
+  }
+
   setCallState(active) {
-    if (active && !this._callStartedAt) this._callStartedAt = Math.floor(Date.now() / 1000);
+    const newlyActive = active && !this._wasActive;
+    if (newlyActive) this._callStartedAt = Math.floor(Date.now() / 1000);
+    this._wasActive = active;
     this.$("record").disabled = !active || Boolean(this._importId);
+    if (newlyActive && this._autoRecordEnabled()) this._start();
   }
 
   prepareCall() {
@@ -25,6 +35,7 @@ class RingRecordings extends HTMLElement {
     this._callStartedAt = null;
     this._importId = null;
     this._terminal = false;
+    this._wasActive = false;
     this.$("status").textContent = "Connessione in corso; attendi che la chiamata sia attiva.";
   }
 
@@ -40,10 +51,16 @@ class RingRecordings extends HTMLElement {
           margin-top:17px;border:0;border-radius:14px;padding:10px 14px;cursor:pointer;font:inherit;
           font-weight:700;color:white;background:linear-gradient(135deg,#b34377,#e36a49)}
         button:disabled{opacity:.48;cursor:not-allowed}.status{margin:13px 0 0;color:var(--secondary-text-color)}
+        .toggle{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:17px;
+          padding:13px 0;border-top:1px solid var(--divider-color)}.toggle input{width:22px;height:22px;
+          accent-color:var(--primary-color)}
         @media(max-width:520px){.card{padding:18px}}
       </style>
       <section class="card"><div class="top"><div><h2>Archivio chiamate</h2>
         <div class="hint" id="detail">Caricamento…</div></div><span class="badge" id="count">—</span></div>
+        <label class="toggle"><span><strong>Registra automaticamente</strong><br>
+          <span class="hint">Impostazione globale dell’integrazione</span></span>
+          <input id="auto-record" type="checkbox" disabled></label>
         <button id="record" disabled>Registra questa chiamata</button>
         <p class="status" id="status">Avvia la comunicazione per abilitare la registrazione.</p>
         <p class="hint">Usa la registrazione ufficiale Ring: l’avviso vocale resta attivo e
@@ -51,6 +68,34 @@ class RingRecordings extends HTMLElement {
       </section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("record").addEventListener("click", () => this._start());
+    this.$("auto-record").addEventListener("change", () => this._setAutoRecord());
+  }
+
+  _autoRecordEnabled() {
+    return this._hass?.states?.[this._autoRecordEntity]?.state === "on";
+  }
+
+  _renderAutoRecord() {
+    if (!this.$ || !this._hass) return;
+    const state = this._hass.states?.[this._autoRecordEntity];
+    const toggle = this.$("auto-record");
+    toggle.disabled = !state || state.state === "unavailable";
+    toggle.checked = state?.state === "on";
+  }
+
+  async _setAutoRecord() {
+    const enabled = this.$("auto-record").checked;
+    try {
+      await this._hass.callService("switch", enabled ? "turn_on" : "turn_off", {
+        entity_id: this._autoRecordEntity,
+      });
+      this.$("status").textContent = enabled
+        ? "Registrazione automatica attiva per le prossime comunicazioni."
+        : "Registrazione automatica disattivata.";
+    } catch (_error) {
+      this.$("status").textContent = "Impossibile aggiornare l’impostazione globale.";
+      this._renderAutoRecord();
+    }
   }
 
   async _start() {

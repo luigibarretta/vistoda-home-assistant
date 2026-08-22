@@ -57,6 +57,54 @@ class RecordingImport:
     recording_id: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class RingStatus:
+    """Bounded Ring Intercom status from the native Rust provider."""
+
+    battery: int | None
+    online: bool
+    doorbell_volume: int | None
+    mic_volume: int | None
+    voice_volume: int | None
+    last_activity: int | None
+
+
+def parse_ring_status(payload: dict) -> RingStatus:
+    """Validate native battery, connectivity, volumes and activity."""
+    from .errors import CannotConnectError
+
+    try:
+        result = RingStatus(
+            battery=_optional_int(payload["battery"]),
+            online=payload["online"],
+            doorbell_volume=_optional_int(payload["doorbell_volume"]),
+            mic_volume=_optional_int(payload["mic_volume"]),
+            voice_volume=_optional_int(payload["voice_volume"]),
+            last_activity=_optional_int(payload["last_activity"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise CannotConnectError from error
+    if not isinstance(result.online, bool) or not _valid_ring_status(result):
+        raise CannotConnectError
+    return result
+
+
+def _optional_int(value) -> int | None:
+    return None if value is None else int(value)
+
+
+def _valid_ring_status(status: RingStatus) -> bool:
+    values = (
+        (status.battery, 100),
+        (status.doorbell_volume, 8),
+        (status.mic_volume, 11),
+        (status.voice_volume, 11),
+    )
+    return all(value is None or 0 <= value <= maximum for value, maximum in values) and (
+        status.last_activity is None or status.last_activity >= 0
+    )
+
+
 def parse_audio_session(payload: dict) -> AudioSession:
     """Validate the bounded WebRTC answer."""
     from .client import JSON_LIMIT

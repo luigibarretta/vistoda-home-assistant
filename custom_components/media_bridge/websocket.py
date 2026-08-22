@@ -1,6 +1,5 @@
 """Authenticated HA WebSocket boundary for Ring browser audio."""
 
-from contextlib import suppress
 from typing import Any
 
 import voluptuous as vol
@@ -12,8 +11,18 @@ from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 from .ring_recording_websocket import async_register as async_register_recordings
+from .ring_session_log import async_ended, async_started
 
-CONTROL_KEYS = ("open_door", "doorbell_volume", "mic_volume", "voice_volume")
+CONTROL_KEYS = (
+    "open_door",
+    "battery",
+    "doorbell_volume",
+    "mic_volume",
+    "voice_volume",
+    "auto_record",
+    "delegate_controls",
+)
+STOP_REASONS = ("user_stop", "panel_closed", "client_expired", "connection_ended", "start_failed")
 
 
 @callback
@@ -64,6 +73,7 @@ def ws_ring_info(
         vol.Required("entry_id"): str,
         vol.Required("offer_sdp"): vol.All(str, vol.Length(min=1, max=65536)),
         vol.Required("mode"): vol.In(("listen", "talk")),
+        vol.Required("ice_gathering_ms"): vol.All(vol.Coerce(int), vol.Range(min=0, max=60000)),
     }
 )
 @websocket_api.async_response
@@ -79,7 +89,9 @@ async def ws_ring_start(
         return
     runtime, alias = resolved
     try:
-        result = await runtime.client.start_ring_audio(alias, msg["offer_sdp"], msg["mode"])
+        result = await runtime.client.start_ring_audio(
+            alias, msg["offer_sdp"], msg["mode"], msg["ice_gathering_ms"]
+        )
     except EnrollmentBusyError:
         connection.send_error(msg["id"], "session_busy", "Ring audio is already in use")
         return
@@ -89,6 +101,7 @@ async def ws_ring_start(
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "Ring audio is unavailable")
         return
+    async_started(hass, alias, result.session_id, msg["mode"], msg["ice_gathering_ms"])
     connection.send_result(
         msg["id"],
         {
@@ -111,6 +124,7 @@ async def ws_ring_start(
         vol.Required("type"): "media_bridge/ring/session/delete",
         vol.Required("entry_id"): str,
         vol.Required("session_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("reason"): vol.In(STOP_REASONS),
     }
 )
 @websocket_api.async_response
@@ -121,11 +135,16 @@ async def ws_ring_stop(
 ) -> None:
     """Close a session; repeated calls remain successful."""
     resolved = resolve_ring(hass, msg["entry_id"])
+    acknowledged = False
     if resolved is not None:
         runtime, alias = resolved
-        with suppress(BridgeError):
-            await runtime.client.stop_ring_audio(alias, msg["session_id"])
-    connection.send_result(msg["id"])
+        try:
+            await runtime.client.stop_ring_audio(alias, msg["session_id"], msg["reason"])
+            acknowledged = True
+        except BridgeError:
+            pass
+    async_ended(hass, msg["session_id"], msg["reason"], acknowledged)
+    connection.send_result(msg["id"], {"bridge_acknowledged": acknowledged})
 
 
 def resolve_ring(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str] | None:

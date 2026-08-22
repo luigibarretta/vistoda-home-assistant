@@ -150,6 +150,14 @@
       "recordings": {
         "name": "Call recordings"
       }
+    },
+    "switch": {
+      "ring_auto_record": {
+        "name": "Automatically record communications"
+      },
+      "ring_delegate_controls": {
+        "name": "Delegate controls to official Ring"
+      }
     }
   }
 }

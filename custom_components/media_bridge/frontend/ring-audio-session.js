@@ -42,13 +42,16 @@ export class RingAudioSession {
       if (!pcmu?.length) throw new Error("PCMU non supportato dal browser");
       transceiver.setCodecPreferences(pcmu);
       await pc.setLocalDescription(await pc.createOffer());
+      const iceStarted = performance.now();
       await this.waitForIce(pc);
+      const iceGatheringMs = Math.min(60_000, Math.max(0, Math.round(performance.now() - iceStarted)));
       this.onState({ phase: "connecting", mode });
       const result = await this.hass.callWS({
         type: "media_bridge/ring/session/create",
         entry_id: this.entry.entry_id,
         offer_sdp: pc.localDescription.sdp,
         mode,
+        ice_gathering_ms: iceGatheringMs,
       });
       this.remoteId = result.session_id;
       this.mode = mode;
@@ -59,10 +62,12 @@ export class RingAudioSession {
           sdpMLineIndex: ice.sdp_mline_index,
         });
       }
-      this.expiry = setTimeout(() => this.stop("Sessione scaduta"), result.expires_in * 1000);
+      this.expiry = setTimeout(
+        () => this.stop("Sessione scaduta", "client_expired"), result.expires_in * 1000,
+      );
       this.onState({ phase: "active", mode });
     } catch (error) {
-      await this.deleteRemote();
+      await this.deleteRemote("start_failed");
       await this.disposePeer();
       if (error?.code === "cooldown") {
         this.cooldownUntil = Date.now() + COOLDOWN_MS;
@@ -125,13 +130,31 @@ export class RingAudioSession {
     };
   }
 
-  waitForIce(pc) {
+  waitForIce(pc, timeoutMs = 8000) {
     if (pc.iceGatheringState === "complete") return Promise.resolve();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Raccolta ICE scaduta")), 8000);
-      pc.addEventListener("icegatheringstatechange", () => {
-        if (pc.iceGatheringState === "complete") { clearTimeout(timer); resolve(); }
-      });
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        pc.removeEventListener("icegatheringstatechange", gatheringChanged);
+        pc.removeEventListener("icecandidate", candidateChanged);
+        if (error) reject(error); else resolve();
+      };
+      const gatheringChanged = () => {
+        if (pc.iceGatheringState === "complete") finish();
+      };
+      const candidateChanged = (event) => {
+        if (!event.candidate) finish();
+      };
+      pc.addEventListener("icegatheringstatechange", gatheringChanged);
+      pc.addEventListener("icecandidate", candidateChanged);
+      const timer = setTimeout(() => {
+        const hasCandidate = /^a=candidate:/m.test(pc.localDescription?.sdp ?? "");
+        finish(hasCandidate ? null : new Error("Raccolta ICE scaduta"));
+      }, timeoutMs);
+      gatheringChanged();
     });
   }
 
@@ -145,25 +168,27 @@ export class RingAudioSession {
   connectionChanged() {
     const state = this.pc?.connectionState;
     if (state === "connected") this.onState({ phase: "active", mode: this.mode });
-    if (["failed", "closed"].includes(state)) this.stop("Connessione terminata");
+    if (["failed", "closed"].includes(state)) {
+      this.stop("Connessione terminata", "connection_ended");
+    }
   }
 
-  stop(message = "Sessione terminata") {
+  stop(message = "Sessione terminata", reason = "user_stop") {
     if (this.stopping) return this.stopping;
-    this.stopping = this.performStop(message).finally(() => { this.stopping = null; });
+    this.stopping = this.performStop(message, reason).finally(() => { this.stopping = null; });
     return this.stopping;
   }
 
-  async performStop(message) {
+  async performStop(message, reason) {
     const hadSession = Boolean(this.remoteId);
-    await this.deleteRemote();
+    await this.deleteRemote(reason);
     await this.disposePeer();
     if (!hadSession) return this.onState({ phase: "idle", message });
     this.cooldownUntil = Date.now() + COOLDOWN_MS;
     this.startCooldown(message);
   }
 
-  async deleteRemote() {
+  async deleteRemote(reason) {
     const id = this.remoteId;
     this.remoteId = null;
     if (!id) return;
@@ -172,6 +197,7 @@ export class RingAudioSession {
         type: "media_bridge/ring/session/delete",
         entry_id: this.entry.entry_id,
         session_id: id,
+        reason,
       });
     } catch (_error) {}
   }
@@ -203,7 +229,7 @@ export class RingAudioSession {
   }
 
   async destroy() {
-    await this.stop();
+    await this.stop("Pannello chiuso", "panel_closed");
     clearInterval(this.cooldown);
     this.cooldown = null;
   }

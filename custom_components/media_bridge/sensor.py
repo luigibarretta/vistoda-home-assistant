@@ -48,6 +48,7 @@ class RingOfficialSensor(RingFacadeEntity, SensorEntity):
         device_class: SensorDeviceClass,
     ) -> None:
         super().__init__(hass, entry, spec)
+        self._status_key = spec.key
         self._attr_translation_key = translation_key
         self._attr_device_class = device_class
         if device_class == SensorDeviceClass.BATTERY:
@@ -56,7 +57,13 @@ class RingOfficialSensor(RingFacadeEntity, SensorEntity):
 
     @property
     def native_value(self):
-        """Return a typed copy of the provider-owned source value."""
+        """Return a typed copy from the selected provider path."""
+        if not self.delegated:
+            status = self.native_status
+            value = getattr(status, self._status_key) if status else None
+            if self.device_class == SensorDeviceClass.TIMESTAMP and value is not None:
+                return datetime.fromtimestamp(value, UTC)
+            return value
         state = self.source_state
         if state is None:
             return None
@@ -71,7 +78,11 @@ class RingOfficialSensor(RingFacadeEntity, SensorEntity):
     def extra_state_attributes(self) -> dict:
         """Preserve useful activity metadata and delegation evidence."""
         attributes = super().extra_state_attributes
-        if self.device_class == SensorDeviceClass.TIMESTAMP and self.source_state:
+        if (
+            self.delegated
+            and self.device_class == SensorDeviceClass.TIMESTAMP
+            and self.source_state
+        ):
             attributes.update(
                 {
                     key: value
@@ -134,3 +145,5 @@ class RingRecordingArchive(SensorEntity):
             ),
             "latest_size_bytes": latest.bytes if latest else None,
         }
+
+    _attr_native_capable = True

@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.6.5"
+    assert manifest["version"] == "0.6.6"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -105,6 +105,7 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "Registra questa chiamata" in recordings
     assert "media_bridge/ring/recordings/import/status" in recordings
     assert "Apri portone" in controls
+    assert "Batteria" in controls
     assert "window.confirm" in controls
     assert 'callService("button", "press"' in controls
     assert 'callService("number", "set_value"' in controls
@@ -120,9 +121,9 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "vol.Length(min=1, max=65536)" in websocket
     assert "media_bridge/ring/recordings/list" in recording_ws
     assert '"controls": controls' in websocket
-    assert "frontend.async_remove_panel(hass, PANEL_PATH)" in (
-        COMPONENT / "panel.py"
-    ).read_text(encoding="utf-8")
+    assert "frontend.async_remove_panel(hass, PANEL_PATH)" in (COMPONENT / "panel.py").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_ring_recording_service_is_bounded_and_visible() -> None:
@@ -143,7 +144,7 @@ def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     assert '"full_duplex": "true"' in sensor
 
 
-def test_ring_facade_delegates_to_the_official_integration() -> None:
+def test_ring_facade_supports_native_and_official_control_paths() -> None:
     constants = (COMPONENT / "const.py").read_text(encoding="utf-8")
     facade = (COMPONENT / "ring_facade.py").read_text(encoding="utf-8")
     contract = (COMPONENT / "ring_contract.py").read_text(encoding="utf-8")
@@ -155,6 +156,8 @@ def test_ring_facade_delegates_to_the_official_integration() -> None:
     assert 'candidate.model == "Intercom"' in contract
     assert "await self.hass.services.async_call(" in facade
     assert 'await self.call_source_service("button", "press", {})' in button
+    assert "await client.unlock_ring(self._alias)" in button
+    assert "await client.set_ring_volume" in (COMPONENT / "number.py").read_text(encoding="utf-8")
     assert "never retry" in button
     assert "self._trigger_event(event_type, attributes)" in event
     assert "old_state.state == state.state" in event

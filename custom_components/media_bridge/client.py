@@ -8,6 +8,7 @@ from urllib.parse import quote, urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
+from .client_helpers import error_code, normalize_url, parse_enrollment
 from .const import PROVIDER_RING
 from .errors import (
     CannotConnectError,
@@ -26,6 +27,7 @@ from .models import (
     parse_audio_session,
     parse_recording_import,
     parse_recordings,
+    parse_ring_status,
 )
 
 JSON_LIMIT = 64 * 1024
@@ -80,18 +82,50 @@ class BridgeClient:
             if response.status not in (204, 404):
                 self._raise_status(response.status)
 
-    async def start_ring_audio(self, alias: str, offer_sdp: str, mode: str) -> AudioSession:
+    async def start_ring_audio(
+        self, alias: str, offer_sdp: str, mode: str, ice_gathering_ms: int
+    ) -> AudioSession:
         payload = await self._json(
             "POST",
             f"/v1/devices/{quote(alias, safe='')}/audio/sessions",
-            json={"offer_sdp": offer_sdp, "mode": mode},
+            json={
+                "offer_sdp": offer_sdp,
+                "mode": mode,
+                "ice_gathering_ms": ice_gathering_ms,
+            },
             timeout=SESSION_TIMEOUT,
         )
         return parse_audio_session(payload)
 
-    async def stop_ring_audio(self, alias: str, session_id: str) -> None:
+    async def stop_ring_audio(self, alias: str, session_id: str, reason: str) -> None:
         path = f"/v1/devices/{quote(alias, safe='')}/audio/sessions/{quote(session_id, safe='')}"
-        response = await self._request("DELETE", path)
+        response = await self._request("DELETE", path, params={"reason": reason})
+        async with response:
+            await self._bounded(response, JSON_LIMIT)
+            if response.status != 204:
+                self._raise_status(response.status)
+
+    async def ring_status(self, alias: str):
+        """Return native Ring Intercom battery, connectivity and levels."""
+        payload = await self._json("GET", f"/v1/devices/{quote(alias, safe='')}/status")
+        return parse_ring_status(payload)
+
+    async def unlock_ring(self, alias: str) -> None:
+        """Issue one native unlock request without retries in Home Assistant."""
+        await self._empty("POST", f"/v1/devices/{quote(alias, safe='')}/unlock")
+
+    async def set_ring_volume(self, alias: str, setting: str, value: int) -> None:
+        """Set exactly one bounded native volume."""
+        if setting not in {"doorbell_volume", "mic_volume", "voice_volume"}:
+            raise ValueError("unknown Ring volume")
+        await self._empty(
+            "PATCH",
+            f"/v1/devices/{quote(alias, safe='')}/settings",
+            json={setting: value},
+        )
+
+    async def _empty(self, method: str, path: str, **kwargs: Any) -> None:
+        response = await self._request(method, path, **kwargs)
         async with response:
             await self._bounded(response, JSON_LIMIT)
             if response.status != 204:
@@ -108,8 +142,7 @@ class BridgeClient:
     async def ring_recording_import(self, alias: str, import_id: str):
         payload = await self._json(
             "GET",
-            f"/v1/devices/{quote(alias, safe='')}/recording-imports/"
-            f"{quote(import_id, safe='')}",
+            f"/v1/devices/{quote(alias, safe='')}/recording-imports/{quote(import_id, safe='')}",
         )
         return parse_recording_import(payload)
 
@@ -191,40 +224,3 @@ class BridgeClient:
         if status == 429:
             raise RateLimitedError
         raise CannotConnectError
-
-
-def normalize_url(value: str) -> str:
-    parts = urlsplit(value.strip())
-    if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise ValueError("bridge URL must be HTTP(S)")
-    if (
-        parts.username
-        or parts.password
-        or parts.query
-        or parts.fragment
-        or parts.path not in ("", "/")
-    ):
-        raise ValueError("bridge URL cannot contain credentials, path, query or fragment")
-    return urlunsplit((parts.scheme, parts.netloc, parts.path.rstrip("/"), "", ""))
-
-
-def parse_enrollment(payload: dict[str, Any]) -> Enrollment:
-    try:
-        result = Enrollment(
-            enrollment_id=str(payload["enrollment_id"]),
-            next_step=str(payload["next_step"]),
-            expires_in=int(payload["expires_in"]),
-        )
-    except (KeyError, TypeError, ValueError) as error:
-        raise CannotConnectError from error
-    if result.next_step not in ("otp", "complete") or not 0 <= result.expires_in <= 120:
-        raise CannotConnectError
-    return result
-
-
-def error_code(body: bytes) -> str:
-    try:
-        payload = json.loads(body)
-    except (ValueError, TypeError):
-        return ""
-    return payload.get("error", "") if isinstance(payload, dict) else ""
