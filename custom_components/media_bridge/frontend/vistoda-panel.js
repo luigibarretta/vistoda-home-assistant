@@ -1,6 +1,6 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.7.0";
-import "./ring-controls.js?v=0.7.0";
-import "./ring-recordings.js?v=0.7.0";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.7.1";
+import "./ring-controls.js?v=0.7.1";
+import "./ring-recordings.js?v=0.7.1";
 
 class VistodaPanel extends HTMLElement {
   constructor() {
@@ -153,4 +153,6 @@ class VistodaPanel extends HTMLElement {
   disconnectedCallback() { this._audio?.destroy(); }
 }
 
-customElements.define("vistoda-panel", VistodaPanel);
+if (!customElements.get("vistoda-panel")) {
+  customElements.define("vistoda-panel", VistodaPanel);
+}

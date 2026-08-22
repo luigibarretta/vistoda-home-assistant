@@ -146,4 +146,6 @@ class RingControls extends HTMLElement {
   }
 }
 
-customElements.define("vistoda-ring-controls", RingControls);
+if (!customElements.get("vistoda-ring-controls")) {
+  customElements.define("vistoda-ring-controls", RingControls);
+}

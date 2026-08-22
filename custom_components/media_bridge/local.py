@@ -4,8 +4,7 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import BLINK_BRIDGE_DOMAIN
 
@@ -21,7 +20,7 @@ class BlinkAdapterCoordinator(DataUpdateCoordinator[str]):
     async def _async_update_data(self) -> str:
         runtime: Any = self.hass.data.get(BLINK_BRIDGE_DOMAIN, {}).get("runtime")
         if runtime is None or not runtime.cameras:
-            raise ConfigEntryNotReady("Blink Live Bridge is not loaded")
+            raise UpdateFailed("Blink Live Bridge is not loaded")
         return f"{len(runtime.cameras)} cameras"
 
 

@@ -1,4 +1,4 @@
-import { RingLocalRecorder } from "./ring-local-recorder.js?v=0.7.0";
+import { RingLocalRecorder } from "./ring-local-recorder.js?v=0.7.1";
 
 class RingRecordings extends HTMLElement {
   constructor() {
@@ -175,4 +175,6 @@ class RingRecordings extends HTMLElement {
   disconnectedCallback() { this._recorder?.stop(true); }
 }
 
-customElements.define("vistoda-ring-recordings", RingRecordings);
+if (!customElements.get("vistoda-ring-recordings")) {
+  customElements.define("vistoda-ring-recordings", RingRecordings);
+}

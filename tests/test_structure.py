@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.7.0"
+    assert manifest["version"] == "0.7.1"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -102,6 +102,9 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "Avvia comunicazione" in panel
     assert "Attiva microfono" in panel
     assert "vistoda-ring-recordings" in panel
+    assert 'customElements.get("vistoda-panel")' in panel
+    assert 'customElements.get("vistoda-ring-controls")' in controls
+    assert 'customElements.get("vistoda-ring-recordings")' in recordings
     assert "Archivio chiamate" in recordings
     assert "Registra questa chiamata" in recordings
     assert "media_bridge/ring/recordings/upload" in recorder
