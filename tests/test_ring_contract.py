@@ -1,11 +1,14 @@
 """Deterministic official Ring Intercom source selection."""
 
+from datetime import UTC, datetime
+
 from custom_components.media_bridge.ring_contract import (
     ACTIVE_RING_SOURCES,
     BATTERY,
     OPEN_DOOR,
     RingSourceCandidate,
     select_ring_source,
+    timestamp_is_recent,
     timestamps_match,
 )
 
@@ -77,3 +80,10 @@ def test_event_restore_requires_the_same_source_transition() -> None:
     assert timestamps_match("2026-08-22T11:05:19.233+00:00", "2026-08-22T11:05:21+00:00")
     assert not timestamps_match("2026-08-22T11:05:19+00:00", "2026-08-11T10:00:00+00:00")
     assert not timestamps_match("unknown", "2026-08-22T11:05:19+00:00")
+
+
+def test_event_forwarding_requires_a_recent_provider_timestamp() -> None:
+    now = datetime(2026, 8, 22, 12, 0, tzinfo=UTC)
+    assert timestamp_is_recent("2026-08-22T11:59:30+00:00", now)
+    assert not timestamp_is_recent("2026-08-22T11:50:00+00:00", now)
+    assert not timestamp_is_recent("2026-08-22T12:00:00", now)

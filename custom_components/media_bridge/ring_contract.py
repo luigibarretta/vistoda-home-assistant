@@ -1,7 +1,7 @@
 """Pure contract for the official Ring Intercom facade."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,3 +72,15 @@ def timestamps_match(left: str, right: str) -> bool:
     except (TypeError, ValueError):
         return False
     return abs(delta.total_seconds()) <= 5
+
+
+def timestamp_is_recent(value: str, now: datetime | None = None) -> bool:
+    """Reject restored Ring event timestamps while allowing small clock skew."""
+    try:
+        timestamp = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return False
+    if timestamp.tzinfo is None:
+        return False
+    age = ((now or datetime.now(UTC)) - timestamp).total_seconds()
+    return -5 <= age <= 120

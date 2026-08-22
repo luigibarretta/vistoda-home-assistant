@@ -6,7 +6,13 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_PROVIDER, PROVIDER_RING
-from .ring_contract import DING, INTERCOM_UNLOCK, RingSourceSpec, timestamps_match
+from .ring_contract import (
+    DING,
+    INTERCOM_UNLOCK,
+    RingSourceSpec,
+    timestamp_is_recent,
+    timestamps_match,
+)
 from .ring_facade import RingFacadeEntity
 
 EVENTS = (
@@ -56,13 +62,18 @@ class RingEvent(RingFacadeEntity, EventEntity):
     @callback
     def handle_source_event(self, event: Event) -> None:
         """Forward only real source transitions, never replay startup history."""
-        if event.data.get("old_state") is None:
-            return
+        old_state = event.data.get("old_state")
         state = event.data.get("new_state")
         if state is None:
             return
         event_type = state.attributes.get("event_type")
-        if event_type not in self._attr_event_types:
+        if (
+            old_state is None
+            or old_state.state == state.state
+            or not timestamp_is_recent(state.state)
+            or event_type not in self._attr_event_types
+        ):
+            self.async_write_ha_state()
             return
         attributes = {
             key: value
@@ -70,3 +81,4 @@ class RingEvent(RingFacadeEntity, EventEntity):
             if key not in {"event_type", "event_types", "friendly_name", "attribution"}
         }
         self._trigger_event(event_type, attributes)
+        self.async_write_ha_state()

@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.6.2"
+    assert manifest["version"] == "0.6.3"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -154,5 +154,7 @@ def test_ring_facade_delegates_to_the_official_integration() -> None:
     assert 'await self.call_source_service("button", "press", {})' in button
     assert "never retry" in button
     assert "self._trigger_event(event_type, attributes)" in event
-    assert 'event.data.get("old_state") is None' in event
+    assert "old_state.state == state.state" in event
+    assert "timestamp_is_recent(state.state)" in event
+    assert event.count("self.async_write_ha_state()") == 2
     assert "timestamps_match(restored.state, source.state)" in event
