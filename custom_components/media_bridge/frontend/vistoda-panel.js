@@ -1,6 +1,6 @@
-import { RingAudioSession } from "./ring-audio-session.js?v=0.6.6";
-import "./ring-controls.js?v=0.6.6";
-import "./ring-recordings.js?v=0.6.6";
+import { RingAudioSession } from "./ring-audio-session.js?v=0.7.0";
+import "./ring-controls.js?v=0.7.0";
+import "./ring-recordings.js?v=0.7.0";
 
 class VistodaPanel extends HTMLElement {
   constructor() {
@@ -10,6 +10,7 @@ class VistodaPanel extends HTMLElement {
     this._entry = null;
     this._audio = null;
     this._available = false;
+    this._answerMode = new URLSearchParams(globalThis.location?.search || "").get("answer") === "1";
   }
 
   set hass(value) {
@@ -79,7 +80,7 @@ class VistodaPanel extends HTMLElement {
         <vistoda-ring-recordings id="recordings"></vistoda-ring-recordings>
       </main>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
-    this.$("start").addEventListener("click", () => this._audio?.start("listen"));
+    this.$("start").addEventListener("click", () => this._audio?.start(this._answerMode ? "talk" : "listen"));
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
     this.$("stop").addEventListener("click", () => this._audio?.stop());
     await this._loadEntry();
@@ -97,6 +98,8 @@ class VistodaPanel extends HTMLElement {
         this.$("device-name").textContent = this._entry.name.replace(/^Vistoda · /, "");
         this._audio = new RingAudioSession(
           this._hass, this._entry, this.$("remote"), (state) => this._renderState(state),
+          (remote, local, mode) => this.$("recordings")?.setMedia(remote, local, mode),
+          () => this.$("recordings")?.finishCall(),
         );
         this.$("controls").hass = this._hass;
         this.$("controls").configure(this._entry.controls);
@@ -114,6 +117,7 @@ class VistodaPanel extends HTMLElement {
   _renderState(state) {
     if (state.phase === "starting") this.$("recordings")?.prepareCall();
     const active = state.phase === "active";
+    const callOngoing = active || state.phase === "switching";
     const locked = ["starting", "connecting", "switching", "cooldown"].includes(state.phase);
     const talk = active && state.mode === "talk";
     let message = state.message;
@@ -130,9 +134,10 @@ class VistodaPanel extends HTMLElement {
     this.$("start").disabled = !this._available || locked || active;
     this.$("microphone").disabled = !active || locked;
     this.$("stop").disabled = !active;
-    this.$("start").textContent = active ? "Comunicazione attiva" : "Avvia comunicazione";
+    this.$("start").textContent = active ? "Comunicazione attiva"
+      : this._answerMode ? "Rispondi in full-duplex" : "Avvia comunicazione";
     this.$("microphone").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
-    this.$("recordings")?.setCallState(active);
+    this.$("recordings")?.setCallState(callOngoing);
   }
 
   _toggleMicrophone() {

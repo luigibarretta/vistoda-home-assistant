@@ -1,4 +1,4 @@
-"""Private recordings and official Ring Intercom sensor facade."""
+"""Private recordings and Ring Intercom sensor facade."""
 
 from datetime import UTC, datetime
 
@@ -141,7 +141,7 @@ class RingRecordingArchive(SensorEntity):
             "retention_days": 30,
             "archive_limit_mib": 512,
             "latest_recording": (
-                datetime.fromtimestamp(latest.event_at, UTC).isoformat() if latest else None
+                datetime.fromtimestamp(latest.ended_at, UTC).isoformat() if latest else None
             ),
             "latest_size_bytes": latest.bytes if latest else None,
         }

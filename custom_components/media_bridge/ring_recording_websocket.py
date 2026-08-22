@@ -1,5 +1,7 @@
-"""Authenticated Home Assistant WebSocket boundary for Ring recordings."""
+"""Authenticated Home Assistant WebSocket boundary for local recordings."""
 
+import base64
+import binascii
 from typing import Any
 
 import voluptuous as vol
@@ -13,8 +15,11 @@ from .errors import BridgeError
 def async_register(hass: HomeAssistant) -> None:
     """Register bounded archive commands."""
     websocket_api.async_register_command(hass, ws_ring_recordings)
-    websocket_api.async_register_command(hass, ws_ring_recording_start)
-    websocket_api.async_register_command(hass, ws_ring_recording_status)
+    websocket_api.async_register_command(hass, ws_ring_recording_upload)
+
+
+MAX_RECORDING_BYTES = 8 * 1024 * 1024
+MAX_BASE64_CHARS = ((MAX_RECORDING_BYTES + 2) // 3) * 4
 
 
 def _resolve(hass: HomeAssistant, entry_id: str):
@@ -48,7 +53,8 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
             "recordings": [
                 {
                     "recording_id": item.recording_id,
-                    "event_at": item.event_at,
+                    "started_at": item.started_at,
+                    "ended_at": item.ended_at,
                     "bytes": item.bytes,
                 }
                 for item in recordings
@@ -59,53 +65,48 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
 
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "media_bridge/ring/recordings/import",
+        vol.Required("type"): "media_bridge/ring/recordings/upload",
         vol.Required("entry_id"): str,
-        vol.Required("triggered_at"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("started_at"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("ended_at"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("media_type"): vol.All(str, vol.Length(min=9, max=64)),
+        vol.Required("media_base64"): vol.All(str, vol.Length(min=4, max=MAX_BASE64_CHARS)),
     }
 )
 @websocket_api.async_response
-async def ws_ring_recording_start(hass, connection, msg: dict[str, Any]) -> None:
-    """Queue the official recording for the active browser call."""
+async def ws_ring_recording_upload(hass, connection, msg: dict[str, Any]) -> None:
+    """Commit one browser-captured call without exposing bridge credentials."""
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
         return
-    runtime, alias = resolved
     try:
-        result = await runtime.client.import_ring_recording(alias, msg["triggered_at"])
-    except BridgeError:
-        connection.send_error(msg["id"], "unavailable", "Ring recording was rejected")
+        media = base64.b64decode(msg["media_base64"], validate=True)
+    except (binascii.Error, ValueError):
+        connection.send_error(msg["id"], "invalid_format", "Recording encoding is invalid")
         return
-    connection.send_result(msg["id"], _import_payload(result))
-
-
-@websocket_api.websocket_command(
-    {
-        vol.Required("type"): "media_bridge/ring/recordings/import/status",
-        vol.Required("entry_id"): str,
-        vol.Required("import_id"): vol.All(str, vol.Length(min=1, max=64)),
-    }
-)
-@websocket_api.async_response
-async def ws_ring_recording_status(hass, connection, msg: dict[str, Any]) -> None:
-    """Return one import job transition."""
-    resolved = _resolve(hass, msg["entry_id"])
-    if resolved is None:
-        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+    if not 128 <= len(media) <= MAX_RECORDING_BYTES:
+        connection.send_error(msg["id"], "invalid_size", "Recording size is invalid")
         return
     runtime, alias = resolved
     try:
-        result = await runtime.client.ring_recording_import(alias, msg["import_id"])
+        result = await runtime.client.upload_ring_recording(
+            alias,
+            msg["started_at"],
+            msg["ended_at"],
+            msg["media_type"],
+            media,
+        )
     except BridgeError:
-        connection.send_error(msg["id"], "unavailable", "Ring import status is unavailable")
+        connection.send_error(msg["id"], "unavailable", "Local recording was rejected")
         return
-    connection.send_result(msg["id"], _import_payload(result))
-
-
-def _import_payload(result) -> dict[str, str | None]:
-    return {
-        "import_id": result.import_id,
-        "state": result.state,
-        "recording_id": result.recording_id,
-    }
+    connection.send_result(
+        msg["id"],
+        {
+            "recording_id": result.recording_id,
+            "started_at": result.started_at,
+            "ended_at": result.ended_at,
+            "bytes": result.bytes,
+            "media_type": result.media_type,
+        },
+    )

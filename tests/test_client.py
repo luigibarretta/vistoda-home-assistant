@@ -146,19 +146,18 @@ async def test_native_ring_status_and_controls_are_bounded() -> None:
 
 
 @pytest.mark.asyncio
-async def test_ring_recording_import_and_inventory_are_private() -> None:
+async def test_local_ring_recording_upload_and_inventory_are_private() -> None:
     session = FakeSession(
         [
             response(
-                202,
-                {"import_id": "synthetic", "state": "pending", "recording_id": None},
-            ),
-            response(
-                200,
+                201,
                 {
-                    "import_id": "synthetic",
-                    "state": "complete",
                     "recording_id": "recording-1",
+                    "started_at": 1786800000,
+                    "ended_at": 1786800010,
+                    "saved_at": 1786800011,
+                    "bytes": 2048,
+                    "media_type": "audio/webm",
                 },
             ),
             response(
@@ -167,10 +166,11 @@ async def test_ring_recording_import_and_inventory_are_private() -> None:
                     "recordings": [
                         {
                             "recording_id": "recording-1",
-                            "event_at": 1786800000,
+                            "started_at": 1786799990,
+                            "ended_at": 1786800000,
                             "saved_at": 1786800010,
                             "bytes": 2048,
-                            "media_type": "audio/mp4",
+                            "media_type": "audio/webm",
                         }
                     ]
                 },
@@ -178,12 +178,17 @@ async def test_ring_recording_import_and_inventory_are_private() -> None:
         ]
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    recording_import = await client.import_ring_recording("entrance", 1786800000)
-    assert recording_import.import_id == "synthetic"
-    status = await client.ring_recording_import("entrance", recording_import.import_id)
-    assert status.state == "complete"
+    saved = await client.upload_ring_recording(
+        "entrance", 1786800000, 1786800010, "audio/webm;codecs=opus", b"x" * 2048
+    )
+    assert saved.recording_id == "recording-1"
     recordings = await client.ring_recordings("entrance")
     assert recordings[0].bytes == 2048
+    assert session.requests[0][2]["headers"]["Content-Type"] == "audio/webm;codecs=opus"
+    assert session.requests[0][2]["params"] == {
+        "started_at": 1786800000,
+        "ended_at": 1786800010,
+    }
     assert all(
         request[2]["headers"]["Authorization"].startswith("Bearer ") for request in session.requests
     )

@@ -2,11 +2,13 @@ const STUN = "stun:stun.kinesisvideo.us-east-1.amazonaws.com:443";
 const COOLDOWN_MS = 10_500;
 
 export class RingAudioSession {
-  constructor(hass, entry, audio, onState) {
+  constructor(hass, entry, audio, onState, onMedia = () => {}, beforeStop = async () => {}) {
     this.hass = hass;
     this.entry = entry;
     this.audio = audio;
     this.onState = onState;
+    this.onMedia = onMedia;
+    this.beforeStop = beforeStop;
     this.pc = null;
     this.sender = null;
     this.remoteId = null;
@@ -91,6 +93,7 @@ export class RingAudioSession {
       const previous = this.localMedia;
       this.localMedia = next;
       this.mode = mode;
+      this.onMedia(this.audio.srcObject, this.localMedia.stream, mode);
       await previous?.release();
       this.onState({ phase: "active", mode });
     } catch (error) {
@@ -160,6 +163,7 @@ export class RingAudioSession {
 
   async play(event) {
     this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+    this.onMedia(this.audio.srcObject, this.localMedia?.stream, this.mode || "listen");
     try { await this.audio.play(); } catch (_error) {
       this.onState({ phase: "active", mode: this.mode, message: "Tocca un controllo per l’audio" });
     }
@@ -181,6 +185,7 @@ export class RingAudioSession {
 
   async performStop(message, reason) {
     const hadSession = Boolean(this.remoteId);
+    await this.beforeStop();
     await this.deleteRemote(reason);
     await this.disposePeer();
     if (!hadSession) return this.onState({ phase: "idle", message });
@@ -211,6 +216,7 @@ export class RingAudioSession {
     await this.localMedia?.release();
     this.localMedia = null;
     this.audio.srcObject = null;
+    this.onMedia(null, null, "listen");
     this.mode = null;
   }
 

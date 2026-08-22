@@ -1,6 +1,6 @@
 # ADR 0005: Ring recording import
 
-- Status: accepted
+- Status: superseded by ADR 0009
 - Date: 2026-08-15
 - Supersedes: the two-start-button UX and no-recording scope in ADR 0004
 

@@ -1,6 +1,6 @@
 # ADR 0007: Ring communication audit and global recording policy
 
-- Status: accepted
+- Status: superseded in recording scope by ADR 0009
 - Date: 2026-08-22
 - Supersedes: the recording UX scope in ADR 0005
 

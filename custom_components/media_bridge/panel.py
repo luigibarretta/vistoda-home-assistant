@@ -11,6 +11,7 @@ STATIC_URL = "/vistoda_static/vistoda-panel.js"
 SESSION_URL = "/vistoda_static/ring-audio-session.js"
 CONTROLS_URL = "/vistoda_static/ring-controls.js"
 RECORDINGS_URL = "/vistoda_static/ring-recordings.js"
+LOCAL_RECORDER_URL = "/vistoda_static/ring-local-recorder.js"
 
 
 async def async_register(hass: HomeAssistant) -> None:
@@ -34,6 +35,11 @@ async def async_register(hass: HomeAssistant) -> None:
                 str(source.with_name("ring-recordings.js")),
                 cache_headers=False,
             ),
+            StaticPathConfig(
+                LOCAL_RECORDER_URL,
+                str(source.with_name("ring-local-recorder.js")),
+                cache_headers=False,
+            ),
         ]
     )
     if frontend.async_panel_exists(hass, PANEL_PATH):
@@ -44,6 +50,6 @@ async def async_register(hass: HomeAssistant) -> None:
         webcomponent_name="vistoda-panel",
         sidebar_title="Vistoda · Ring",
         sidebar_icon="mdi:phone-in-talk",
-        module_url=f"{STATIC_URL}?v=0.6.6",
+        module_url=f"{STATIC_URL}?v=0.7.0",
         config_panel_domain="media_bridge",
     )

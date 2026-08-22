@@ -1,11 +1,12 @@
-const TERMINAL = new Set(["complete", "unavailable", "expired", "failed"]);
+import { RingLocalRecorder } from "./ring-local-recorder.js?v=0.7.0";
 
 class RingRecordings extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this._callStartedAt = null;
-    this._timer = null;
+    this._active = false;
+    this._requested = false;
+    this._recording = false;
   }
 
   configure(hass, entry) {
@@ -13,30 +14,48 @@ class RingRecordings extends HTMLElement {
     this._entry = entry;
     if (!this.shadowRoot.hasChildNodes()) this._mount();
     this._autoRecordEntity = entry.controls?.auto_record;
+    this._recorder = new RingLocalRecorder(hass, entry, (state) => this._recorderState(state));
     this._renderAutoRecord();
     this._load();
   }
 
   set hass(value) {
     this._hass = value;
+    if (this._recorder) this._recorder.hass = value;
     this._renderAutoRecord();
   }
 
-  setCallState(active) {
-    const newlyActive = active && !this._wasActive;
-    if (newlyActive) this._callStartedAt = Math.floor(Date.now() / 1000);
-    this._wasActive = active;
-    this.$("record").disabled = !active || Boolean(this._importId);
-    if (newlyActive && this._autoRecordEnabled()) this._start();
+  prepareCall() {
+    this._active = false;
+    this._requested = false;
+    this._remoteStream = null;
+    this._localStream = null;
+    this._mode = "listen";
+    this._renderButton();
+    this.$("status").textContent = "Connessione in corso…";
   }
 
-  prepareCall() {
-    if (this._importId && !this._terminal) return;
-    this._callStartedAt = null;
-    this._importId = null;
-    this._terminal = false;
-    this._wasActive = false;
-    this.$("status").textContent = "Connessione in corso; attendi che la chiamata sia attiva.";
+  setCallState(active) {
+    const newlyActive = active && !this._active;
+    this._active = active;
+    if (newlyActive && this._autoRecordEnabled()) this._requested = true;
+    if (active) this._maybeStart();
+    this._renderButton();
+  }
+
+  setMedia(remoteStream, localStream, mode) {
+    this._remoteStream = remoteStream;
+    this._localStream = localStream;
+    this._mode = mode;
+    if (this._recorder?.active) this._recorder.updateLocal(localStream, mode === "talk");
+    else this._maybeStart();
+  }
+
+  async finishCall() {
+    this._active = false;
+    this._requested = false;
+    if (this._recorder?.active) await this._recorder.stop(true);
+    this._renderButton();
   }
 
   _mount() {
@@ -53,21 +72,20 @@ class RingRecordings extends HTMLElement {
         button:disabled{opacity:.48;cursor:not-allowed}.status{margin:13px 0 0;color:var(--secondary-text-color)}
         .toggle{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:17px;
           padding:13px 0;border-top:1px solid var(--divider-color)}.toggle input{width:22px;height:22px;
-          accent-color:var(--primary-color)}
-        @media(max-width:520px){.card{padding:18px}}
+          accent-color:var(--primary-color)}@media(max-width:520px){.card{padding:18px}}
       </style>
       <section class="card"><div class="top"><div><h2>Archivio chiamate</h2>
         <div class="hint" id="detail">Caricamento…</div></div><span class="badge" id="count">—</span></div>
         <label class="toggle"><span><strong>Registra automaticamente</strong><br>
-          <span class="hint">Impostazione globale dell’integrazione</span></span>
+          <span class="hint">Impostazione globale per le comunicazioni Vistoda</span></span>
           <input id="auto-record" type="checkbox" disabled></label>
         <button id="record" disabled>Registra questa chiamata</button>
-        <p class="status" id="status">Avvia la comunicazione per abilitare la registrazione.</p>
-        <p class="hint">Usa la registrazione ufficiale Ring: l’avviso vocale resta attivo e
-          “Call Recording” deve essere abilitato nelle impostazioni Privacy dell’app Ring.</p>
+        <p class="status" id="status">Avvia la comunicazione per registrare.</p>
+        <p class="hint">La registrazione è locale nel bridge Vistoda e non richiede Call Recording
+          di Ring. Include l’audio del citofono e il microfono quando lo attivi.</p>
       </section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
-    this.$("record").addEventListener("click", () => this._start());
+    this.$("record").addEventListener("click", () => this._toggleRecording());
     this.$("auto-record").addEventListener("change", () => this._setAutoRecord());
   }
 
@@ -98,64 +116,43 @@ class RingRecordings extends HTMLElement {
     }
   }
 
-  async _start() {
-    if (!this._callStartedAt || this._importId) return;
-    this.$("record").disabled = true;
-    this.$("status").textContent = "Richiesta di registrazione in corso…";
+  async _toggleRecording() {
+    if (this._recorder?.active) return this._recorder.stop(true);
+    this._requested = true;
+    await this._maybeStart();
+  }
+
+  async _maybeStart() {
+    if (!this._requested || !this._active || !this._remoteStream || this._recorder?.active) return;
     try {
-      const result = await this._hass.callWS({
-        type: "media_bridge/ring/recordings/import",
-        entry_id: this._entry.entry_id,
-        triggered_at: this._callStartedAt,
-      });
-      this._importId = result.import_id;
-      this._pollCount = 0;
-      this._terminal = TERMINAL.has(result.state);
-      this._renderImport(result.state);
-      if (!TERMINAL.has(result.state)) this._schedulePoll();
-    } catch (_error) {
-      this.$("status").textContent = "Richiesta rifiutata: verifica bridge e impostazioni Ring.";
-      this.$("record").disabled = false;
+      await this._recorder.start(this._remoteStream, this._localStream, this._mode === "talk");
+    } catch (error) {
+      this._requested = false;
+      this.$("status").textContent = error?.message || "Registrazione locale non disponibile.";
+      this._renderButton();
     }
   }
 
-  _schedulePoll() {
-    clearTimeout(this._timer);
-    this._timer = setTimeout(() => this._poll(), 5000);
-  }
-
-  async _poll() {
-    this._pollCount += 1;
-    if (this._pollCount > 45) {
-      this.$("status").textContent = "Tempo di attesa scaduto; verifica più tardi l’archivio.";
-      return;
-    }
-    try {
-      const result = await this._hass.callWS({
-        type: "media_bridge/ring/recordings/import/status",
-        entry_id: this._entry.entry_id,
-        import_id: this._importId,
-      });
-      this._terminal = TERMINAL.has(result.state);
-      this._renderImport(result.state);
-      if (TERMINAL.has(result.state)) {
-        if (result.state === "complete") await this._load();
-      } else this._schedulePoll();
-    } catch (_error) {
-      this.$("status").textContent = "Stato non raggiungibile; il bridge continua in background.";
-      this._schedulePoll();
-    }
-  }
-
-  _renderImport(state) {
+  _recorderState(state) {
     const labels = {
-      pending: "Ring sta finalizzando la registrazione…",
-      complete: "Registrazione completata e archiviata.",
-      unavailable: "Call Recording non è abilitato o disponibile per questo account.",
-      expired: "Nessuna registrazione completata trovata per questa chiamata.",
-      failed: "Import non riuscito; consulta i log del bridge.",
+      recording: "Registrazione locale in corso…",
+      uploading: "Salvataggio nel bridge Vistoda…",
+      saved: "Registrazione salvata nell’archivio privato.",
+      upload_failed: "Salvataggio non riuscito; verifica il bridge Vistoda.",
+      too_large: "Registrazione interrotta: limite archivio superato.",
+      error: "Il browser ha interrotto la registrazione.",
     };
-    this.$("status").textContent = labels[state] || "Stato registrazione sconosciuto.";
+    this._recording = state === "recording";
+    this.$("status").textContent = labels[state] || this.$("status").textContent;
+    this._renderButton();
+    if (state === "saved") this._load();
+  }
+
+  _renderButton() {
+    if (!this.$) return;
+    const button = this.$("record");
+    button.disabled = !this._active && !this._recording;
+    button.textContent = this._recording ? "Interrompi e salva" : "Registra questa chiamata";
   }
 
   async _load() {
@@ -167,15 +164,15 @@ class RingRecordings extends HTMLElement {
       this.$("count").textContent = String(recordings.length);
       const latest = recordings[0];
       this.$("detail").textContent = latest
-        ? `Ultima: ${new Date(latest.event_at * 1000).toLocaleString("it-IT")}`
-        : "Nessuna registrazione importata · conservazione 30 giorni";
+        ? `Ultima: ${new Date(latest.ended_at * 1000).toLocaleString("it-IT")}`
+        : "Nessuna registrazione locale · conservazione 30 giorni";
     } catch (_error) {
       this.$("count").textContent = "!";
       this.$("detail").textContent = "Archivio temporaneamente non disponibile";
     }
   }
 
-  disconnectedCallback() { clearTimeout(this._timer); }
+  disconnectedCallback() { this._recorder?.stop(true); }
 }
 
 customElements.define("vistoda-ring-recordings", RingRecordings);

@@ -1,14 +1,5 @@
-import_ring_recording:
-  name: Import Ring call recording
-  description: Queue the official Ring recording associated with a recent intercom ding.
-  fields:
-    triggered_at:
-      name: Ding timestamp
-      description: Unix timestamp of the Ring intercom ding event.
-      required: true
-      example: 1786800000
-      selector:
-        number:
-          min: 0
-          max: 4102444800
-          mode: box
+open_ring_door:
+  name: Open Ring entrance door
+  description: >-
+    Use the native Vistoda path first. Fall back once to the official Ring
+    integration only when Vistoda is unavailable before sending the command.

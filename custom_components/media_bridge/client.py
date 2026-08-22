@@ -25,7 +25,7 @@ from .models import (
     Enrollment,
     Recording,
     parse_audio_session,
-    parse_recording_import,
+    parse_recording,
     parse_recordings,
     parse_ring_status,
 )
@@ -35,6 +35,7 @@ IMAGE_LIMIT = 12 * 1024 * 1024
 TIMEOUT = ClientTimeout(total=20, connect=5)
 SESSION_TIMEOUT = ClientTimeout(total=30, connect=5)
 RECORDING_LIST_LIMIT = 512 * 1024
+RECORDING_UPLOAD_LIMIT = 8 * 1024 * 1024
 
 
 class BridgeClient:
@@ -131,20 +132,28 @@ class BridgeClient:
             if response.status != 204:
                 self._raise_status(response.status)
 
-    async def import_ring_recording(self, alias: str, triggered_at: int):
-        payload = await self._json(
+    async def upload_ring_recording(
+        self, alias: str, started_at: int, ended_at: int, media_type: str, media: bytes
+    ) -> Recording:
+        """Commit one bounded browser recording to the private archive."""
+        if len(media) > RECORDING_UPLOAD_LIMIT:
+            raise CannotConnectError
+        response = await self._request(
             "POST",
-            f"/v1/devices/{quote(alias, safe='')}/recording-imports",
-            json={"triggered_at": triggered_at},
+            f"/v1/devices/{quote(alias, safe='')}/recordings",
+            params={"started_at": started_at, "ended_at": ended_at},
+            data=media,
+            headers={"Content-Type": media_type},
+            timeout=SESSION_TIMEOUT,
         )
-        return parse_recording_import(payload)
-
-    async def ring_recording_import(self, alias: str, import_id: str):
-        payload = await self._json(
-            "GET",
-            f"/v1/devices/{quote(alias, safe='')}/recording-imports/{quote(import_id, safe='')}",
-        )
-        return parse_recording_import(payload)
+        async with response:
+            body = await self._bounded(response, JSON_LIMIT)
+            if response.status != 201:
+                self._raise_status(response.status, body)
+            try:
+                return parse_recording(json.loads(body))
+            except (json.JSONDecodeError, UnicodeDecodeError) as error:
+                raise CannotConnectError from error
 
     async def ring_recordings(self, alias: str) -> tuple[Recording, ...]:
         payload = await self._json(
@@ -189,6 +198,7 @@ class BridgeClient:
 
     async def _request(self, method: str, path: str, *, authenticated: bool = True, **kwargs: Any):
         headers = {"Authorization": f"Bearer {self._token}"} if authenticated else {}
+        headers.update(kwargs.pop("headers", {}))
         timeout = kwargs.pop("timeout", TIMEOUT)
         try:
             return await self._session.request(

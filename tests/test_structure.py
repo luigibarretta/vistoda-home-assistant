@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.6.6"
+    assert manifest["version"] == "0.7.0"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -94,6 +94,7 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     session = (COMPONENT / "frontend" / "ring-audio-session.js").read_text(encoding="utf-8")
     controls = (COMPONENT / "frontend" / "ring-controls.js").read_text(encoding="utf-8")
     recordings = (COMPONENT / "frontend" / "ring-recordings.js").read_text(encoding="utf-8")
+    recorder = (COMPONENT / "frontend" / "ring-local-recorder.js").read_text(encoding="utf-8")
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
     recording_ws = (COMPONENT / "ring_recording_websocket.py").read_text(encoding="utf-8")
     assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
@@ -103,7 +104,11 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "vistoda-ring-recordings" in panel
     assert "Archivio chiamate" in recordings
     assert "Registra questa chiamata" in recordings
-    assert "media_bridge/ring/recordings/import/status" in recordings
+    assert "media_bridge/ring/recordings/upload" in recorder
+    assert "MediaRecorder" in recorder
+    assert "createMediaStreamDestination" in recorder
+    assert "Call Recording" in recordings
+    assert "non richiede" in recordings
     assert "Apri portone" in controls
     assert "Batteria" in controls
     assert "window.confirm" in controls
@@ -126,12 +131,15 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     )
 
 
-def test_ring_recording_service_is_bounded_and_visible() -> None:
+def test_ring_door_service_is_vistoda_first_and_visible() -> None:
     service = (COMPONENT / "services.py").read_text(encoding="utf-8")
     definition = (COMPONENT / "services.yaml").read_text(encoding="utf-8")
-    assert definition.startswith("import_ring_recording:\n")
-    assert 'SERVICE_IMPORT_RING_RECORDING = "import_ring_recording"' in service
-    assert 'vol.Required("triggered_at")' in service
+    assert definition.startswith("open_ring_door:\n")
+    assert 'SERVICE_OPEN_RING_DOOR = "open_ring_door"' in service
+    assert "await runtime.client.ring_status(alias)" in service
+    assert "await runtime.client.unlock_ring(alias)" in service
+    assert '"official_fallback"' in service
+    assert "outcome is unknown" in service
     assert "api_token" not in service
 
 

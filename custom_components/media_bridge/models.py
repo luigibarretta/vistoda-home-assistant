@@ -42,19 +42,11 @@ class Recording:
     """One private Ring call recording."""
 
     recording_id: str
-    event_at: int
+    started_at: int
+    ended_at: int
     saved_at: int
     bytes: int
     media_type: str
-
-
-@dataclass(frozen=True, slots=True)
-class RecordingImport:
-    """One bounded asynchronous Ring recording import."""
-
-    import_id: str
-    state: str
-    recording_id: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,47 +139,40 @@ def parse_recordings(payload: dict) -> tuple[Recording, ...]:
         raw = payload["recordings"]
         if not isinstance(raw, list) or len(raw) > 4096:
             raise CannotConnectError
-        result = tuple(
-            Recording(
-                str(item["recording_id"]),
-                int(item["event_at"]),
-                int(item["saved_at"]),
-                int(item["bytes"]),
-                str(item["media_type"]),
-            )
-            for item in raw
-        )
+        result = tuple(parse_recording(item) for item in raw)
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error
     if any(
         not item.recording_id
-        or item.bytes < 1024
-        or item.bytes > 64 * 1024 * 1024
-        or item.media_type != "audio/mp4"
+        or item.bytes < 128
+        or item.bytes > 8 * 1024 * 1024
+        or item.media_type not in {"audio/mp4", "audio/webm"}
         for item in result
     ):
         raise CannotConnectError
     return result
 
 
-def parse_recording_import(payload: dict) -> RecordingImport:
-    """Validate one recording-import transition."""
+def parse_recording(item: dict) -> Recording:
+    """Validate one locally archived recording."""
     from .errors import CannotConnectError
 
     try:
-        result = RecordingImport(
-            import_id=str(payload["import_id"]),
-            state=str(payload["state"]),
-            recording_id=(str(payload["recording_id"]) if payload["recording_id"] else None),
+        result = Recording(
+            str(item["recording_id"]),
+            int(item["started_at"]),
+            int(item["ended_at"]),
+            int(item["saved_at"]),
+            int(item["bytes"]),
+            str(item["media_type"]),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error
-    if not result.import_id or result.state not in {
-        "pending",
-        "complete",
-        "unavailable",
-        "expired",
-        "failed",
-    }:
+    if (
+        not result.recording_id
+        or result.started_at > result.ended_at
+        or not 128 <= result.bytes <= 8 * 1024 * 1024
+        or result.media_type not in {"audio/mp4", "audio/webm"}
+    ):
         raise CannotConnectError
     return result

@@ -8,7 +8,7 @@ the cameras and intercoms that remain inside the trusted network.
   and its existing live camera entities without a second login or duplicates;
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment, one listen-first
-  full-duplex session, private import of official call recordings and a native
+  full-duplex session, private local call recording and a native
   facade with native or delegated controls, battery, sensors and events.
 
 ## Security boundary
@@ -37,17 +37,12 @@ shows battery and lets the user switch portone and volume controls between the
 native Rust bridge and the official Ring integration. Opening requires an
 explicit confirmation.
 
-The official Ring integration's ding event can call
-`media_bridge.import_ring_recording`. Vistoda queues a bounded post-call import
-from Ring's official Call Recording feature; it never opens a competing live
-session. The private bridge stores only completed MP4 recordings for 30 days,
-up to 512 MiB. Ring Call Recording must be enabled in the Ring app and may
-require an eligible subscription; Ring plays its recording notice before the
-conversation begins.
-
-During an active panel call, **Registra questa chiamata** queues that workflow.
-**Registra automaticamente** is persisted globally in the config entry, so it
-applies to every browser and automation. Neither path bypasses Ring's notice.
+During an active panel call, **Registra questa chiamata** captures the remote
+audio and includes the microphone only while it is enabled. The browser sends
+the bounded WebM/MP4 through Home Assistant's authenticated WebSocket proxy;
+it never receives a bridge token. **Registra automaticamente** is persisted
+globally in the config entry and applies to every Vistoda browser. The archive
+retains 30 days and at most 512 MiB; Ring Call Recording is not required.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The
@@ -91,6 +86,7 @@ python -m ruff format --check .
 python -m ruff check .
 python -m pytest
 python scripts/check_loc.py
+node --test tests/*.mjs
 ```
 
 Every maintained Python, JSON, Markdown, TOML and YAML file is limited to 250
