@@ -1,4 +1,4 @@
-import { RingLocalRecorder } from "./ring-local-recorder.js?v=0.7.1";
+import { RingLocalRecorder } from "./ring-local-recorder.js?v=0.8.0";
 
 class RingRecordings extends HTMLElement {
   constructor() {

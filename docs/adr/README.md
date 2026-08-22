@@ -11,5 +11,6 @@
 | [0007](0007-ring-session-observability.md) | Communication audit and global recording policy |
 | [0008](0008-native-ring-controls.md) | Native controls with explicit delegation rollback |
 | [0009](0009-local-ring-session-recording.md) | Local Ring session recording through HA |
+| [0010](0010-native-apple-audio-boundary.md) | Native Apple audio and OAuth boundary |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

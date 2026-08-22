@@ -3,11 +3,11 @@
   "name": "Vistoda",
   "codeowners": ["@luigibarretta"],
   "config_flow": true,
-  "dependencies": ["stream", "frontend", "panel_custom", "websocket_api"],
+  "dependencies": ["http", "stream", "frontend", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/luigibarretta/home-assistant-media-bridge",
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/luigibarretta/home-assistant-media-bridge/issues",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "zeroconf": ["_vistoda._tcp.local."]
 }

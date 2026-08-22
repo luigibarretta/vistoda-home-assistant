@@ -9,7 +9,9 @@ the cameras and intercoms that remain inside the trusted network.
 - EZVIZ VTM Bridge: fresh snapshot and shared MPEG-TS live camera;
 - Ring Intercom Bridge: secure password/SMS enrollment, one listen-first
   full-duplex session, private local call recording and a native
-  facade with native or delegated controls, battery, sensors and events.
+  facade with native or delegated controls, battery, sensors and events;
+- Vistoda Apple companion: authenticated iPhone/watchOS full-duplex audio over
+  a bounded HA-to-bridge PCMU relay, without Ring or bridge secrets on-device.
 
 ## Security boundary
 
@@ -50,6 +52,14 @@ official Ring device remains an optional rollback/event source. Vistoda adds
 answering, full-duplex audio, battery, native controls and private recordings.
 Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
+
+Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
+Assistant OAuth access token. HA resolves the private config entry and adds the
+bridge bearer only server-side. The iPhone completes authorization-code login;
+the Watch receives scoped connection state through WatchConnectivity, starts
+muted and can listen and speak simultaneously. The existing HA actionable
+notification remains the first delivery path until signed PushKit/APNs is
+validated on physical Apple hardware.
 
 ## Installation
 

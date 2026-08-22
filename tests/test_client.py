@@ -39,6 +39,10 @@ class FakeSession:
         self.requests.append((method, url, kwargs))
         return self.responses.pop(0)
 
+    def ws_connect(self, url, **kwargs):
+        self.requests.append(("WS", url, kwargs))
+        return "synthetic-websocket-context"
+
 
 def response(status: int, payload: dict) -> FakeResponse:
     return FakeResponse(status, json.dumps(payload).encode())
@@ -110,6 +114,18 @@ async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
     await client.stop_ring_audio("entrance", "synthetic", "user_stop")
     assert session.requests[0][0] == "DELETE"
     assert session.requests[0][2]["params"] == {"reason": "user_stop"}
+
+
+def test_native_ring_relay_is_private_bounded_and_uses_websocket_scheme() -> None:
+    session = FakeSession([])
+    client = BridgeClient(session, "https://[fd00::1]:8775", "x" * 32)
+    context = client.ring_relay("front entrance")
+    assert context == "synthetic-websocket-context"
+    method, url, options = session.requests[0]
+    assert method == "WS"
+    assert url == "wss://[fd00::1]:8775/v1/devices/front%20entrance/audio/relay"
+    assert options["headers"]["Authorization"] == f"Bearer {'x' * 32}"
+    assert options["max_msg_size"] == 2048
 
 
 @pytest.mark.asyncio

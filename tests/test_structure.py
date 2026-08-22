@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.7.1"
+    assert manifest["version"] == "0.8.0"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
     assert hacs["homeassistant"] == "2026.8.0"
@@ -97,7 +97,7 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     recorder = (COMPONENT / "frontend" / "ring-local-recorder.js").read_text(encoding="utf-8")
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
     recording_ws = (COMPONENT / "ring_recording_websocket.py").read_text(encoding="utf-8")
-    assert {"frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
+    assert {"http", "frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
     assert "Vistoda · Ring" in panel
     assert "Avvia comunicazione" in panel
     assert "Attiva microfono" in panel
@@ -129,6 +129,19 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "vol.Length(min=1, max=65536)" in websocket
     assert "media_bridge/ring/recordings/list" in recording_ws
     assert '"controls": controls' in websocket
+    proxy = (COMPONENT / "ring_audio_proxy.py").read_text(encoding="utf-8")
+    assert "requires_auth = True" in proxy
+    assert 'PROXY_URL = "/api/media_bridge/ring/audio/{entry_id}"' in proxy
+    assert "runtime.client.ring_relay(alias)" in proxy
+    assert "Authorization" not in proxy
+    callback = (COMPONENT / "apple_oauth_view.py").read_text(encoding="utf-8")
+    assert "requires_auth = False" in callback
+    assert "Cache-Control" in callback
+    assert "native_callback" in callback
+    apple_config = (COMPONENT / "apple_config_view.py").read_text(encoding="utf-8")
+    assert "requires_auth = True" in apple_config
+    assert '"open_door_service": f"{DOMAIN}.open_ring_door"' in apple_config
+    assert "CONF_API_TOKEN" not in apple_config
     assert "frontend.async_remove_panel(hass, PANEL_PATH)" in (COMPONENT / "panel.py").read_text(
         encoding="utf-8"
     )
