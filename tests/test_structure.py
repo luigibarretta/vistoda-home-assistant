@@ -15,10 +15,14 @@ def load(path: Path):
 def test_manifest_and_hacs_metadata_are_consistent() -> None:
     manifest = load(COMPONENT / "manifest.json")
     hacs = load(ROOT / "hacs.json")
+    constants = (COMPONENT / "const.py").read_text(encoding="utf-8")
+    panel = (COMPONENT / "panel.py").read_text(encoding="utf-8")
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
     assert manifest["version"] == "0.8.1"
+    assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
+    assert 'module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}"' in panel
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/vistoda-home-assistant/issues")
     assert hacs["homeassistant"] == "2026.8.0"

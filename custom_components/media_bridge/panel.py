@@ -6,6 +6,8 @@ from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
+from .const import INTEGRATION_VERSION
+
 PANEL_PATH = "vistoda-ring"
 STATIC_URL = "/vistoda_static/vistoda-panel.js"
 SESSION_URL = "/vistoda_static/ring-audio-session.js"
@@ -50,6 +52,6 @@ async def async_register(hass: HomeAssistant) -> None:
         webcomponent_name="vistoda-panel",
         sidebar_title="Vistoda · Ring",
         sidebar_icon="mdi:phone-in-talk",
-        module_url=f"{STATIC_URL}?v=0.8.0",
+        module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}",
         config_panel_domain="media_bridge",
     )
