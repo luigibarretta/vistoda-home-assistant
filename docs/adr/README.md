@@ -12,5 +12,6 @@
 | [0008](0008-native-ring-controls.md) | Native controls with explicit delegation rollback |
 | [0009](0009-local-ring-session-recording.md) | Local Ring session recording through HA |
 | [0010](0010-native-apple-audio-boundary.md) | Native Apple audio and OAuth boundary |
+| [0011](0011-vistoda-repository-family.md) | Product repository family and stable compatibility identifiers |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

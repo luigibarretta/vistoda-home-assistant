@@ -18,9 +18,9 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.8.0"
+    assert manifest["version"] == "0.8.1"
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
-    assert manifest["issue_tracker"].endswith("/home-assistant-media-bridge/issues")
+    assert manifest["issue_tracker"].endswith("/vistoda-home-assistant/issues")
     assert hacs["homeassistant"] == "2026.8.0"
 
 
