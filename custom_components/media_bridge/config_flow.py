@@ -16,6 +16,7 @@ from .const import (
     CONF_ALIAS,
     CONF_API_TOKEN,
     CONF_DISCOVERY_TOKENS,
+    CONF_MANAGED_APP,
     CONF_PROVIDER,
     CONF_URL,
     DEFAULT_BLINK_ALIAS,
@@ -25,14 +26,22 @@ from .const import (
     PROVIDER_RING,
 )
 from .errors import CannotConnectError, InvalidBridgeAuthError
+from .ezviz_flow import EzvizEnrollmentMixin
 from .local import blink_adapter_available
+from .managed_flow import ManagedAppDiscoveryMixin
 from .ring_flow import RingEnrollmentMixin
 from .schemas import bridge_schema, discovered_schema, provider_schema
 
 REMOTE_PROVIDERS = frozenset({PROVIDER_EZVIZ, PROVIDER_RING})
 
 
-class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(
+    ManagedAppDiscoveryMixin,
+    EzvizEnrollmentMixin,
+    RingEnrollmentMixin,
+    config_entries.ConfigFlow,
+    domain=DOMAIN,
+):
     """Configure a provider without retaining vendor credentials in HA."""
 
     VERSION = 1
@@ -154,6 +163,8 @@ class ConfigFlow(RingEnrollmentMixin, config_entries.ConfigFlow, domain=DOMAIN):
         self._set_flow_title()
         if provider == PROVIDER_BLINK:
             return self.async_abort(reason="local_adapter")
+        if entry.data.get(CONF_MANAGED_APP):
+            return self.async_abort(reason="managed_app")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:

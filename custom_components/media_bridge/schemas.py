@@ -61,6 +61,16 @@ def ring_credentials_schema() -> vol.Schema:
     )
 
 
+def ezviz_credentials_schema() -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required("account"): str,
+            vol.Required("password"): password_selector(),
+            vol.Required("api_region", default="eu"): str,
+        }
+    )
+
+
 def otp_schema() -> vol.Schema:
     return vol.Schema({vol.Required("code"): password_selector()})
 

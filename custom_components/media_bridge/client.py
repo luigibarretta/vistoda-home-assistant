@@ -8,7 +8,8 @@ from urllib.parse import quote, urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, ClientWSTimeout
 
-from .client_helpers import error_code, normalize_url, parse_enrollment
+from .client_enrollment import EnrollmentClientMixin
+from .client_helpers import error_code, normalize_url
 from .const import PROVIDER_RING
 from .errors import (
     CannotConnectError,
@@ -22,7 +23,6 @@ from .errors import (
 from .models import (
     AudioSession,
     BridgeHealth,
-    Enrollment,
     Recording,
     parse_audio_session,
     parse_recording,
@@ -38,7 +38,7 @@ RECORDING_LIST_LIMIT, RECORDING_UPLOAD_LIMIT = 512 * 1024, 8 * 1024 * 1024
 RELAY_TIMEOUT = ClientWSTimeout(ws_receive=125, ws_close=5)
 
 
-class BridgeClient:
+class BridgeClient(EnrollmentClientMixin):
     """Authenticate and consume one private bridge."""
 
     def __init__(self, session: ClientSession, base_url: str, token: str) -> None:
@@ -62,26 +62,6 @@ class BridgeClient:
                 raise InvalidBridgeAuthError
             if response.status != 200:
                 raise CannotConnectError
-
-    async def start_ring_enrollment(self, email: str, password: str) -> Enrollment:
-        payload = await self._json(
-            "POST", "/v1/enrollments", json={"email": email, "password": password}
-        )
-        return parse_enrollment(payload)
-
-    async def verify_ring_enrollment(self, enrollment_id: str, code: str) -> None:
-        payload = await self._json(
-            "POST", f"/v1/enrollments/{quote(enrollment_id, safe='')}", json={"code": code}
-        )
-        if payload.get("status") != "complete":
-            raise CannotConnectError
-
-    async def cancel_ring_enrollment(self, enrollment_id: str) -> None:
-        response = await self._request("DELETE", f"/v1/enrollments/{quote(enrollment_id, safe='')}")
-        async with response:
-            await self._bounded(response, JSON_LIMIT)
-            if response.status not in (204, 404):
-                self._raise_status(response.status)
 
     async def start_ring_audio(
         self, alias: str, offer_sdp: str, mode: str, ice_gathering_ms: int

@@ -65,7 +65,23 @@ async def test_invalid_otp_uses_the_stable_redacted_error() -> None:
     session = FakeSession([response(422, {"error": "invalid_otp"})])
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
     with pytest.raises(InvalidOtpError):
-        await client.verify_ring_enrollment("synthetic", "123456")
+        await client.verify_enrollment("synthetic", "123456")
+
+
+@pytest.mark.asyncio
+async def test_ezviz_enrollment_keeps_credentials_out_of_the_url() -> None:
+    session = FakeSession(
+        [response(200, {"enrollment_id": "synthetic", "next_step": "otp", "expires_in": 120})]
+    )
+    client = BridgeClient(session, "http://bridge.local:8765", "x" * 32)
+    enrollment = await client.start_ezviz_enrollment("owner@example.com", "synthetic", "eu")
+    assert enrollment.next_step == "otp"
+    method, url, options = session.requests[0]
+    assert method == "POST"
+    assert url.endswith("/v1/enrollments")
+    assert options["json"]["api_region"] == "eu"
+    assert "owner@example.com" not in url
+    assert "synthetic" not in url
 
 
 @pytest.mark.asyncio

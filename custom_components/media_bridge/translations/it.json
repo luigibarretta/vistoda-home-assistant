@@ -5,12 +5,12 @@
     "step": {
       "user": {
         "title": "Configura Vistoda",
-        "description": "Scegli l'adapter locale Blink di Home Assistant oppure un bridge privato EZVIZ/Ring. I bridge remoti rilevati appaiono automaticamente; resta disponibile anche la configurazione manuale.",
+        "description": "Scegli un provider. Le app Vistoda installate tramite Supervisor vengono rilevate e configurate automaticamente; i bridge esterni manuali restano un'opzione avanzata.",
         "data": {
           "provider": "Provider"
         },
         "data_description": {
-          "provider": "Blink riusa la sessione caricata in Home Assistant. EZVIZ e Ring si collegano a bridge Rust privati separati."
+          "provider": "Installa l'app Vistoda corrispondente per la configurazione più semplice. Blink, EZVIZ e Ring mantengono sessioni separate."
         }
       },
       "blink": {
@@ -63,6 +63,30 @@
           "code": "Usa soltanto l'SMS più recente inviato da Ring per questa registrazione. Non è il codice di verifica EZVIZ né il token API del bridge."
         }
       },
+      "ezviz_credentials": {
+        "title": "Registra l'account EZVIZ",
+        "description": "Vistoda invia queste credenziali una sola volta all'app privata EZVIZ. Home Assistant non le salva. EZVIZ potrebbe inviare un codice MFA a sei cifre.",
+        "data": {
+          "account": "Account EZVIZ",
+          "password": "Password account EZVIZ",
+          "api_region": "Regione API EZVIZ"
+        },
+        "data_description": {
+          "account": "Indirizzo email o nome account usato nell'app EZVIZ.",
+          "password": "Password attuale dell'account EZVIZ; non è il codice di verifica del dispositivo.",
+          "api_region": "Usa eu salvo che l'account EZVIZ appartenga a un'altra regione."
+        }
+      },
+      "ezviz_otp": {
+        "title": "Verifica l'account EZVIZ",
+        "description": "Inserisci il codice MFA a sei cifre più recente inviato da EZVIZ. La verifica è monouso.",
+        "data": {
+          "code": "Codice MFA a sei cifre"
+        },
+        "data_description": {
+          "code": "È il codice MFA temporaneo dell'account, non il codice di verifica del dispositivo."
+        }
+      },
       "reconfigure": {
         "title": "Riconfigura Vistoda",
         "description": "Aggiorna il modo in cui Home Assistant raggiunge il bridge privato. La sessione dell'account del produttore resta gestita dal bridge e qui non viene modificata.",
@@ -84,6 +108,8 @@
       "invalid_url": "Inserisci un URL HTTP o HTTPS di base senza credenziali né percorsi API.",
       "invalid_bridge_auth": "Il token API del bridge non è valido. Usa il token dedicato configurato nel bridge Rust.",
       "invalid_auth": "Ring ha rifiutato l'email o la password dell'account.",
+      "ezviz_invalid_auth": "EZVIZ ha rifiutato l'account o la password.",
+      "ezviz_invalid_otp_restart": "EZVIZ ha rifiutato il codice MFA. Avvia una nuova registrazione usando il codice più recente.",
       "invalid_otp_restart": "Ring ha rifiutato il codice. Ricomincia: la precedente verifica monouso è stata consumata.",
       "enrollment_busy": "Sul bridge è già in corso un'altra registrazione.",
       "enrollment_expired": "La registrazione è scaduta o è già stata usata. Ricomincia.",
@@ -93,6 +119,9 @@
       "already_configured": "Questo dispositivo bridge è già configurato in Vistoda.",
       "blink_not_loaded": "Blink Live Bridge deve essere caricato prima che Vistoda possa adottarlo.",
       "local_adapter": "L'adapter locale Blink segue Blink Live Bridge e non ha impostazioni di connessione remota.",
+      "managed_app": "Questa connessione è gestita automaticamente dalla relativa app Vistoda.",
+      "cannot_connect": "L'app Vistoda rilevata non è ancora raggiungibile. Controlla che sia avviata.",
+      "invalid_bridge_auth": "L'app Vistoda rilevata ha fornito una credenziale privata non valida.",
       "unsupported_provider": "Il servizio rilevato non è un provider supportato da Vistoda."
     }
   },

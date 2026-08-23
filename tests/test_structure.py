@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.8.1"
+    assert manifest["version"] == "0.9.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}"' in panel
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
@@ -48,6 +48,8 @@ def test_config_flow_guidance_is_complete_in_every_language() -> None:
         "discovery_confirm": {"api_token"},
         "ring_credentials": {"email", "password"},
         "otp": {"code"},
+        "ezviz_credentials": {"account", "password", "api_region"},
+        "ezviz_otp": {"code"},
         "reconfigure": {"url", "api_token", "alias"},
     }
     for document in documents:
@@ -87,9 +89,24 @@ def test_local_coordinator_supplies_the_ha_2026_logger_contract() -> None:
 
 def test_every_flow_path_supplies_required_translation_placeholders() -> None:
     source = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+    managed = (COMPONENT / "managed_flow.py").read_text(encoding="utf-8")
     assert source.count("self._set_flow_title()") == 4
+    assert "self._set_flow_title()" in managed
     assert 'self.context["title_placeholders"] = {"name": name}' in source
     assert 'description_placeholders={"provider": self._provider.upper()}' in source
+
+
+def test_supervisor_apps_hide_bridge_fields_and_keep_external_mode() -> None:
+    managed = (COMPONENT / "managed_flow.py").read_text(encoding="utf-8")
+    flow = (COMPONENT / "config_flow.py").read_text(encoding="utf-8")
+    manifest = load(COMPONENT / "manifest.json")
+    assert "async_step_hassio" in managed
+    assert "CONF_MANAGED_APP: True" in managed
+    assert "async_step_ring_credentials" in managed
+    assert "async_step_ezviz_credentials" in managed
+    assert "bridge_schema" in flow
+    assert 'return self.async_abort(reason="managed_app")' in flow
+    assert "hassio" not in manifest["dependencies"]
 
 
 def test_ring_panel_has_private_authenticated_boundaries() -> None:

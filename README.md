@@ -4,8 +4,8 @@ Vistoda is the native Home Assistant control plane for private, provider-specifi
 Rust media bridges. The name joins *vista* and *custodia*: one guarded view over
 the cameras and intercoms that remain inside the trusted network.
 
-- Vistoda Blink connector: adopts the already authenticated Home Assistant relay
-  and its existing live camera entities without a second login or duplicates;
+- Vistoda Blink connector: connects the standalone Rust Blink app and exposes
+  its camera, control and media surface as native Home Assistant entities;
 - Vistoda EZVIZ connector: fresh snapshot and shared MPEG-TS live camera;
 - Vistoda Ring connector: secure password/SMS enrollment, one listen-first
   full-duplex session, private local call recording and a native
@@ -63,23 +63,27 @@ validated on physical Apple hardware.
 
 ## Installation
 
-The production deployment is SHA-pinned and managed by the private Ansible
-playbook `deploy-ha-media-bridge.yml`. After the play loads the component, go
-to Settings → Devices & services → Add integration → Vistoda.
+[![Install Vistoda through HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=luigibarretta&repository=vistoda-home-assistant&category=integration)
 
-The repository keeps the standard HACS integration layout and metadata for a
-possible future public release. HACS cannot install a private GitHub repository,
-so do not present the current private mirror as a HACS custom repository.
+1. Install this repository as **Vistoda** through HACS.
+2. Add the shared `vistoda-addons` repository to the Home Assistant app store.
+3. Install and start **Vistoda Ring** and/or **Vistoda EZVIZ**.
+4. Complete the automatically discovered integration under Settings → Devices
+   & services.
 
-For EZVIZ, enter the private bridge URL, its dedicated API token and the camera
-alias already configured in the bridge. Enroll the EZVIZ account and device
-verification code in the Rust bridge first; they do not belong in Vistoda. The
-resulting camera uses the bridge's on-demand snapshot and MPEG-TS contract.
+The managed setup never asks for a bridge URL, port or workload token. Ring asks
+for the account credentials and, when needed, the newest SMS code. EZVIZ asks
+for account credentials and MFA; its app options contain only the camera serial
+and a stable alias. Passwords and MFA codes are passed once to the private app
+and are not persisted in the Home Assistant config entry.
 
-For Ring, enter the bridge connection first, then the Ring account and password
-inside the native flow. If Ring sends an SMS, enter its six-digit code within
-two minutes. An incorrect code consumes the challenge; start again instead of
-retrying. Home Assistant never persists the account password, OTP or Ring token.
+Home Assistant Container/Core and SceneTrove deployments can keep the advanced
+standalone path: run the provider image externally, then select manual backend
+configuration and enter its private URL, workload token and alias.
+
+The homelab production deployment remains SHA-pinned through
+`deploy-ha-media-bridge.yml`; packaging for the public app path does not
+silently migrate existing remote bridges.
 
 The internal Home Assistant domain remains `media_bridge`. This deliberately
 stable identifier preserves existing config entries, entities and automations;
