@@ -116,6 +116,7 @@
       "rate_limited": "The bridge or Ring is rate limiting enrollment. Wait before trying again."
     },
     "abort": {
+      "managed_app_adopted": "The existing provider connection is now managed by its Vistoda App.",
       "already_configured": "This bridge device is already configured in Vistoda.",
       "blink_not_loaded": "Blink Live Bridge must be loaded before Vistoda can adopt it.",
       "local_adapter": "The local Blink adapter follows Blink Live Bridge and has no remote connection settings.",

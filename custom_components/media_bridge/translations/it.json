@@ -116,6 +116,7 @@
       "rate_limited": "Il bridge o Ring limita i tentativi. Attendi prima di riprovare."
     },
     "abort": {
+      "managed_app_adopted": "La connessione del provider esistente è ora gestita dalla relativa app Vistoda.",
       "already_configured": "Questo dispositivo bridge è già configurato in Vistoda.",
       "blink_not_loaded": "Blink Live Bridge deve essere caricato prima che Vistoda possa adottarlo.",
       "local_adapter": "L'adapter locale Blink segue Blink Live Bridge e non ha impostazioni di connessione remota.",

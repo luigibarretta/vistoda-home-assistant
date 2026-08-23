@@ -82,8 +82,10 @@ standalone path: run the provider image externally, then select manual backend
 configuration and enter its private URL, workload token and alias.
 
 The homelab production deployment remains SHA-pinned through
-`deploy-ha-media-bridge.yml`; packaging for the public app path does not
-silently migrate existing remote bridges.
+`deploy-ha-media-bridge.yml`. When a managed app announces the same provider
+and alias as an existing external bridge, Vistoda adopts it in place: the
+config-entry ID and entity identities stay stable while the private endpoint,
+credential and unique ID move to the Supervisor app.
 
 The internal Home Assistant domain remains `media_bridge`. This deliberately
 stable identifier preserves existing config entries, entities and automations;
