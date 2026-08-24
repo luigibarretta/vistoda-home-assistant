@@ -62,8 +62,12 @@ export function openMoreInfo(host, entityId) {
 export function stateText(hass, entity, fallback = "Non disponibile") {
   const state = entityState(hass, entity);
   if (!state || ["unknown", "unavailable"].includes(state.state)) return fallback;
+  const numeric = Number(state.state);
+  const value = Number.isFinite(numeric)
+    ? numeric.toLocaleString(hass?.locale?.language || "it-IT", { maximumFractionDigits: 1 })
+    : state.state;
   const unit = state.attributes?.unit_of_measurement;
-  return unit ? `${state.state} ${unit}` : state.state;
+  return unit ? `${value} ${unit}` : value;
 }
 
 export function setText(root, id, value) {

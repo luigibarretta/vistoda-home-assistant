@@ -63,7 +63,7 @@ test("state labels include units and hide unavailable values", () => {
       "sensor.missing": { state: "unavailable", attributes: {} },
     },
   };
-  assert.equal(stateText(hass, { entity_id: "sensor.temperature" }), "21.4 °C");
+  assert.equal(stateText(hass, { entity_id: "sensor.temperature" }), "21,4 °C");
   assert.equal(stateText(hass, { entity_id: "sensor.missing" }, "Assente"), "Assente");
 }
 );

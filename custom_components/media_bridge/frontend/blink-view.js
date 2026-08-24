@@ -17,6 +17,7 @@ class VistodaBlinkView extends HTMLElement {
     this._info = null;
     this._index = 0;
     this._nonce = 0;
+    this._failedImage = "";
     this._mounted = false;
   }
 
@@ -61,7 +62,14 @@ class VistodaBlinkView extends HTMLElement {
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("arm").addEventListener("click", () => this._setAlarm(true));
     this.$("disarm").addEventListener("click", () => this._setAlarm(false));
-    this.$("snapshot").addEventListener("error", () => this._showImage(false));
+    this.$("snapshot").addEventListener("error", (event) => {
+      this._failedImage = event.currentTarget.src;
+      this._showImage(false);
+    });
+    this.$("snapshot").addEventListener("load", () => {
+      this._failedImage = "";
+      this._showImage(true);
+    });
   }
 
   _render() {
@@ -117,8 +125,11 @@ class VistodaBlinkView extends HTMLElement {
     this.$("motion").disabled = !motionState || motionState.state === "unavailable";
     const url = pictureUrl(this._hass, camera, this._nonce);
     this.$("snapshot").alt = `Snapshot ${device.name}`;
-    if (url && this.$("snapshot").src !== url) this.$("snapshot").src = url;
-    this._showImage(Boolean(url));
+    if (url && this.$("snapshot").src !== url) {
+      this._failedImage = "";
+      this.$("snapshot").src = url;
+    }
+    this._showImage(Boolean(url) && this._failedImage !== url);
   }
 
   _renderDots(count) {

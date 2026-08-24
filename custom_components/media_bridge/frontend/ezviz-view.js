@@ -15,6 +15,7 @@ class VistodaEzvizView extends HTMLElement {
     this._mounted = false;
     this._info = null;
     this._nonce = Date.now();
+    this._failedImage = "";
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -41,7 +42,7 @@ class VistodaEzvizView extends HTMLElement {
           <div class="facts"><div class="fact"><span>Connessione</span>
             <strong id="connection">—</strong></div><div class="fact"><span>Live</span>
             <strong>Su richiesta</strong></div><div class="fact"><span>Snapshot</span>
-            <strong>Fresco</strong></div></div>
+            <strong id="snapshot-state">Verifica…</strong></div></div>
           <div class="actions"><button class="primary" id="live">Apri live</button>
             <button id="refresh">Aggiorna snapshot</button></div>
           <div class="muted" id="message" role="status"></div>
@@ -51,7 +52,15 @@ class VistodaEzvizView extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("live").addEventListener("click", () => this._openLive());
     this.$("refresh").addEventListener("click", () => this._refresh());
-    this.$("snapshot").addEventListener("error", () => this._showImage(false));
+    this.$("snapshot").addEventListener("error", (event) => {
+      this._failedImage = event.currentTarget.src;
+      this._showImage(false);
+    });
+    this.$("snapshot").addEventListener("load", () => {
+      this._failedImage = "";
+      this._showImage(true);
+      setText(this.shadowRoot, "message", "Snapshot disponibile");
+    });
   }
 
   _cameraDevice() { return devicesWithDomain(this._info, "ezviz", "camera")[0] || null; }
@@ -78,8 +87,11 @@ class VistodaEzvizView extends HTMLElement {
     setText(this.shadowRoot, "connection", connectivityState?.state === "on"
       ? "Connesso" : connectivityState?.state === "off" ? "Disconnesso" : "Non rilevata");
     const url = pictureUrl(this._hass, camera, this._nonce);
-    if (url && this.$("snapshot").src !== url) this.$("snapshot").src = url;
-    this._showImage(Boolean(url));
+    if (url && this.$("snapshot").src !== url) {
+      this._failedImage = "";
+      this.$("snapshot").src = url;
+    }
+    this._showImage(Boolean(url) && this._failedImage !== url);
     this.$("live").disabled = !available;
   }
 
@@ -91,14 +103,12 @@ class VistodaEzvizView extends HTMLElement {
     this._nonce = Date.now();
     setText(this.shadowRoot, "message", "Richiesta di un nuovo snapshot…");
     this._render();
-    this.$("snapshot").addEventListener("load", () => {
-      setText(this.shadowRoot, "message", "Snapshot aggiornato");
-    }, { once: true });
   }
 
   _showImage(show) {
     this.$("snapshot").hidden = !show;
     this.$("placeholder").hidden = show;
+    setText(this.shadowRoot, "snapshot-state", show ? "Disponibile" : "Non disponibile");
     if (!show) setText(this.shadowRoot, "message", "Snapshot non disponibile; il live può restare operativo.");
   }
 }
