@@ -27,18 +27,8 @@ def _header_value(header: str, name: str) -> str:
     raise ValueError(f"missing {name} Web Push parameter")
 
 
-def install_ring_push_guard() -> bool:
-    """Harden the installed FCM client until its upstream fix is released."""
-    try:
-        module = import_module("firebase_messaging.fcmpushclient")
-    except ImportError:
-        return False
-    client = module.FcmPushClient
-    if getattr(client, _PATCH_MARKER, False):
-        return True
-    if hasattr(module, "_webpush_header_param"):
-        return False
-
+def _patch_client(client: Any) -> None:
+    """Install the bounded compatibility wrappers on one FCM client class."""
     original_decrypt = client._decrypt_raw_data
     original_app_data = client._app_data_by_key
     original_handle = client._handle_data_message
@@ -72,5 +62,20 @@ def install_ring_push_guard() -> bool:
     client._app_data_by_key = app_data
     client._handle_data_message = handle
     setattr(client, _PATCH_MARKER, True)
+
+
+def install_ring_push_guard() -> bool:
+    """Harden the installed FCM client until its upstream fix is released."""
+    try:
+        module = import_module("firebase_messaging.fcmpushclient")
+    except ImportError:
+        return False
+    client = module.FcmPushClient
+    if getattr(client, _PATCH_MARKER, False):
+        return True
+    if hasattr(module, "_webpush_header_param"):
+        return False
+
+    _patch_client(client)
     _LOGGER.info("Installed the temporary Vistoda Ring push guard")
     return True
