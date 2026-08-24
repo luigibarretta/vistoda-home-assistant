@@ -33,6 +33,7 @@ class VistodaRingView extends HTMLElement {
         .dot.live { background:var(--success-color,#43a047); box-shadow:0 0 0 5px #43a04725; }
         .actions button { min-height:40px; padding:8px 13px; display:inline-flex;
           align-items:center; justify-content:center; gap:7px; }
+        .actions button[hidden] { display:none !important; }
         .actions ha-icon { --mdc-icon-size:20px; }
         .spin { animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }

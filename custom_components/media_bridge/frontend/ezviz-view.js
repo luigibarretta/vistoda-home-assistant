@@ -30,6 +30,7 @@ class VistodaEzvizView extends HTMLElement {
           background:color-mix(in srgb,var(--primary-color) 10%,transparent); }
         .loader { position:absolute; inset:0; z-index:2; display:grid; place-content:center;
           gap:10px; text-align:center; color:#fff; background:#111c; backdrop-filter:blur(2px); }
+        .loader[hidden] { display:none !important; }
         .loader ha-icon { --mdc-icon-size:42px; margin:auto; animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         #message { min-height:21px; margin-top:12px; }

@@ -54,9 +54,11 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     )
     assert 'id="call"' in view and 'id="stop"' not in view
     assert "mdi:phone-hangup" in view and "mdi:microphone-off" in view
+    assert ".actions button[hidden] { display:none !important; }" in view
     assert "mdi:lock-open-variant" in controls and "Comando inviato" in controls
     assert all(value in archive for value in ("<table>", "Durata", "Pagina", "Elimina tutte"))
     assert "window.confirm" in archive
     assert "media_bridge/ring/recordings/delete_all" in websocket
     assert "Caricamento snapshot" in ezviz and "mdi:loading" in ezviz
+    assert ".loader[hidden] { display:none !important; }" in ezviz
     assert ">Arma</button>" in blink and "Arma fuori casa</button>" not in blink
