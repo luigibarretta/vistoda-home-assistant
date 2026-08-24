@@ -20,9 +20,11 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.11.1"
+    assert manifest["version"] == "0.11.2"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
-    assert 'module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}"' in panel
+    assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
+    assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
+    assert "module_url=STATIC_URL" in panel
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
     assert manifest["issue_tracker"].endswith("/vistoda-home-assistant/issues")
     assert hacs["homeassistant"] == "2026.8.0"

@@ -14,8 +14,8 @@ PROVIDER_PATHS = {
     "vistoda-blink": ("blink", "Vistoda · Blink", "mdi:cctv"),
     "vistoda-ezviz": ("ezviz", "Vistoda · EZVIZ", "mdi:doorbell-video"),
 }
-STATIC_ROOT = "/vistoda_static"
-STATIC_URL = "/vistoda_static/vistoda-panel.js"
+STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"
+STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"
 
 
 def _custom_panel_config(provider: str) -> dict:
@@ -27,7 +27,7 @@ def _custom_panel_config(provider: str) -> dict:
             "embed_iframe": False,
             "trust_external": False,
             "handle_safe_area": False,
-            "module_url": f"{STATIC_URL}?v={INTEGRATION_VERSION}",
+            "module_url": STATIC_URL,
         },
     }
 
@@ -47,7 +47,7 @@ async def async_register(hass: HomeAssistant) -> None:
         webcomponent_name="vistoda-panel",
         sidebar_title="Vistoda",
         sidebar_icon="mdi:shield-home",
-        module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}",
+        module_url=STATIC_URL,
         config={"provider": "overview"},
         config_panel_domain="media_bridge",
     )

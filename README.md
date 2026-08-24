@@ -33,7 +33,9 @@ backend consumers. Do not add a public Traefik route.
 The single **Vistoda** sidebar entry opens `/vistoda`, a unified health and
 device overview. Hidden, stable routes `/vistoda-ring`, `/vistoda-blink` and
 `/vistoda-ezviz` provide focused controls without cluttering the sidebar. Their
-browser inventory is authenticated, bounded and contains no bridge URL or
+panel assets use a release-versioned path, so the complete JavaScript module
+graph updates coherently without requiring a browser cache reset.
+The browser inventory is authenticated, bounded and contains no bridge URL or
 workload token.
 
 The Ring view proxies signaling through Home Assistant's authenticated
