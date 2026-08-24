@@ -65,6 +65,10 @@ ID only after the corresponding Ring audio session is active, allowing Home
 Assistant to dismiss the tagged alert on every household Companion when the
 first client answers.
 
+Core 2026.8.3 ships an affected Ring FCM dependency. Vistoda applies a bounded,
+temporary startup guard for the public upstream padding/header-parser defects,
+without logging push contents or modifying Home Assistant site packages.
+
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The
 official Ring device remains an optional rollback/event source. Vistoda adds

@@ -58,9 +58,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     from .apple_oauth_view import async_register as async_register_apple_oauth
     from .panel import async_register as async_register_panel
     from .ring_audio_proxy import async_register as async_register_ring_audio_proxy
+    from .ring_push_guard import install_ring_push_guard
     from .services import async_register as async_register_services
     from .websocket import async_register as async_register_websocket
 
+    install_ring_push_guard()
     settings = config.get(DOMAIN, {})
     hass.data.setdefault(DOMAIN, {})[CONF_DISCOVERY_TOKENS] = settings.get(
         CONF_DISCOVERY_TOKENS, {}
