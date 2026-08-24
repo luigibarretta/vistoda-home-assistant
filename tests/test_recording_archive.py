@@ -64,6 +64,8 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     view = (frontend / "ring-view.js").read_text(encoding="utf-8")
     controls = (frontend / "ring-controls.js").read_text(encoding="utf-8")
     archive = (frontend / "ring-recording-archive.js").read_text(encoding="utf-8")
+    template = (frontend / "ring-recording-template.js").read_text(encoding="utf-8")
+    storage = (frontend / "recording-storage.js").read_text(encoding="utf-8")
     ezviz = (frontend / "ezviz-view.js").read_text(encoding="utf-8")
     blink = (frontend / "blink-view.js").read_text(encoding="utf-8")
     websocket = Path("custom_components/media_bridge/ring_recording_websocket.py").read_text(
@@ -75,12 +77,16 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     assert ".actions button[hidden] { display:none !important; }" in view
     assert "mdi:lock-open-variant" in controls and "Comando inviato" in controls
     assert all(
-        value in archive for value in ("<table>", "Durata", "Pagina", "Riproduci", "Elimina tutte")
+        value in archive + template
+        for value in ("<table>", "Durata", "Pagina", "Riproduci", "Elimina tutte")
     )
     assert "media_bridge/ring/recordings/read" in archive
     assert "this._seekButton(-10)" in archive and "this._seekButton(10)" in archive
     assert "URL.revokeObjectURL" in archive
     assert "window.confirm" in archive
+    assert "mdi:information-outline" in archive
+    assert "Percorso file" in storage and "content-copy" in storage
+    assert "recordingStorageSummary" in archive
     assert "media_bridge/ring/recordings/read" in websocket
     assert "media_bridge/ring/recordings/delete_all" in websocket
     assert "media_bridge/ring/call/answer" in call_ws

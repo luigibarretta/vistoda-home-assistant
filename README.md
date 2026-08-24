@@ -60,6 +60,11 @@ WebSocket, play it with native browser controls and seek backward or forward by
 ten seconds. The browser receives no bridge URL or bearer and revokes the local
 media URL when playback changes or the panel closes.
 
+The archive header reports the effective storage directory. An Info action on
+every row reveals and copies the exact file path without widening the mobile
+table. Managed-app users choose private, app-config, media or share storage in
+the Vistoda Ring app configuration; private remains the upgrade-safe default.
+
 Incoming-call notifications carry a unique call ID. Vistoda acknowledges that
 ID only after the corresponding Ring audio session is active, allowing Home
 Assistant to dismiss the tagged alert on every household Companion when the

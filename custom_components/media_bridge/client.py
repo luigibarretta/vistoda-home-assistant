@@ -1,7 +1,5 @@
 """Bounded async client for provider-specific Rust bridges."""
 
-from __future__ import annotations
-
 import json
 from typing import Any
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -26,7 +24,7 @@ from .models import (
     Recording,
     parse_audio_session,
     parse_recording,
-    parse_recordings,
+    parse_recording_archive,
     parse_ring_status,
 )
 
@@ -150,12 +148,16 @@ class BridgeClient(EnrollmentClientMixin):
                 raise CannotConnectError from error
 
     async def ring_recordings(self, alias: str) -> tuple[Recording, ...]:
+        return (await self.ring_recording_archive(alias)).recordings
+
+    async def ring_recording_archive(self, alias: str):
+        """Return bounded records plus their effective display storage."""
         payload = await self._json(
             "GET",
             f"/v1/devices/{quote(alias, safe='')}/recordings",
             limit=RECORDING_LIST_LIMIT,
         )
-        return parse_recordings(payload)
+        return parse_recording_archive(payload)
 
     async def read_ring_recording(self, alias: str, recording_id: str) -> tuple[str, bytes]:
         """Read one bounded private recording for an authenticated HA user."""

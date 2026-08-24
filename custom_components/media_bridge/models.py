@@ -47,6 +47,24 @@ class Recording:
     saved_at: int
     bytes: int
     media_type: str
+    storage_path: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RecordingStorage:
+    """User-facing location of the bounded Ring archive."""
+
+    kind: str
+    directory: str
+    user_visible: bool
+
+
+@dataclass(frozen=True, slots=True)
+class RecordingArchive:
+    """Validated recording inventory and its effective storage."""
+
+    recordings: tuple[Recording, ...]
+    storage: RecordingStorage | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,8 +149,8 @@ def parse_audio_session(payload: dict) -> AudioSession:
     return result
 
 
-def parse_recordings(payload: dict) -> tuple[Recording, ...]:
-    """Validate a bounded recording inventory without media URLs."""
+def parse_recording_archive(payload: dict) -> RecordingArchive:
+    """Validate bounded archive metadata and optional storage paths."""
     from .errors import CannotConnectError
 
     try:
@@ -150,6 +168,37 @@ def parse_recordings(payload: dict) -> tuple[Recording, ...]:
         for item in result
     ):
         raise CannotConnectError
+    storage = _parse_recording_storage(payload.get("storage"))
+    if storage is not None and any(
+        item.storage_path is None or not item.storage_path.startswith(f"{storage.directory}/")
+        for item in result
+    ):
+        raise CannotConnectError
+    return RecordingArchive(result, storage)
+
+
+def _parse_recording_storage(value) -> RecordingStorage | None:
+    from .errors import CannotConnectError
+
+    if value is None:
+        return None
+    try:
+        result = RecordingStorage(
+            str(value["kind"]), str(value["directory"]), value["user_visible"]
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise CannotConnectError from error
+    if (
+        result.kind not in {"private", "addon_config", "media", "share", "custom"}
+        or not isinstance(result.user_visible, bool)
+        or not result.directory.startswith("/")
+        or result.directory.endswith("/")
+        or len(result.directory) > 1024
+        or any(not character.isprintable() for character in result.directory)
+        or "/../" in f"{result.directory}/"
+        or "/./" in f"{result.directory}/"
+    ):
+        raise CannotConnectError
     return result
 
 
@@ -165,6 +214,7 @@ def parse_recording(item: dict) -> Recording:
             int(item["saved_at"]),
             int(item["bytes"]),
             str(item["media_type"]),
+            None if item.get("storage_path") is None else str(item["storage_path"]),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error
@@ -173,6 +223,16 @@ def parse_recording(item: dict) -> Recording:
         or result.started_at > result.ended_at
         or not 128 <= result.bytes <= 8 * 1024 * 1024
         or result.media_type not in {"audio/mp4", "audio/webm"}
+        or (
+            result.storage_path is not None
+            and (
+                not result.storage_path.startswith("/")
+                or len(result.storage_path) > 1100
+                or any(not character.isprintable() for character in result.storage_path)
+                or "/../" in f"{result.storage_path}/"
+                or "/./" in f"{result.storage_path}/"
+            )
+        )
     ):
         raise CannotConnectError
     return result

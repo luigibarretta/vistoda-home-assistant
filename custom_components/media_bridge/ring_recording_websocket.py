@@ -46,13 +46,22 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
         return
     runtime, alias = resolved
     try:
-        recordings = await runtime.client.ring_recordings(alias)
+        archive = await runtime.client.ring_recording_archive(alias)
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "Ring archive is unavailable")
         return
     connection.send_result(
         msg["id"],
         {
+            "storage": (
+                {
+                    "kind": archive.storage.kind,
+                    "directory": archive.storage.directory,
+                    "user_visible": archive.storage.user_visible,
+                }
+                if archive.storage is not None
+                else None
+            ),
             "recordings": [
                 {
                     "recording_id": item.recording_id,
@@ -60,9 +69,10 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
                     "ended_at": item.ended_at,
                     "bytes": item.bytes,
                     "media_type": item.media_type,
+                    "storage_path": item.storage_path,
                 }
-                for item in recordings
-            ]
+                for item in archive.recordings
+            ],
         },
     )
 

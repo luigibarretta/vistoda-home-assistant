@@ -17,5 +17,9 @@
 | [0013](0013-managed-app-in-place-adoption.md) | In-place adoption of managed provider apps |
 | [0014](0014-unified-provider-panel.md) | Unified hub and hidden provider routes |
 | [0015](0015-ring-archive-and-contextual-controls.md) | Ring archive management and contextual controls |
+| [0016](0016-versioned-panel-assets.md) | Complete versioning for panel module assets |
+| [0017](0017-private-playback-and-call-acknowledgement.md) | Private playback and coordinated call acknowledgement |
+| [0018](0018-ring-push-upstream-guard.md) | Temporary guarded Ring push listener |
+| [0019](0019-selectable-ring-recording-storage.md) | Selectable Ring recording storage |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.
