@@ -15,6 +15,7 @@ from .errors import BridgeError
 def async_register(hass: HomeAssistant) -> None:
     """Register bounded archive commands."""
     websocket_api.async_register_command(hass, ws_ring_recordings)
+    websocket_api.async_register_command(hass, ws_ring_recording_read)
     websocket_api.async_register_command(hass, ws_ring_recording_upload)
     websocket_api.async_register_command(hass, ws_ring_recording_delete)
     websocket_api.async_register_command(hass, ws_ring_recordings_delete_all)
@@ -58,10 +59,37 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
                     "started_at": item.started_at,
                     "ended_at": item.ended_at,
                     "bytes": item.bytes,
+                    "media_type": item.media_type,
                 }
                 for item in recordings
             ]
         },
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ring/recordings/read",
+        vol.Required("entry_id"): str,
+        vol.Required("recording_id"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.async_response
+async def ws_ring_recording_read(hass, connection, msg: dict[str, Any]) -> None:
+    """Return one bounded recording through the authenticated HA connection."""
+    resolved = _resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        media_type, media = await runtime.client.read_ring_recording(alias, msg["recording_id"])
+    except BridgeError:
+        connection.send_error(msg["id"], "unavailable", "Recording playback is unavailable")
+        return
+    connection.send_result(
+        msg["id"],
+        {"media_type": media_type, "media_base64": base64.b64encode(media).decode("ascii")},
     )
 
 

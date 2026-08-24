@@ -157,6 +157,18 @@ class BridgeClient(EnrollmentClientMixin):
         )
         return parse_recordings(payload)
 
+    async def read_ring_recording(self, alias: str, recording_id: str) -> tuple[str, bytes]:
+        """Read one bounded private recording for an authenticated HA user."""
+        path = f"/v1/devices/{quote(alias, safe='')}/recordings/{quote(recording_id, safe='')}"
+        response = await self._request("GET", path, timeout=SESSION_TIMEOUT)
+        async with response:
+            body = await self._bounded(response, RECORDING_UPLOAD_LIMIT)
+            if response.status != 200:
+                self._raise_status(response.status, body)
+            if response.content_type not in {"audio/mp4", "audio/webm"} or len(body) < 128:
+                raise CannotConnectError
+            return response.content_type, body
+
     async def delete_ring_recording(self, alias: str, recording_id: str) -> None:
         """Idempotently acknowledge and remove one private recording."""
         path = f"/v1/devices/{quote(alias, safe='')}/recordings/{quote(recording_id, safe='')}"

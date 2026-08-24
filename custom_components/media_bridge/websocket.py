@@ -11,6 +11,7 @@ from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 from .panel_info import async_register as async_register_panel_info
+from .ring_call_websocket import async_register as async_register_ring_calls
 from .ring_recording_websocket import async_register as async_register_recordings
 from .ring_session_log import async_ended, async_started
 
@@ -33,6 +34,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_ring_info)
     websocket_api.async_register_command(hass, ws_ring_start)
     websocket_api.async_register_command(hass, ws_ring_stop)
+    async_register_ring_calls(hass)
     async_register_recordings(hass)
 
 

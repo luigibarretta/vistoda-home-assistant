@@ -11,7 +11,11 @@ class VistodaRingView extends HTMLElement {
     this._entry = null;
     this._audio = null;
     this._available = false;
-    this._answerMode = new URLSearchParams(globalThis.location?.search || "").get("answer") === "1";
+    this._callId = new URLSearchParams(globalThis.location?.search || "").get("answer") || "";
+    this._answerMode = /^[A-Za-z0-9_-]{1,64}$/.test(this._callId);
+    this._acknowledged = false;
+    this._ackPending = false;
+    this._ackAttempts = 0;
   }
 
   set hass(value) {
@@ -99,6 +103,7 @@ class VistodaRingView extends HTMLElement {
   _renderState(state) {
     if (state.phase === "starting") this.$("recordings")?.prepareCall();
     const active = state.phase === "active";
+    if (active && this._answerMode) this._acknowledgeCall();
     const ongoing = active || state.phase === "switching";
     const locked = ["starting", "connecting", "switching", "cooldown"].includes(state.phase);
     const talkMode = state.mode === "talk";
@@ -141,6 +146,24 @@ class VistodaRingView extends HTMLElement {
 
   _toggleMicrophone() {
     this._audio?.switchMode(this._audio.mode === "talk" ? "listen" : "talk");
+  }
+
+  async _acknowledgeCall() {
+    if (this._acknowledged || this._ackPending || !this._entry) return;
+    this._ackPending = true;
+    this._ackAttempts += 1;
+    try {
+      await this._hass.callWS({
+        type: "media_bridge/ring/call/answer",
+        entry_id: this._entry.entry_id,
+        call_id: this._callId,
+      });
+      this._acknowledged = true;
+    } catch (_error) {
+      if (this._ackAttempts < 3) setTimeout(() => this._acknowledgeCall(), 1000);
+    } finally {
+      this._ackPending = false;
+    }
   }
 
   disconnectedCallback() { this._audio?.destroy(); }

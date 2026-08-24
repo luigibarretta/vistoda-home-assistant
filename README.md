@@ -55,6 +55,15 @@ it never receives a bridge token. **Registra automaticamente** is persisted
 globally in the config entry and applies to every Vistoda browser. The archive
 retains 30 days and at most 512 MiB; Ring Call Recording is not required. Its
 paginated table exposes date, duration, size and confirmed deletion actions.
+Each row can load its bounded media through the authenticated Home Assistant
+WebSocket, play it with native browser controls and seek backward or forward by
+ten seconds. The browser receives no bridge URL or bearer and revokes the local
+media URL when playback changes or the panel closes.
+
+Incoming-call notifications carry a unique call ID. Vistoda acknowledges that
+ID only after the corresponding Ring audio session is active, allowing Home
+Assistant to dismiss the tagged alert on every household Companion when the
+first client answers.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The
