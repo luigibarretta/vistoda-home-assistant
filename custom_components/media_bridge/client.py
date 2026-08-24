@@ -157,6 +157,11 @@ class BridgeClient(EnrollmentClientMixin):
         )
         return parse_recordings(payload)
 
+    async def delete_ring_recording(self, alias: str, recording_id: str) -> None:
+        """Idempotently acknowledge and remove one private recording."""
+        path = f"/v1/devices/{quote(alias, safe='')}/recordings/{quote(recording_id, safe='')}"
+        await self._empty("DELETE", path)
+
     async def snapshot(self, alias: str) -> bytes:
         response = await self._request("GET", f"/v1/cameras/{quote(alias, safe='')}/snapshot.jpg")
         async with response:

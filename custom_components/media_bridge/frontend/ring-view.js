@@ -31,11 +31,15 @@ class VistodaRingView extends HTMLElement {
         .status { display:flex; align-items:center; gap:9px; min-height:24px; margin:22px 0 14px; }
         .dot { width:10px; height:10px; border-radius:50%; background:var(--secondary-text-color); }
         .dot.live { background:var(--success-color,#43a047); box-shadow:0 0 0 5px #43a04725; }
-        .actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .actions button { min-height:40px; padding:8px 13px; display:inline-flex;
+          align-items:center; justify-content:center; gap:7px; }
+        .actions ha-icon { --mdc-icon-size:20px; }
+        .spin { animation:spin 1s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
         .privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid var(--divider-color);
           color:var(--secondary-text-color); font-size:14px; line-height:1.5; }
         audio { width:100%; height:0; display:block; }
-        @media (max-width:600px) { .call{padding:18px}.actions{grid-template-columns:1fr} }
+        @media (max-width:600px) { .call{padding:18px} }
       </style>
       <section class="card call">
         <div class="device"><div><div class="eyebrow">Ring Intercom</div>
@@ -43,9 +47,11 @@ class VistodaRingView extends HTMLElement {
           simultanei · massimo 2 minuti</div></div>
           <span class="badge off" id="availability">Verifica…</span></div>
         <div class="status"><span class="dot" id="dot"></span><span id="status">Pronto</span></div>
-        <div class="actions"><button class="primary" id="start">Avvia comunicazione</button>
-          <button class="danger" id="microphone" disabled>Attiva microfono</button>
-          <button id="stop" disabled>Termina</button></div>
+        <div class="actions"><button class="primary" id="call"><ha-icon id="call-icon"
+          icon="mdi:phone"></ha-icon><span id="call-label">Avvia comunicazione</span></button>
+          <button id="microphone" hidden disabled><ha-icon id="microphone-icon"
+            icon="mdi:microphone-off"></ha-icon><span id="microphone-label">
+            Attiva microfono</span></button></div>
         <p class="privacy">La sessione parte in solo ascolto. Il browser richiede il microfono
           soltanto quando lo attivi e lo rilascia tornando al solo ascolto. Dopo “Termina” un
           breve conto alla rovescia protegge Ring da chiamate ripetute.</p>
@@ -54,11 +60,8 @@ class VistodaRingView extends HTMLElement {
       <vistoda-ring-controls id="controls"></vistoda-ring-controls>
       <vistoda-ring-recordings id="recordings"></vistoda-ring-recordings>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
-    this.$("start").addEventListener("click", () => {
-      this._audio?.start(this._answerMode ? "talk" : "listen");
-    });
+    this.$("call").addEventListener("click", () => this._toggleCall());
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
-    this.$("stop").addEventListener("click", () => this._audio?.stop());
     await this._loadEntry();
   }
 
@@ -109,13 +112,30 @@ class VistodaRingView extends HTMLElement {
       ? `Nuova sessione disponibile tra ${state.seconds} s` : state.message || defaults[state.phase];
     this.$("status").textContent = message || "Audio Ring non disponibile";
     this.$("dot").classList.toggle("live", active);
-    this.$("start").disabled = !this._available || locked || active;
+    const call = this.$("call");
+    const connecting = ["starting", "connecting"].includes(state.phase);
+    const startLabel = this._answerMode ? "Rispondi in full-duplex" : "Avvia comunicazione";
+    const callLabel = ongoing ? "Termina" : connecting ? "Connessione…"
+      : state.phase === "cooldown" ? `Attendi ${state.seconds} s` : startLabel;
+    const callIcon = ongoing ? "mdi:phone-hangup" : connecting ? "mdi:loading"
+      : state.phase === "cooldown" ? "mdi:timer-sand" : "mdi:phone";
+    call.disabled = !this._available || locked;
+    call.classList.toggle("danger", ongoing);
+    call.classList.toggle("primary", !ongoing);
+    this.$("call-icon").setAttribute("icon", callIcon);
+    this.$("call-icon").classList.toggle("spin", connecting);
+    this.$("call-label").textContent = callLabel;
+    this.$("microphone").hidden = !ongoing;
     this.$("microphone").disabled = !active || locked;
-    this.$("stop").disabled = !active;
-    this.$("start").textContent = active ? "Comunicazione attiva"
-      : this._answerMode ? "Rispondi in full-duplex" : "Avvia comunicazione";
-    this.$("microphone").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
+    this.$("microphone").classList.toggle("primary", talk);
+    this.$("microphone-icon").setAttribute("icon", talk ? "mdi:microphone" : "mdi:microphone-off");
+    this.$("microphone-label").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
     this.$("recordings")?.setCallState(ongoing);
+  }
+
+  _toggleCall() {
+    if (this._audio?.pc) this._audio.stop();
+    else this._audio?.start(this._answerMode ? "talk" : "listen");
   }
 
   _toggleMicrophone() {

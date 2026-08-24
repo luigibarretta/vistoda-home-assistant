@@ -15,7 +15,8 @@ class VistodaEzvizView extends HTMLElement {
     this._mounted = false;
     this._info = null;
     this._nonce = Date.now();
-    this._failedImage = "";
+    this._imageUrl = "";
+    this._imageState = "empty";
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -27,6 +28,10 @@ class VistodaEzvizView extends HTMLElement {
       <style>${BASE_STYLES}${MEDIA_STYLES}
         .notice { margin-top:16px; padding:14px; border-radius:14px;
           background:color-mix(in srgb,var(--primary-color) 10%,transparent); }
+        .loader { position:absolute; inset:0; z-index:2; display:grid; place-content:center;
+          gap:10px; text-align:center; color:#fff; background:#111c; backdrop-filter:blur(2px); }
+        .loader ha-icon { --mdc-icon-size:42px; margin:auto; animation:spin 1s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
         #message { min-height:21px; margin-top:12px; }
       </style>
       <section class="provider-head"><div><div class="eyebrow">Vistoda · EZVIZ</div>
@@ -35,7 +40,9 @@ class VistodaEzvizView extends HTMLElement {
         <span class="badge off" id="availability">Verifica…</span></section>
       <section class="card media-card" id="camera-card"><div class="stage">
         <div class="placeholder" id="placeholder"><ha-icon icon="mdi:doorbell-video"></ha-icon>
-          Snapshot non disponibile</div><img id="snapshot" alt="Snapshot spioncino EZVIZ"></div>
+          Snapshot non disponibile</div><div class="loader" id="loader" hidden>
+          <ha-icon icon="mdi:loading"></ha-icon><strong>Caricamento snapshot…</strong></div>
+          <img id="snapshot" alt="Snapshot spioncino EZVIZ" hidden></div>
         <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Ingresso</h3>
           <div class="muted">VTM cloud privato con remux MPEG-TS condiviso</div></div>
           <span class="badge off" id="camera-state">Non disponibile</span></div>
@@ -52,13 +59,13 @@ class VistodaEzvizView extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("live").addEventListener("click", () => this._openLive());
     this.$("refresh").addEventListener("click", () => this._refresh());
-    this.$("snapshot").addEventListener("error", (event) => {
-      this._failedImage = event.currentTarget.src;
-      this._showImage(false);
+    this.$("snapshot").addEventListener("error", () => {
+      this._imageState = "error";
+      this._renderImage();
     });
     this.$("snapshot").addEventListener("load", () => {
-      this._failedImage = "";
-      this._showImage(true);
+      this._imageState = "loaded";
+      this._renderImage();
       setText(this.shadowRoot, "message", "Snapshot disponibile");
     });
   }
@@ -87,11 +94,15 @@ class VistodaEzvizView extends HTMLElement {
     setText(this.shadowRoot, "connection", connectivityState?.state === "on"
       ? "Connesso" : connectivityState?.state === "off" ? "Disconnesso" : "Non rilevata");
     const url = pictureUrl(this._hass, camera, this._nonce);
-    if (url && this.$("snapshot").src !== url) {
-      this._failedImage = "";
+    if (url && this._imageUrl !== url) {
+      this._imageUrl = url;
+      this._imageState = "loading";
       this.$("snapshot").src = url;
+    } else if (!url) {
+      this._imageUrl = "";
+      this._imageState = "empty";
     }
-    this._showImage(Boolean(url) && this._failedImage !== url);
+    this._renderImage();
     this.$("live").disabled = !available;
   }
 
@@ -105,11 +116,18 @@ class VistodaEzvizView extends HTMLElement {
     this._render();
   }
 
-  _showImage(show) {
-    this.$("snapshot").hidden = !show;
-    this.$("placeholder").hidden = show;
-    setText(this.shadowRoot, "snapshot-state", show ? "Disponibile" : "Non disponibile");
-    if (!show) setText(this.shadowRoot, "message", "Snapshot non disponibile; il live può restare operativo.");
+  _renderImage() {
+    const loading = this._imageState === "loading";
+    const loaded = this._imageState === "loaded";
+    this.$("loader").hidden = !loading;
+    this.$("snapshot").hidden = !loaded;
+    this.$("placeholder").hidden = loading || loaded;
+    setText(this.shadowRoot, "snapshot-state", loading
+      ? "Caricamento…" : loaded ? "Disponibile" : "Non disponibile");
+    if (loading) setText(this.shadowRoot, "message", "Caricamento dello snapshot in corso…");
+    if (this._imageState === "error") {
+      setText(this.shadowRoot, "message", "Snapshot non disponibile; il live può restare operativo.");
+    }
   }
 }
 

@@ -43,14 +43,16 @@ button is pressed. Disabling it replaces the captured track with silence and
 releases the microphone without ending inbound audio. The same page shows
 battery and lets the user switch portone and volume controls between the native
 Rust bridge and the official Ring integration. Opening requires an explicit
-confirmation.
+confirmation. The primary call action is contextual: it becomes **Termina**
+only while a session exists, and the microphone control appears only then.
 
 During an active panel call, **Registra questa chiamata** captures the remote
 audio and includes the microphone only while it is enabled. The browser sends
 the bounded WebM/MP4 through Home Assistant's authenticated WebSocket proxy;
 it never receives a bridge token. **Registra automaticamente** is persisted
 globally in the config entry and applies to every Vistoda browser. The archive
-retains 30 days and at most 512 MiB; Ring Call Recording is not required.
+retains 30 days and at most 512 MiB; Ring Call Recording is not required. Its
+paginated table exposes date, duration, size and confirmed deletion actions.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
 a recording inventory sensor and a link to the provider-specific panel. The

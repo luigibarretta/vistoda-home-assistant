@@ -4,6 +4,8 @@ class RingControls extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._mounted = false;
     this._controls = {};
+    this._doorBusy = false;
+    this._doorReset = null;
   }
 
   set hass(value) {
@@ -27,8 +29,10 @@ class RingControls extends HTMLElement {
         .hint{color:var(--secondary-text-color);font-size:14px;line-height:1.45}
         .door{display:flex;justify-content:space-between;align-items:center;gap:18px;
           padding-bottom:18px;border-bottom:1px solid var(--divider-color)}
-        button{min-height:48px;border:0;border-radius:14px;padding:10px 18px;cursor:pointer;
-          color:white;background:linear-gradient(135deg,#16835e,#28a579);font:inherit;font-weight:700}
+        button{min-height:40px;border:0;border-radius:12px;padding:8px 13px;cursor:pointer;
+          color:white;background:linear-gradient(135deg,#16835e,#28a579);font:inherit;font-weight:700;
+          display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+        button ha-icon{--mdc-icon-size:20px}
         button:disabled{opacity:.48;cursor:not-allowed}.levels{display:grid;gap:16px;margin-top:18px}
         label{display:grid;grid-template-columns:150px 1fr 32px;align-items:center;gap:12px}
         output{text-align:right;font-variant-numeric:tabular-nums}input{width:100%;accent-color:var(--primary-color)}
@@ -36,6 +40,7 @@ class RingControls extends HTMLElement {
           padding-bottom:17px;border-bottom:1px solid var(--divider-color)}.policy input{width:22px;height:22px}
         .feedback{min-height:18px;margin-top:13px;color:var(--secondary-text-color);font-size:13px}
         .battery{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-weight:650}
+        .battery ha-icon{--mdc-icon-size:19px}
         @media(max-width:520px){.card{padding:18px}.door{align-items:start;flex-direction:column}
           label{grid-template-columns:1fr 34px}label span{grid-column:1/-1}}
       </style>
@@ -45,8 +50,10 @@ class RingControls extends HTMLElement {
           <input id="delegate_controls" type="checkbox" disabled></label>
         <div class="door"><div><h2>Portone e volumi</h2>
           <div class="hint" id="control-source">Sorgente controlli in verifica</div>
-          <div class="battery">🔋 <span id="battery">Batteria —</span></div></div>
-          <button id="door">Apri portone</button></div>
+          <div class="battery"><ha-icon icon="mdi:battery"></ha-icon>
+            <span id="battery">Batteria —</span></div></div>
+          <button id="door"><ha-icon id="door-icon" icon="mdi:lock"></ha-icon>
+            <span id="door-label">Apri portone</span></button></div>
         <div class="levels">
           ${this._slider("doorbell_volume", "Suoneria citofono")}
           ${this._slider("mic_volume", "Microfono citofono")}
@@ -84,7 +91,7 @@ class RingControls extends HTMLElement {
     const battery = this._state("battery");
     this.$("battery").textContent = battery && !["unknown", "unavailable"].includes(battery.state)
       ? `Batteria ${battery.state}%` : "Batteria non disponibile";
-    this.$("door").disabled = !this._usable("open_door");
+    this.$("door").disabled = this._doorBusy || !this._usable("open_door");
     for (const key of ["doorbell_volume", "mic_volume", "voice_volume"]) {
       const state = this._state(key);
       const slider = this.$(key);
@@ -107,15 +114,35 @@ class RingControls extends HTMLElement {
 
   async _openDoor() {
     if (!window.confirm("Aprire il portone tramite Ring Intercom?")) return;
-    const button = this.$("door");
-    button.disabled = true;
+    clearTimeout(this._doorReset);
+    this._doorBusy = true;
+    this._setDoorVisual("sending");
     try {
       await this._hass.callService("button", "press", { entity_id: this._controls.open_door });
       this.$("feedback").textContent = "Comando di apertura inviato.";
+      this._setDoorVisual("sent");
     } catch (_error) {
       this.$("feedback").textContent = "Apertura non riuscita: controlla l’integrazione Ring.";
+      this._setDoorVisual("error");
     }
-    finally { this._refresh(); }
+    this._doorReset = setTimeout(() => {
+      this._doorBusy = false;
+      this._setDoorVisual("ready");
+      this._refresh();
+    }, 1800);
+  }
+
+  _setDoorVisual(state) {
+    const visuals = {
+      ready: ["mdi:lock", "Apri portone"],
+      sending: ["mdi:lock-open-variant", "Invio…"],
+      sent: ["mdi:lock-open-variant", "Comando inviato"],
+      error: ["mdi:lock-alert", "Non riuscito"],
+    };
+    const [icon, label] = visuals[state];
+    this.$("door-icon").setAttribute("icon", icon);
+    this.$("door-label").textContent = label;
+    this.$("door").disabled = state !== "ready" || !this._usable("open_door");
   }
 
   async _setDelegation() {
@@ -144,6 +171,8 @@ class RingControls extends HTMLElement {
       this._refresh();
     }
   }
+
+  disconnectedCallback() { clearTimeout(this._doorReset); }
 }
 
 if (!customElements.get("vistoda-ring-controls")) {

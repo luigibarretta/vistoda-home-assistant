@@ -16,6 +16,8 @@ def async_register(hass: HomeAssistant) -> None:
     """Register bounded archive commands."""
     websocket_api.async_register_command(hass, ws_ring_recordings)
     websocket_api.async_register_command(hass, ws_ring_recording_upload)
+    websocket_api.async_register_command(hass, ws_ring_recording_delete)
+    websocket_api.async_register_command(hass, ws_ring_recordings_delete_all)
 
 
 MAX_RECORDING_BYTES = 8 * 1024 * 1024
@@ -110,3 +112,56 @@ async def ws_ring_recording_upload(hass, connection, msg: dict[str, Any]) -> Non
             "media_type": result.media_type,
         },
     )
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ring/recordings/delete",
+        vol.Required("entry_id"): str,
+        vol.Required("recording_id"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.async_response
+async def ws_ring_recording_delete(hass, connection, msg: dict[str, Any]) -> None:
+    """Idempotently remove one recording through the authenticated HA boundary."""
+    resolved = _resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        await runtime.client.delete_ring_recording(alias, msg["recording_id"])
+    except BridgeError:
+        connection.send_error(msg["id"], "unavailable", "Recording deletion failed")
+        return
+    connection.send_result(msg["id"], {"deleted": 1, "failed": 0})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ring/recordings/delete_all",
+        vol.Required("entry_id"): str,
+    }
+)
+@websocket_api.async_response
+async def ws_ring_recordings_delete_all(hass, connection, msg: dict[str, Any]) -> None:
+    """Remove the complete bounded inventory and report partial failures."""
+    resolved = _resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        recordings = await runtime.client.ring_recordings(alias)
+    except BridgeError:
+        connection.send_error(msg["id"], "unavailable", "Ring archive is unavailable")
+        return
+    deleted = 0
+    failed = 0
+    for recording in recordings:
+        try:
+            await runtime.client.delete_ring_recording(alias, recording.recording_id)
+            deleted += 1
+        except BridgeError:
+            failed += 1
+    connection.send_result(msg["id"], {"deleted": deleted, "failed": failed})

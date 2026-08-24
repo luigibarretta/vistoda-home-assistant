@@ -37,7 +37,7 @@ class VistodaBlinkView extends HTMLElement {
       <section class="card system" id="system"><div><strong id="system-name">Sistema Blink</strong>
         <div class="muted" id="system-state">Stato non disponibile</div></div>
         <div class="actions"><button id="disarm">Disarma</button>
-          <button class="primary" id="arm">Arma fuori casa</button></div></section>
+          <button class="primary" id="arm">Arma</button></div></section>
       <section class="card media-card" id="gallery">
         <div class="stage"><div class="placeholder" id="placeholder"><ha-icon icon="mdi:cctv"></ha-icon>
           Snapshot non disponibile</div><img id="snapshot" alt=""></div>

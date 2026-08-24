@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.10.1"
+    assert manifest["version"] == "0.11.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}"' in panel
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
