@@ -15,5 +15,6 @@
 | [0011](0011-vistoda-repository-family.md) | Product repository family and stable compatibility identifiers |
 | [0012](0012-home-assistant-app-distribution.md) | Unified HACS and Supervisor app distribution |
 | [0013](0013-managed-app-in-place-adoption.md) | In-place adoption of managed provider apps |
+| [0014](0014-unified-provider-panel.md) | Unified hub and hidden provider routes |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

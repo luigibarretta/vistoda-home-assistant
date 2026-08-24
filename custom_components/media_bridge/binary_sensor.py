@@ -33,6 +33,7 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         super().__init__(runtime.coordinator)
         provider = entry.data[CONF_PROVIDER]
         alias = entry.data[CONF_ALIAS]
+        self._provider = provider
         self._attr_unique_id = f"{provider}-{alias}-bridge-connectivity"
         local = provider == PROVIDER_BLINK
         self._attr_device_info = {
@@ -54,10 +55,10 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         """Expose only non-secret version metadata."""
         key = "cameras" if self._attr_unique_id.startswith("blink-") else "version"
         attributes = {key: self.coordinator.data or "unknown"}
-        if self._attr_unique_id.startswith("ring-"):
+        attributes["panel_path"] = f"/vistoda-{self._provider}"
+        if self._provider == "ring":
             attributes.update(
                 {
-                    "panel_path": "/vistoda-ring",
                     "audio_modes": "listen,talk",
                     "full_duplex": "true",
                 }

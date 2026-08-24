@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
+from .panel_info import async_register as async_register_panel_info
 from .ring_recording_websocket import async_register as async_register_recordings
 from .ring_session_log import async_ended, async_started
 
@@ -27,7 +28,8 @@ STOP_REASONS = ("user_stop", "panel_closed", "client_expired", "connection_ended
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    """Register the three bounded commands once for the integration."""
+    """Register the bounded browser commands once for the integration."""
+    async_register_panel_info(hass)
     websocket_api.async_register_command(hass, ws_ring_info)
     websocket_api.async_register_command(hass, ws_ring_start)
     websocket_api.async_register_command(hass, ws_ring_stop)

@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.9.1"
+    assert manifest["version"] == "0.10.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'module_url=f"{STATIC_URL}?v={INTEGRATION_VERSION}"' in panel
     assert manifest["zeroconf"] == ["_vistoda._tcp.local."]
@@ -112,9 +112,10 @@ def test_supervisor_apps_hide_bridge_fields_and_keep_external_mode() -> None:
     assert "hassio" not in manifest["dependencies"]
 
 
-def test_ring_panel_has_private_authenticated_boundaries() -> None:
+def test_unified_panel_has_private_authenticated_boundaries() -> None:
     manifest = load(COMPONENT / "manifest.json")
     panel = (COMPONENT / "frontend" / "vistoda-panel.js").read_text(encoding="utf-8")
+    ring_view = (COMPONENT / "frontend" / "ring-view.js").read_text(encoding="utf-8")
     session = (COMPONENT / "frontend" / "ring-audio-session.js").read_text(encoding="utf-8")
     controls = (COMPONENT / "frontend" / "ring-controls.js").read_text(encoding="utf-8")
     recordings = (COMPONENT / "frontend" / "ring-recordings.js").read_text(encoding="utf-8")
@@ -122,10 +123,14 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
     recording_ws = (COMPONENT / "ring_recording_websocket.py").read_text(encoding="utf-8")
     assert {"http", "frontend", "panel_custom", "websocket_api"} <= set(manifest["dependencies"])
-    assert "Vistoda · Ring" in panel
-    assert "Avvia comunicazione" in panel
-    assert "Attiva microfono" in panel
-    assert "vistoda-ring-recordings" in panel
+    assert "./overview-view.js" in panel
+    assert "./blink-view.js" in panel
+    assert "./ezviz-view.js" in panel
+    assert "./ring-view.js" in panel
+    assert "media_bridge/panel/info" in panel
+    assert "Avvia comunicazione" in ring_view
+    assert "Attiva microfono" in ring_view
+    assert "vistoda-ring-recordings" in ring_view
     assert 'customElements.get("vistoda-panel")' in panel
     assert 'customElements.get("vistoda-ring-controls")' in controls
     assert 'customElements.get("vistoda-ring-recordings")' in recordings
@@ -146,8 +151,8 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert 'direction: "sendrecv"' in session
     assert "media_bridge/ring/session/delete" in session
     assert "COOLDOWN_MS" in session
-    assert "api_token" not in panel
-    assert "Authorization" not in panel
+    assert "api_token" not in panel + ring_view
+    assert "Authorization" not in panel + ring_view
     assert "api_token" not in session
     assert "Authorization" not in session
     assert "vol.Length(min=1, max=65536)" in websocket
@@ -166,9 +171,37 @@ def test_ring_panel_has_private_authenticated_boundaries() -> None:
     assert "requires_auth = True" in apple_config
     assert '"open_door_service": f"{DOMAIN}.open_ring_door"' in apple_config
     assert "CONF_API_TOKEN" not in apple_config
-    assert "frontend.async_remove_panel(hass, PANEL_PATH)" in (COMPONENT / "panel.py").read_text(
-        encoding="utf-8"
-    )
+    panel_registration = (COMPONENT / "panel.py").read_text(encoding="utf-8")
+    assert 'PANEL_PATH = "vistoda"' in panel_registration
+    assert '"vistoda-ring": ("ring"' in panel_registration
+    assert '"vistoda-blink": ("blink"' in panel_registration
+    assert '"vistoda-ezviz": ("ezviz"' in panel_registration
+    assert "show_in_sidebar=False" in panel_registration
+
+
+def test_panel_inventory_is_authenticated_bounded_and_secret_free() -> None:
+    inventory = (COMPONENT / "panel_info.py").read_text(encoding="utf-8")
+    websocket = (COMPONENT / "websocket.py").read_text(encoding="utf-8")
+    assert '"media_bridge/panel/info"' in inventory
+    assert "MAX_ENTITIES_PER_PROVIDER = 256" in inventory
+    assert "entity.disabled_by is not None" in inventory
+    assert "STATE_UNAVAILABLE" in inventory
+    assert "async_register_panel_info(hass)" in websocket
+    assert "api_token" not in inventory
+    assert "CONF_URL" not in inventory
+    assert "unique_id" not in inventory
+
+
+def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
+    blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
+    ezviz = (COMPONENT / "frontend" / "ezviz-view.js").read_text(encoding="utf-8")
+    assert 'callService("blink_live_bridge", "trigger_camera"' in blink
+    assert '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
+    assert 'openMoreInfo(this, this._current("camera")' in blink
+    assert "Aggiorna snapshot" in blink
+    assert "SceneTrove" in ezviz
+    assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz
+    assert "api_token" not in blink + ezviz
 
 
 def test_ring_door_service_is_vistoda_first_and_visible() -> None:
@@ -188,7 +221,7 @@ def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     assert '"identifiers": {(DOMAIN, f"{provider}:{alias}")}' in sensor
     assert '_attr_name = "Audio Vistoda"' in sensor
     assert 'self._attr_device_info["configuration_url"]' in sensor
-    assert '"panel_path": "/vistoda-ring"' in sensor
+    assert 'attributes["panel_path"] = f"/vistoda-{self._provider}"' in sensor
     assert '"full_duplex": "true"' in sensor
 
 

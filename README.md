@@ -30,14 +30,20 @@ never retried automatically.
 Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
 
-The Vistoda · Ring sidebar panel proxies signaling through Home Assistant's
-authenticated WebSocket. **Avvia comunicazione** sends locally generated
-silence and never opens a microphone. **Attiva microfono** requests permission
-only after its button is pressed. Disabling it replaces the captured track with
-silence and releases the microphone without ending inbound audio. The same page
-shows battery and lets the user switch portone and volume controls between the
-native Rust bridge and the official Ring integration. Opening requires an
-explicit confirmation.
+The single **Vistoda** sidebar entry opens `/vistoda`, a unified health and
+device overview. Hidden, stable routes `/vistoda-ring`, `/vistoda-blink` and
+`/vistoda-ezviz` provide focused controls without cluttering the sidebar. Their
+browser inventory is authenticated, bounded and contains no bridge URL or
+workload token.
+
+The Ring view proxies signaling through Home Assistant's authenticated
+WebSocket. **Avvia comunicazione** sends locally generated silence and never
+opens a microphone. **Attiva microfono** requests permission only after its
+button is pressed. Disabling it replaces the captured track with silence and
+releases the microphone without ending inbound audio. The same page shows
+battery and lets the user switch portone and volume controls between the native
+Rust bridge and the official Ring integration. Opening requires an explicit
+confirmation.
 
 During an active panel call, **Registra questa chiamata** captures the remote
 audio and includes the microphone only while it is enabled. The browser sends
@@ -52,6 +58,12 @@ official Ring device remains an optional rollback/event source. Vistoda adds
 answering, full-duplex audio, battery, native controls and private recordings.
 Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
+
+The Blink view groups cameras into one navigable gallery and exposes arming,
+motion, cached snapshots and native live opening. Snapshot refresh is explicit
+so merely opening the panel does not wake battery cameras. The EZVIZ view opens
+the protected HA camera and refreshes its snapshot; SceneTrove remains the
+recording-ingest and spool owner.
 
 Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
 Assistant OAuth access token. HA resolves the private config entry and adds the
