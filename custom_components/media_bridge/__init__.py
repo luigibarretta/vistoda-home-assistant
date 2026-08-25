@@ -23,6 +23,7 @@ from .const import (
 )
 from .coordinator import BridgeCoordinator
 from .local import BlinkAdapterCoordinator
+from .ring_event_listener import RingEventListener
 from .ring_status import RingStatusCoordinator
 
 CONFIG_SCHEMA = vol.Schema(
@@ -49,6 +50,7 @@ class BridgeRuntime:
     client: BridgeClient | None
     coordinator: BridgeCoordinator | BlinkAdapterCoordinator
     ring_status: RingStatusCoordinator | None = None
+    ring_events: RingEventListener | None = None
     panel_url: str | None = None
 
 
@@ -88,25 +90,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.data[CONF_URL],
             entry.data[CONF_API_TOKEN],
         )
-        coordinator = BridgeCoordinator(hass, client, f"Vistoda {provider} bridge")
+        coordinator = BridgeCoordinator(hass, client, entry, f"Vistoda {provider} bridge")
     await coordinator.async_config_entry_first_refresh()
     ring_status = None
+    ring_events = None
     if provider == PROVIDER_RING:
         ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS])
         await ring_status.async_config_entry_first_refresh()
+        ring_events = RingEventListener(hass, entry, client, entry.data[CONF_ALIAS])
     base_url = hass.config.external_url or hass.config.internal_url
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BridgeRuntime(
         client=client,
         coordinator=coordinator,
         ring_status=ring_status,
+        ring_events=ring_events,
         panel_url=f"{base_url.rstrip('/')}/vistoda-{provider}" if base_url else None,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if ring_events:
+        ring_events.start()
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload entities and drop the client reference."""
+    runtime = hass.data[DOMAIN].get(entry.entry_id)
+    if runtime and runtime.ring_events:
+        await runtime.ring_events.stop()
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
     hass.data[DOMAIN].pop(entry.entry_id, None)

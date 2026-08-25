@@ -126,6 +126,16 @@
       "unsupported_provider": "The discovered service is not a supported Vistoda provider."
     }
   },
+  "issues": {
+    "bridge_unavailable": {
+      "title": "Vistoda {provider} is unavailable",
+      "description": "Home Assistant cannot reach the private Vistoda {provider} bridge. Check the matching app status and logs, then reload this integration. Credentials and private addresses are intentionally omitted from this issue."
+    },
+    "ring_push_unavailable": {
+      "title": "Vistoda Ring push events are unavailable",
+      "description": "The Ring bridge is reachable, but its native event channel has remained disconnected. Doorbell notifications still use the official Ring integration when available. Check the Vistoda Ring app network access and logs."
+    }
+  },
   "selector": {
     "provider": {
       "options": {

@@ -126,6 +126,16 @@
       "unsupported_provider": "Il servizio rilevato non è un provider supportato da Vistoda."
     }
   },
+  "issues": {
+    "bridge_unavailable": {
+      "title": "Vistoda {provider} non è disponibile",
+      "description": "Home Assistant non riesce a raggiungere il bridge privato Vistoda {provider}. Controlla lo stato e i log dell'app corrispondente, quindi ricarica l'integrazione. Credenziali e indirizzi privati sono intenzionalmente esclusi dal problema."
+    },
+    "ring_push_unavailable": {
+      "title": "Gli eventi push di Vistoda Ring non sono disponibili",
+      "description": "Il bridge Ring è raggiungibile, ma il suo canale eventi nativo è rimasto disconnesso. Le notifiche del citofono continuano a usare l'integrazione Ring ufficiale quando disponibile. Controlla l'accesso di rete e i log dell'app Vistoda Ring."
+    }
+  },
   "selector": {
     "provider": {
       "options": {

@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.13.0"
+INTEGRATION_VERSION = "0.14.0"
 PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor", "switch"]
 
 CONF_PROVIDER = "provider"
@@ -25,3 +25,8 @@ DEFAULT_RING_ALIAS = "entrance"
 BLINK_BRIDGE_DOMAIN = "blink_live_bridge"
 DISCOVERY_TYPE = "_vistoda._tcp.local."
 SIGNAL_RING_POLICY_CHANGED = f"{DOMAIN}_ring_policy_changed"
+
+
+def ring_event_signal(entry_id: str) -> str:
+    """Return the private dispatcher signal for one Ring config entry."""
+    return f"{DOMAIN}_ring_event_{entry_id}"

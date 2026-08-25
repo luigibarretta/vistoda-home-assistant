@@ -8,6 +8,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, ClientWSTimeout
 
 from .client_enrollment import EnrollmentClientMixin
 from .client_helpers import error_code, normalize_url
+from .client_ring_events import RingEventClientMixin
 from .const import PROVIDER_RING
 from .errors import (
     CannotConnectError,
@@ -36,7 +37,7 @@ RECORDING_LIST_LIMIT, RECORDING_UPLOAD_LIMIT = 512 * 1024, 8 * 1024 * 1024
 RELAY_TIMEOUT = ClientWSTimeout(ws_receive=125, ws_close=5)
 
 
-class BridgeClient(EnrollmentClientMixin):
+class BridgeClient(RingEventClientMixin, EnrollmentClientMixin):
     """Authenticate and consume one private bridge."""
 
     def __init__(self, session: ClientSession, base_url: str, token: str) -> None:

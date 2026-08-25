@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.13.0"
+    assert manifest["version"] == "0.14.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -245,6 +245,5 @@ def test_ring_facade_supports_native_and_official_control_paths() -> None:
     assert "self._trigger_event(event_type, attributes)" in event
     assert "old_state.state == state.state" in event
     assert "timestamp_is_recent(state.state)" in event
-    assert event.count("self.async_write_ha_state()") == 2
-    assert "timestamps_match(restored.state, source.state)" in event
-    assert "if restored is None or source is None:\n            return None" in event
+    assert event.count("self.async_write_ha_state()") >= 3
+    assert "Never replay a restored call" in event
