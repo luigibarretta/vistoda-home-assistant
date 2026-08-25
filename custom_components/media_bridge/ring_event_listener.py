@@ -4,6 +4,7 @@ import asyncio
 import logging
 from contextlib import suppress
 
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .client_ring_events import RingEventCursor
@@ -24,15 +25,22 @@ class RingEventListener:
         self.alias = alias
         self.cursor = RingEventCursor()
         self.task = None
+        self._remove_stop_listener = None
         self.connected = False
 
     def start(self) -> None:
         if self.task is None:
+            self._remove_stop_listener = self.hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STOP, self._handle_home_assistant_stop
+            )
             self.task = self.hass.async_create_task(
                 self._run(), f"Vistoda Ring events {self.entry.entry_id}"
             )
 
     async def stop(self) -> None:
+        if self._remove_stop_listener is not None:
+            self._remove_stop_listener()
+            self._remove_stop_listener = None
         if self.task is None:
             return
         self.task.cancel()
@@ -40,6 +48,10 @@ class RingEventListener:
             await self.task
         self.task = None
         self.connected = False
+
+    async def _handle_home_assistant_stop(self, _event) -> None:
+        self._remove_stop_listener = None
+        await self.stop()
 
     async def _run(self) -> None:
         failures = 0

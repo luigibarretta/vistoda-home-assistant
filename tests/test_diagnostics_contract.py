@@ -42,3 +42,5 @@ def test_ring_events_prefer_native_push_with_fallback() -> None:
     assert "RingEventCursor" in listener
     assert "failures >= 6" in listener
     assert "update_ring_push_issue" in listener
+    assert "EVENT_HOMEASSISTANT_STOP" in listener
+    assert "await self.stop()" in listener
