@@ -33,8 +33,10 @@ class RingEventListener:
             self._remove_stop_listener = self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STOP, self._handle_home_assistant_stop
             )
-            self.task = self.hass.async_create_task(
-                self._run(), f"Vistoda Ring events {self.entry.entry_id}"
+            self.task = self.entry.async_create_background_task(
+                self.hass,
+                self._run(),
+                f"Vistoda Ring events {self.entry.entry_id}",
             )
 
     async def stop(self) -> None:
