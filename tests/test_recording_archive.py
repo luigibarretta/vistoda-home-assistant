@@ -146,6 +146,6 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "media_bridge/provider/recordings/backup" in backup + recordings
     assert "_is_nfs_mount(BACKUP_MOUNT)" in backup and "MIN_FREE_BYTES" in backup
     assert 'fields[2] in {"nfs", "nfs4"}' in backup
-    assert "digest.hexdigest() != manifest[\"sha256\"]" in backup
+    assert 'digest.hexdigest() != manifest["sha256"]' in backup
     assert '"entries": []' in inventory and '"entry_id": entry.entry_id' in inventory
     assert "api_token" not in recordings + model + websocket + proxy

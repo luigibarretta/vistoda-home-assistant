@@ -86,7 +86,11 @@ def _find(values: object, recording_id: str, media_type: str) -> dict[str, Any]:
     if not isinstance(values, list):
         raise ValueError("invalid recording list")
     manifest = next(
-        (item for item in values if isinstance(item, dict) and item.get("recording_id") == recording_id),
+        (
+            item
+            for item in values
+            if isinstance(item, dict) and item.get("recording_id") == recording_id
+        ),
         None,
     )
     if (
