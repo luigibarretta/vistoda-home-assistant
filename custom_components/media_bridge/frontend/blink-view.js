@@ -1,4 +1,5 @@
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
+import "./blink-settings.js";
 import {
   devicesWithDomain,
   entityState,
@@ -54,17 +55,20 @@ class VistodaBlinkView extends HTMLElement {
             <div class="fact"><span>Temperatura</span><strong id="temperature">—</strong></div>
             <div class="fact"><span>Clip recenti</span><strong id="clips">0</strong></div></div>
           <div class="actions"><button class="primary" id="live">Apri live</button>
-            <button id="refresh">Aggiorna snapshot</button><button id="motion">Movimento</button></div>
+            <button id="refresh">Aggiorna snapshot</button><button id="record">Registra clip</button>
+            <button id="motion">Movimento</button></div>
           <div class="muted" id="message" role="status"></div></div>
       </section>
       <nav class="pager" aria-label="Seleziona telecamera"><button id="previous"
         aria-label="Telecamera precedente">←</button><div class="dots" id="dots"></div>
-        <button id="next" aria-label="Telecamera successiva">→</button></nav>`;
+        <button id="next" aria-label="Telecamera successiva">→</button></nav>
+      <vistoda-blink-settings id="settings"></vistoda-blink-settings>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
     this.$("live").addEventListener("click", () => this._openLive());
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
+    this.$("record").addEventListener("click", () => this._recordClip());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("arm").addEventListener("click", () => this._setAlarm(true));
     this.$("disarm").addEventListener("click", () => this._setAlarm(false));
@@ -93,6 +97,7 @@ class VistodaBlinkView extends HTMLElement {
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
     if (cameras.length) this._renderCamera(cameras[this._index], cameras.length);
+    else this.$("settings").camera = null;
     this._renderDots(cameras.length);
   }
 
@@ -139,6 +144,8 @@ class VistodaBlinkView extends HTMLElement {
     this.$("motion").disabled = !motionState || motionState.state === "unavailable";
     const url = pictureUrl(this._hass, camera, this._nonce);
     this.$("snapshot").alt = `Snapshot ${device.name}`;
+    this.$("settings").hass = this._hass;
+    this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
     if (url && this.$("snapshot").src !== url) {
       this._failedImage = "";
       this.$("snapshot").src = url;
@@ -151,6 +158,7 @@ class VistodaBlinkView extends HTMLElement {
       const button = document.createElement("button");
       button.className = `dot${index === this._index ? " active" : ""}`;
       button.setAttribute("aria-label", `Apri telecamera ${index + 1}`);
+      if (index === this._index) button.setAttribute("aria-current", "true");
       button.addEventListener("click", () => { this._index = index; this._render(); });
       return button;
     });
@@ -197,6 +205,13 @@ class VistodaBlinkView extends HTMLElement {
     const turnOn = entityState(this._hass, motion)?.state !== "on";
     await this._action("motion", () => this._hass.callService("switch", turnOn
       ? "turn_on" : "turn_off", { entity_id: motion.entity_id }), "Movimento aggiornato");
+  }
+
+  async _recordClip() {
+    const camera = this._current("camera");
+    await this._action("record", () => this._hass.callService("blink_live_bridge", "record", {
+      entity_id: camera.entity_id,
+    }), "Registrazione richiesta");
   }
 
   async _setAlarm(armed) {

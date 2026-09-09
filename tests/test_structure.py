@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.14.7"
+    assert manifest["version"] == "0.15.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -224,7 +224,7 @@ def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     assert '"identifiers": {(DOMAIN, f"{provider}:{alias}")}' in sensor
     assert '_attr_name = "Audio Vistoda"' in sensor
     assert 'self._attr_device_info["configuration_url"]' in sensor
-    assert 'attributes["panel_path"] = f"/vistoda-{self._provider}"' in sensor
+    assert 'attributes["panel_path"] = f"/vistoda/{self._provider}"' in sensor
     assert '"full_duplex": "true"' in sensor
 
 

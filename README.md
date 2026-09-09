@@ -31,10 +31,12 @@ Keep bridge listeners private and firewall them to Home Assistant and approved
 backend consumers. Do not add a public Traefik route.
 
 The single **Vistoda** sidebar entry opens `/vistoda`, a unified health and
-device overview. Hidden, stable routes `/vistoda-ring`, `/vistoda-blink` and
-`/vistoda-ezviz` provide focused controls without cluttering the sidebar. Their
-panel assets use a release-versioned path, so the complete JavaScript module
-graph updates coherently without requiring a browser cache reset.
+device overview. Focused views use `/vistoda/ring`, `/vistoda/blink` and
+`/vistoda/ezviz`, so Home Assistant keeps the parent sidebar item selected.
+Legacy `/vistoda-ring`, `/vistoda-blink` and `/vistoda-ezviz` links remain
+registered and are rewritten to their canonical nested route. Panel assets use
+a release-versioned path, so the complete JavaScript module graph updates
+coherently without requiring a browser cache reset.
 The browser inventory is authenticated, bounded and contains no bridge URL or
 workload token.
 
@@ -92,13 +94,17 @@ Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
 
 The Blink view groups cameras into one navigable gallery and exposes arming,
-motion, cached snapshots and native live opening. Snapshot refresh is explicit
-so merely opening the panel does not wake battery cameras. Every image shows its
-provider capture time; horizontal swipes and arrow controls wrap continuously
-through the gallery. On mobile, the header back button exits Vistoda to the
-previous Home Assistant page, with the Casa dashboard as a safe fallback. The
-EZVIZ view opens the protected HA camera and refreshes its snapshot; SceneTrove
-remains the recording-ingest and spool owner.
+motion, clip recording, cached snapshots and native live opening. Snapshot
+refresh is explicit so merely opening the panel does not wake battery cameras.
+Every image shows its provider capture time; horizontal swipes and arrow
+controls wrap continuously through the gallery, with round page indicators and
+full-size touch targets. A model-aware detail view reads redacted settings from
+the Blink provider. Administrators can change only typed, recognized fields;
+each update carries a revision, is read back, and is restored when verification
+fails. Unknown and unproven features stay hidden. On mobile, the header back
+button exits Vistoda to the previous Home Assistant page, with the Casa
+dashboard as a safe fallback. The EZVIZ view opens the protected HA camera and
+refreshes its snapshot; SceneTrove remains the recording-ingest and spool owner.
 
 Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
 Assistant OAuth access token. HA resolves the private config entry and adds the

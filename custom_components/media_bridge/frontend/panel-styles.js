@@ -43,10 +43,13 @@ export const MEDIA_STYLES = `
   .fact strong { font-size:14px; }
   .pager { display:flex; justify-content:center; align-items:center; gap:9px; margin-top:14px; }
   .pager button { min-width:44px; padding:8px; }
-  .dots { display:flex; gap:6px; }
-  .dot { width:10px; height:10px; min-height:10px; padding:0; border-radius:50%;
-    background:var(--divider-color); }
-  .dot.active { background:var(--primary-color); transform:scale(1.15); }
+  .dots { display:flex; align-items:center; gap:1px; }
+  .pager button.dot { display:grid; place-items:center; width:28px; height:28px;
+    min-width:28px; min-height:28px; flex:0 0 28px; padding:0; border-radius:50%;
+    background:transparent; }
+  .dot::before { content:""; width:8px; height:8px; border-radius:50%;
+    background:var(--divider-color); transition:transform .16s ease,background .16s ease; }
+  .dot.active::before { background:var(--primary-color); transform:scale(1.25); }
   .system { padding:18px; margin-bottom:16px; display:flex; align-items:center;
     justify-content:space-between; gap:18px; }
   @media (max-width:650px) {

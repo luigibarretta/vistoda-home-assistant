@@ -8,7 +8,9 @@ import {
   isVistodaPath,
   PROVIDERS,
   PROVIDER_META,
+  canonicalVistodaPath,
   providerFromPanel,
+  providerPath,
 } from "./panel-helpers.js";
 
 const VIEW_TAGS = {
@@ -36,13 +38,32 @@ class VistodaPanel extends HTMLElement {
 
   set panel(value) {
     this._panel = value;
-    const provider = providerFromPanel(value);
+    this._syncProvider();
+  }
+
+  set route(value) {
+    this._route = value;
+    this._syncProvider();
+  }
+
+  _syncProvider() {
+    const provider = providerFromPanel(this._panel);
     if (this._mounted && provider !== this._provider) {
       this._mounted = false;
       this.shadowRoot.replaceChildren();
     }
     this._provider = provider;
     this._ensureMounted();
+    this._canonicalizeLegacyRoute();
+  }
+
+  _canonicalizeLegacyRoute() {
+    const pathname = globalThis.location?.pathname || "";
+    const canonical = canonicalVistodaPath(pathname);
+    if (canonical === pathname) return;
+    const suffix = `${globalThis.location.search || ""}${globalThis.location.hash || ""}`;
+    globalThis.history.replaceState(null, "", `${canonical}${suffix}`);
+    globalThis.dispatchEvent(new CustomEvent("location-changed"));
   }
 
   _ensureMounted() {
@@ -91,7 +112,7 @@ class VistodaPanel extends HTMLElement {
         <ha-icon icon="mdi:refresh"></ha-icon><span>Aggiorna</span></button></header>
         <nav aria-label="Provider Vistoda"><a href="/vistoda" data-provider="overview">
           <ha-icon icon="mdi:view-dashboard"></ha-icon>Panoramica</a>
-          ${PROVIDERS.map((provider) => `<a href="/vistoda-${provider}" data-provider="${provider}">
+          ${PROVIDERS.map((provider) => `<a href="${providerPath(provider)}" data-provider="${provider}">
             <ha-icon icon="${PROVIDER_META[provider].icon}"></ha-icon>
             ${PROVIDER_META[provider].label}</a>`).join("")}
         </nav><section id="content" aria-live="polite"></section></main>`;
@@ -100,6 +121,10 @@ class VistodaPanel extends HTMLElement {
       const active = link.dataset.provider === this._provider;
       link.classList.toggle("active", active);
       if (active) link.setAttribute("aria-current", "page");
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        this._navigate(link.getAttribute("href"));
+      });
     });
     this.shadowRoot.getElementById("back").addEventListener("click", () => this._leavePanel());
     this.shadowRoot.getElementById("reload").addEventListener("click", () => this._loadInfo());

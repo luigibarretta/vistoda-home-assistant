@@ -104,7 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator=coordinator,
         ring_status=ring_status,
         ring_events=ring_events,
-        panel_url=f"{base_url.rstrip('/')}/vistoda-{provider}" if base_url else None,
+        panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if ring_events:

@@ -55,7 +55,7 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         """Expose only non-secret version metadata."""
         key = "cameras" if self._attr_unique_id.startswith("blink-") else "version"
         attributes = {key: self.coordinator.data or "unknown"}
-        attributes["panel_path"] = f"/vistoda-{self._provider}"
+        attributes["panel_path"] = f"/vistoda/{self._provider}"
         if self._provider == "ring":
             attributes.update(
                 {

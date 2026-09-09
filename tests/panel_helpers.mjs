@@ -3,11 +3,13 @@ import test from "node:test";
 
 import {
   CASA_PATH,
+  canonicalVistodaPath,
   devicesWithDomain,
   firstEntity,
   isVistodaPath,
   pictureUrl,
   providerFromPanel,
+  providerPath,
   snapshotTimeText,
   snapshotTimestamp,
   stateText,
@@ -35,10 +37,14 @@ const info = {
 };
 
 test("provider route resolution keeps hub and compatibility aliases stable", () => {
-  assert.equal(providerFromPanel({ config: { provider: "overview" } }, "/vistoda-ring"), "overview");
-  assert.equal(providerFromPanel({ config: { provider: "blink" } }, "/vistoda"), "blink");
+  assert.equal(providerFromPanel({ config: { provider: "overview" } }, "/vistoda-ring"), "ring");
+  assert.equal(providerFromPanel({ config: { provider: "overview" } }, "/vistoda/blink"), "blink");
+  assert.equal(providerFromPanel({ config: { provider: "blink" } }, "/vistoda"), "overview");
   assert.equal(providerFromPanel({}, "/vistoda-ezviz"), "ezviz");
   assert.equal(providerFromPanel({}, "/unknown"), "overview");
+  assert.equal(providerPath("ring"), "/vistoda/ring");
+  assert.equal(canonicalVistodaPath("/vistoda-ring"), "/vistoda/ring");
+  assert.equal(canonicalVistodaPath("/vistoda/ring"), "/vistoda/ring");
 });
 
 test("inventory helpers select provider devices and entity domains", () => {
@@ -95,5 +101,6 @@ test("horizontal swipes wrap forever and ignore short or vertical gestures", () 
 test("mobile exit fallback targets Casa only while still inside Vistoda", () => {
   assert.equal(CASA_PATH, "/casa-famiglia/casa");
   assert.equal(isVistodaPath("/vistoda-blink"), true);
+  assert.equal(isVistodaPath("/vistoda/blink"), true);
   assert.equal(isVistodaPath("/casa-famiglia/casa"), false);
 });

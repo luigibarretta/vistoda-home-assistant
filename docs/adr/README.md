@@ -23,5 +23,6 @@
 | [0019](0019-selectable-ring-recording-storage.md) | Selectable Ring recording storage |
 | [0020](0020-mobile-ring-archive-and-recording-lists.md) | Mobile Ring archive and recording lists |
 | [0021](0021-multiple-ring-entries-and-list-management.md) | Multiple Ring entries and explicit list management |
+| [0022](0022-canonical-nested-panel-routes.md) | Canonical nested routes keep the Vistoda sidebar selected |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

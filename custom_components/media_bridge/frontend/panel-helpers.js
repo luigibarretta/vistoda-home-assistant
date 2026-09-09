@@ -19,12 +19,23 @@ export const PROVIDER_META = {
   },
 };
 
+export function providerPath(provider) {
+  return provider === "overview" ? "/vistoda" : `/vistoda/${provider}`;
+}
+
 export function providerFromPanel(panel, pathname = globalThis.location?.pathname || "") {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] === "vistoda" && PROVIDERS.includes(parts[1])) return parts[1];
+  const legacy = PROVIDERS.find((provider) => parts[0] === `vistoda-${provider}`);
+  if (legacy) return legacy;
+  if (parts[0] === "vistoda") return "overview";
   const configured = panel?.config?.provider;
-  if (["overview", ...PROVIDERS].includes(configured)) return configured;
-  const suffix = pathname.split("/").filter(Boolean).at(-1) || "vistoda";
-  if (suffix === "vistoda") return "overview";
-  return PROVIDERS.find((provider) => suffix === `vistoda-${provider}`) || "overview";
+  return ["overview", ...PROVIDERS].includes(configured) ? configured : "overview";
+}
+
+export function canonicalVistodaPath(pathname) {
+  const provider = PROVIDERS.find((item) => pathname === `/vistoda-${item}`);
+  return provider ? providerPath(provider) : pathname;
 }
 
 export function isVistodaPath(pathname) {
