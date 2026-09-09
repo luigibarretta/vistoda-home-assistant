@@ -10,7 +10,7 @@ test("Blink and EZVIZ recording commands expose no provider credentials", () => 
   const blink = { provider: "blink", alias: "balcone" };
   const ezviz = { provider: "ezviz", alias: "front-door", entryId: "entry-1" };
   assert.deepEqual(model.recordingCommand(blink, "list"), {
-    type: "blink_live_bridge/recordings/list",
+    type: "blink_live_bridge/recordings/list", alias: "balcone",
   });
   assert.deepEqual(model.recordingCommand(blink, "create"), {
     type: "blink_live_bridge/recordings/create", alias: "balcone",
@@ -40,5 +40,9 @@ test("signed media paths stay on Home Assistant", () => {
   assert.equal(
     model.recordingMediaPath({ provider: "ezviz", entryId: "entry" }, "id"),
     "/api/media_bridge/ezviz/recordings/entry/id",
+  );
+  assert.equal(
+    model.recordingMediaPath({ provider: "ezviz", entryId: "entry" }, "id", true),
+    "/api/media_bridge/ezviz/recordings/entry/id/playback.mp4",
   );
 });
