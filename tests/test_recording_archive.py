@@ -130,22 +130,33 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     component = Path("custom_components/media_bridge")
     frontend = component / "frontend"
     recordings = (frontend / "provider-recordings.js").read_text()
+    recording_backup_ui = (frontend / "provider-recording-backup.js").read_text()
+    player = (frontend / "provider-recording-player.js").read_text()
     model = (frontend / "provider-recording-model.js").read_text()
     websocket = (component / "provider_recording_websocket.py").read_text()
     backup = (component / "recording_backup.py").read_text()
+    usb_backup = (component / "blink_usb_backup.py").read_text()
     proxy = (component / "provider_recording_proxy.py").read_text()
     inventory = (component / "panel_info.py").read_text()
     assert "media_bridge/ezviz/recordings/create" in websocket
     assert "connection.user.is_admin" in websocket
-    assert "provider_recordings()" in websocket
+    assert "provider_recordings(" in websocket and 'vol.Optional("page"' in websocket
     assert "requires_auth = True" in proxy
-    assert 'type: "auth/sign_path"' in recordings
+    assert 'type: "auth/sign_path"' in recordings + player
     assert "recordingMediaPath" in model and "cameraRecordings" in model
     assert "duration_seconds" in recordings and "15 secondi" in recordings
     assert "Backup archivio" in recordings and "backup-all" in recordings
-    assert "media_bridge/provider/recordings/backup" in backup + recordings
+    assert "media_bridge/provider/recordings/backup" in backup + recording_backup_ui
+    assert "Pagina" in recordings and "page_size" in recordings
+    assert "playback.mp4" in model + proxy and "Chiudi riproduzione" in player
+    assert "Chiavetta Blink" in recordings and "MicroSD EZVIZ" in recordings
     assert "_is_nfs_mount(BACKUP_MOUNT)" in backup and "MIN_FREE_BYTES" in backup
     assert 'fields[2] in {"nfs", "nfs4"}' in backup
     assert 'digest.hexdigest() != manifest["sha256"]' in backup
+    assert "media_bridge/blink/usb/backup" in usb_backup
+    assert "blink-usb" in usb_backup and "MAX_BACKUP_BYTES" in usb_backup
+    assert "hashlib.sha256()" in usb_backup and "_commit" in usb_backup
+    assert "runtime.client.delete" not in usb_backup
+    assert "format_usb" not in usb_backup and "eject_usb" not in usb_backup
     assert '"entries": []' in inventory and '"entry_id": entry.entry_id' in inventory
-    assert "api_token" not in recordings + model + websocket + proxy
+    assert "api_token" not in recordings + model + websocket + proxy + player

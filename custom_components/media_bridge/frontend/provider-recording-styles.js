@@ -23,6 +23,10 @@ export const PROVIDER_RECORDING_STYLES = `
   .item-actions button { min-height:40px; padding:7px 10px; }
   .status { font-size:12px; font-weight:750; color:var(--primary-color); }
   .message { min-height:20px; margin-top:8px; }
+  .destination-note { margin-top:-5px; font-size:12px; }
+  .archive-pager { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+    gap:10px; margin-top:12px; }
+  .archive-pager span { text-align:center; color:var(--secondary-text-color); font-size:13px; }
   @media (max-width:600px) {
     .head, .item { grid-template-columns:1fr; align-items:stretch; }
     .head { display:grid; } .capture > * { flex:1 1 100%; }
@@ -30,5 +34,7 @@ export const PROVIDER_RECORDING_STYLES = `
     .head-actions button { flex:1 1 auto; }
     .item-actions { justify-content:stretch; }
     .item-actions button { flex:1 1 auto; }
+    .archive-pager { grid-template-columns:1fr 1fr; }
+    .archive-pager span { grid-column:1 / -1; grid-row:1; }
   }
 `;

@@ -63,8 +63,8 @@ async def _source(hass: HomeAssistant, msg: dict[str, Any]):
         runtime = hass.data.get("blink_live_bridge", {}).get("runtime")
         if runtime is None:
             raise ValueError("Blink runtime unavailable")
-        payload = await runtime.client.get_json("/v1/recordings")
-        manifest = _find(payload.get("recordings"), recording_id, "video/mp2t")
+        payload = await runtime.client.get_json(f"/v1/recordings/{recording_id}")
+        manifest = _validate(payload, recording_id, "video/mp2t")
         upstream = await runtime.client.stream(f"/v1/recordings/{recording_id}/media")
         return manifest, upstream
     entry = hass.config_entries.async_get_entry(msg["entry_id"])
@@ -76,25 +76,17 @@ async def _source(hass: HomeAssistant, msg: dict[str, Any]):
         or runtime.client is None
     ):
         raise ValueError("EZVIZ runtime unavailable")
-    recordings = await runtime.client.provider_recordings()
-    manifest = _find(recordings, recording_id, "video/mpeg")
+    manifest = _validate(
+        await runtime.client.provider_recording(recording_id), recording_id, "video/mpeg"
+    )
     upstream = await runtime.client.open_provider_recording(recording_id)
     return manifest, upstream
 
 
-def _find(values: object, recording_id: str, media_type: str) -> dict[str, Any]:
-    if not isinstance(values, list):
-        raise ValueError("invalid recording list")
-    manifest = next(
-        (
-            item
-            for item in values
-            if isinstance(item, dict) and item.get("recording_id") == recording_id
-        ),
-        None,
-    )
+def _validate(manifest: object, recording_id: str, media_type: str) -> dict[str, Any]:
     if (
-        manifest is None
+        not isinstance(manifest, dict)
+        or manifest.get("recording_id") != recording_id
         or manifest.get("status") != "ready"
         or manifest.get("media_type") != media_type
         or not SAFE_CAMERA.fullmatch(str(manifest.get("camera", "")))

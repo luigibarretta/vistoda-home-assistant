@@ -1,17 +1,13 @@
 import { BASE_STYLES } from "./panel-styles.js";
 import { PROVIDER_RECORDING_STYLES } from "./provider-recording-styles.js";
+import { backupRecording, readyRecordings } from "./provider-recording-backup.js";
+import { recordingItem } from "./provider-recording-item.js";
+import "./provider-recording-player.js";
 import {
   cameraRecordings,
   recordingCommand,
   recordingMediaPath,
 } from "./provider-recording-model.js";
-
-const STATUS = {
-  pending: "In attesa",
-  recording: "Registrazione in corso",
-  ready: "Pronta",
-  failed: "Non riuscita",
-};
 
 class VistodaProviderRecordings extends HTMLElement {
   constructor() {
@@ -19,6 +15,8 @@ class VistodaProviderRecordings extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = null;
     this._items = [];
+    this._pagination = { page: 1, page_size: 10, total_items: 0, total_pages: 1,
+      has_previous: false, has_next: false };
     this._busy = false;
     this._timer = null;
     this._mounted = false;
@@ -39,6 +37,8 @@ class VistodaProviderRecordings extends HTMLElement {
     this._key = key;
     this._config = config;
     this._items = [];
+    this._pagination.page = 1;
+    this.$?.("player")?.close();
     if (!this._mounted) this._mount();
     this._render();
     this.reload();
@@ -56,15 +56,24 @@ class VistodaProviderRecordings extends HTMLElement {
         <ha-icon icon="mdi:refresh"></ha-icon> Aggiorna archivio</button></div></div>
         <div class="capture"><label for="duration">Durata</label><select id="duration">
           <option value="15">15 secondi</option><option value="30" selected>30 secondi</option>
-          <option value="60">60 secondi</option></select><button class="primary" id="start"
+          <option value="60">60 secondi</option></select><label for="destination">Destinazione</label>
+          <select id="destination"><option value="ha">Archivio locale HA</option>
+          <option id="provider-storage" value="provider" disabled>Supporto della camera</option></select>
+          <button class="primary" id="start"
           title="Registra il live localmente">Registra live</button></div>
+        <div class="destination-note muted" id="destination-note"></div>
         <div class="message muted" id="message" role="status"></div>
+        <vistoda-provider-recording-player id="player"></vistoda-provider-recording-player>
         <details open><summary id="summary">Archivio locale</summary><div class="list" id="list"></div>
+        <nav class="archive-pager" aria-label="Pagine archivio"><button id="previous">Precedente</button>
+        <span id="page-label">Pagina 1 di 1</span><button id="next">Successiva</button></nav>
         </details></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
     this.$("backup-all").addEventListener("click", () => this._backupAll());
     this.$("start").addEventListener("click", () => this._start());
+    this.$("previous").addEventListener("click", () => this._go(this._pagination.page - 1));
+    this.$("next").addEventListener("click", () => this._go(this._pagination.page + 1));
     this._render();
   }
 
@@ -73,8 +82,9 @@ class VistodaProviderRecordings extends HTMLElement {
     this._busy = true;
     this._render();
     try {
-      const result = await this._hass.callWS(this._message("list"));
+      const result = await this._fetch(this._pagination.page, this._pagination.page_size);
       this._items = cameraRecordings(result.recordings || [], this._config.alias);
+      this._pagination = result.pagination || this._pagination;
       this._setMessage("");
     } catch (_error) {
       this._setMessage("Archivio temporaneamente non disponibile.");
@@ -83,6 +93,15 @@ class VistodaProviderRecordings extends HTMLElement {
       this._render();
       this._schedule(this._items.some((item) => ["pending", "recording"].includes(item.status)));
     }
+  }
+
+  _fetch(page, pageSize) {
+    return this._hass.callWS({ ...this._message("list"), page, page_size: pageSize });
+  }
+
+  async _go(page) {
+    if (page < 1 || this._busy) return;
+    this._pagination.page = page; this.$("player").close(); await this.reload();
   }
 
   async _start() {
@@ -127,12 +146,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this._busy = true;
     this._render();
     try {
-      const result = await this._hass.callWS({
-        type: "media_bridge/provider/recordings/backup",
-        provider: this._config.provider,
-        entry_id: this._config.entryId || "",
-        recording_id: item.recording_id,
-      });
+      const result = await backupRecording(this._hass, this._config, item);
       this._setMessage(result.status === "existing"
         ? `Backup già verificato: ${result.relative_path}`
         : `Backup NFS completato: ${result.relative_path}`);
@@ -145,7 +159,10 @@ class VistodaProviderRecordings extends HTMLElement {
   }
 
   async _backupAll() {
-    const ready = this._items.filter((item) => item.status === "ready");
+    let ready;
+    try {
+      ready = await readyRecordings((page, size) => this._fetch(page, size), this._config.alias);
+    } catch (_error) { this._setMessage("Archivio non leggibile per il backup."); return; }
     if (!ready.length) { this._setMessage("Nessuna registrazione pronta da copiare."); return; }
     if (!globalThis.confirm(`Copiare e verificare ${ready.length} registrazioni sul backup NFS?`)) return;
     this._busy = true;
@@ -153,12 +170,7 @@ class VistodaProviderRecordings extends HTMLElement {
     let completed = 0;
     try {
       for (const item of ready) {
-        await this._hass.callWS({
-          type: "media_bridge/provider/recordings/backup",
-          provider: this._config.provider,
-          entry_id: this._config.entryId || "",
-          recording_id: item.recording_id,
-        });
+        await backupRecording(this._hass, this._config, item);
         completed += 1;
         this._setMessage(`Backup NFS: ${completed}/${ready.length} verificati…`);
       }
@@ -185,6 +197,11 @@ class VistodaProviderRecordings extends HTMLElement {
     }
   }
 
+  async _play(item) {
+    try { await this.$("player").open(this._hass, this._config, item); }
+    catch (_error) { this._setMessage("Riproduzione non disponibile."); }
+  }
+
   _message(action) { return recordingCommand(this._config, action); }
 
   _render() {
@@ -192,8 +209,22 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("start").disabled = this._busy || !this._config;
     this.$("reload").disabled = this._busy || !this._config;
     this.$("backup-all").disabled = this._busy || !this._config;
-    this.$("summary").textContent = `Archivio locale (${this._items.length})`;
-    const nodes = this._items.map((item) => this._item(item));
+    const providerStorage = this.$("provider-storage");
+    providerStorage.textContent = this._config?.provider === "blink"
+      ? "Chiavetta Blink" : "MicroSD EZVIZ";
+    this.$("destination-note").textContent = this._config?.provider === "blink"
+      ? "Blink non espone una scrittura diretta e selettiva sulla chiavetta USB: il salvataggio " +
+        "provider resta disabilitato finché il protocollo non è verificabile."
+      : "La registrazione standalone resta separata da SceneTrove e dalla microSD della camera.";
+    this.$("summary").textContent = `Archivio locale (${this._pagination.total_items})`;
+    this.$("page-label").textContent = `Pagina ${this._pagination.page} di ${this._pagination.total_pages}`;
+    this.$("previous").disabled = this._busy || !this._pagination.has_previous;
+    this.$("next").disabled = this._busy || !this._pagination.has_next;
+    const nodes = this._items.map((item) => recordingItem(item, {
+      provider: this._config.provider, busy: this._busy,
+      play: () => this._play(item), download: () => this._download(item),
+      backup: () => this._backup(item), remove: () => this._delete(item),
+    }));
     if (!nodes.length) {
       const empty = document.createElement("div");
       empty.className = "muted";
@@ -201,41 +232,6 @@ class VistodaProviderRecordings extends HTMLElement {
       nodes.push(empty);
     }
     this.$("list").replaceChildren(...nodes);
-  }
-
-  _item(item) {
-    const row = document.createElement("article");
-    row.className = "item";
-    const date = new Date(item.started_at || item.requested_at).toLocaleString("it-IT");
-    const size = item.bytes ? `${(item.bytes / 1024 / 1024).toFixed(1)} MB` : "—";
-    const duration = item.actual_duration_seconds || item.requested_duration_seconds;
-    const detail = document.createElement("div");
-    const title = document.createElement("strong");
-    title.textContent = date;
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.textContent = `${STATUS[item.status] || item.status} · ${Number(duration).toFixed(1)} s · ${size}`;
-    detail.append(title, meta);
-    const actions = document.createElement("div");
-    actions.className = "item-actions";
-    if (item.status === "ready") {
-      actions.append(this._button("Scarica", () => this._download(item)));
-      actions.append(this._button("Backup NFS", () => this._backup(item)));
-    }
-    if (!["pending", "recording"].includes(item.status)) {
-      actions.append(this._button("Elimina", () => this._delete(item), "danger"));
-    }
-    row.append(detail, actions);
-    return row;
-  }
-
-  _button(label, action, className = "") {
-    const button = document.createElement("button");
-    button.textContent = label;
-    button.className = className;
-    button.disabled = this._busy;
-    button.addEventListener("click", action);
-    return button;
   }
 
   _setMessage(value) { if (this.$) this.$("message").textContent = value; }

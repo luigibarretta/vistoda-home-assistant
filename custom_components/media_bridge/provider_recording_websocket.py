@@ -27,6 +27,8 @@ def async_register(hass: HomeAssistant) -> None:
     {
         vol.Required("type"): "media_bridge/ezviz/recordings/list",
         vol.Required("entry_id"): ENTRY_ID,
+        vol.Optional("page", default=1): vol.All(int, vol.Range(min=1)),
+        vol.Optional("page_size", default=10): vol.All(int, vol.Range(min=1, max=50)),
     }
 )
 @websocket_api.async_response
@@ -38,11 +40,11 @@ async def ws_list_recordings(hass, connection, msg: dict[str, Any]) -> None:
         return
     runtime, _alias = resolved
     try:
-        recordings = await runtime.client.provider_recordings()
+        payload = await runtime.client.provider_recordings(msg["page"], msg["page_size"], _alias)
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "EZVIZ recordings are unavailable")
         return
-    connection.send_result(msg["id"], {"recordings": recordings})
+    connection.send_result(msg["id"], payload)
 
 
 @websocket_api.websocket_command(

@@ -13,12 +13,35 @@ STATUSES = {"pending", "recording", "ready", "failed"}
 class ProviderRecordingClientMixin:
     """Consume standalone recording contracts without exposing bridge tokens."""
 
-    async def provider_recordings(self) -> list[dict[str, Any]]:
-        payload = await self._json("GET", "/v1/recordings", limit=RECORDING_LIST_LIMIT)
+    async def provider_recordings(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        camera: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, str | int] = {"page": page, "page_size": page_size}
+        if camera:
+            params["camera"] = camera
+        payload = await self._json(
+            "GET", "/v1/recordings", params=params, limit=RECORDING_LIST_LIMIT
+        )
         raw = payload.get("recordings")
-        if not isinstance(raw, list) or len(raw) > 1_000:
+        pagination = payload.get("pagination")
+        if not isinstance(raw, list) or len(raw) > 50 or not self._pagination(pagination):
             raise CannotConnectError
-        return [self._recording(item) for item in raw]
+        return {
+            "recordings": [self._recording(item) for item in raw],
+            "pagination": pagination,
+        }
+
+    async def provider_recording(self, recording_id: str) -> dict[str, Any]:
+        return self._recording(
+            await self._json(
+                "GET",
+                f"/v1/recordings/{quote(recording_id, safe='')}",
+                limit=RECORDING_LIST_LIMIT,
+            )
+        )
 
     async def create_provider_recording(
         self,
@@ -43,6 +66,28 @@ class ProviderRecordingClientMixin:
             "GET",
             f"/v1/recordings/{quote(recording_id, safe='')}/media",
             timeout=None,
+        )
+
+    async def open_provider_playback(self, recording_id: str):
+        return await self._request(
+            "GET",
+            f"/v1/recordings/{quote(recording_id, safe='')}/playback.mp4",
+            timeout=None,
+        )
+
+    @staticmethod
+    def _pagination(value: object) -> bool:
+        if not isinstance(value, dict):
+            return False
+        integers = ("page", "page_size", "total_items", "total_pages")
+        return (
+            all(isinstance(value.get(key), int) for key in integers)
+            and 1 <= value["page_size"] <= 50
+            and value["page"] >= 1
+            and value["total_items"] >= 0
+            and value["total_pages"] >= 1
+            and isinstance(value.get("has_previous"), bool)
+            and isinstance(value.get("has_next"), bool)
         )
 
     @staticmethod

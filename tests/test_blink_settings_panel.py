@@ -114,6 +114,9 @@ def test_blink_usb_archive_is_read_only_and_uses_signed_downloads() -> None:
     assert 'type: "blink_live_bridge/local_storage/list"' in storage
     assert 'type: "auth/sign_path"' in storage
     assert "/api/blink_live_bridge/v1/local-storage/" in storage
+    assert "Riproduci" in storage and "Backup archivio NFS" in storage
+    assert "media_bridge/blink/usb/backup" in storage
+    assert "page_size" in storage and "Pagina" in storage
     assert "vistoda-blink-storage" in template
     for mutation in (
         "local_storage/delete",

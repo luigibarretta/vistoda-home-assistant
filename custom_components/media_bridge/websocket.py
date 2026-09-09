@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
 from . import BridgeRuntime
+from .blink_usb_backup import async_register as async_register_blink_usb_backup
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 from .panel_info import async_register as async_register_panel_info
@@ -41,6 +42,7 @@ def async_register(hass: HomeAssistant) -> None:
     async_register_recordings(hass)
     async_register_recording_lists(hass)
     async_register_provider_recordings(hass)
+    async_register_blink_usb_backup(hass)
     async_register_recording_backup(hass)
 
 
