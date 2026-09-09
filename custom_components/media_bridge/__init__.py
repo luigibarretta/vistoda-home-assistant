@@ -59,6 +59,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     from .apple_config_view import async_register as async_register_apple_config
     from .apple_oauth_view import async_register as async_register_apple_oauth
     from .panel import async_register as async_register_panel
+    from .provider_recording_proxy import async_register as async_register_provider_recording_proxy
     from .ring_audio_proxy import async_register as async_register_ring_audio_proxy
     from .ring_push_guard import install_ring_push_guard
     from .services import async_register as async_register_services
@@ -73,6 +74,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async_register_apple_config(hass)
     async_register_apple_oauth(hass)
     async_register_ring_audio_proxy(hass)
+    async_register_provider_recording_proxy(hass)
     async_register_services(hass)
     async_register_websocket(hass)
     return True

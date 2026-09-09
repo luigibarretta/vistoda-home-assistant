@@ -8,6 +8,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, ClientWSTimeout
 
 from .client_enrollment import EnrollmentClientMixin
 from .client_helpers import error_code, normalize_url
+from .client_provider_recordings import ProviderRecordingClientMixin
 from .client_ring_events import RingEventClientMixin
 from .const import PROVIDER_RING
 from .errors import (
@@ -37,7 +38,7 @@ RECORDING_LIST_LIMIT, RECORDING_UPLOAD_LIMIT = 512 * 1024, 8 * 1024 * 1024
 RELAY_TIMEOUT = ClientWSTimeout(ws_receive=125, ws_close=5)
 
 
-class BridgeClient(RingEventClientMixin, EnrollmentClientMixin):
+class BridgeClient(ProviderRecordingClientMixin, RingEventClientMixin, EnrollmentClientMixin):
     """Authenticate and consume one private bridge."""
 
     def __init__(self, session: ClientSession, base_url: str, token: str) -> None:
@@ -86,7 +87,6 @@ class BridgeClient(RingEventClientMixin, EnrollmentClientMixin):
                 self._raise_status(response.status)
 
     def ring_relay(self, alias: str):
-        """Open one private PCMU relay without exposing bridge credentials."""
         parts = urlsplit(self.base_url)
         scheme = "wss" if parts.scheme == "https" else "ws"
         path = f"/v1/devices/{quote(alias, safe='')}/audio/relay"

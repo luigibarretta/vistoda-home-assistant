@@ -1,5 +1,6 @@
 import "./blink-settings.js";
 import "./blink-zones.js";
+import "./provider-recordings.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import {
   devicesWithDomain,
@@ -40,7 +41,6 @@ class VistodaBlinkView extends HTMLElement {
     this.$("next").addEventListener("click", () => this._move(1));
     this.$("live").addEventListener("click", () => this._openLive());
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
-    this.$("record").addEventListener("click", () => this._recordClip());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("details").addEventListener("click", () => { this._detailOpen = true; this._render(); });
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
@@ -76,7 +76,11 @@ class VistodaBlinkView extends HTMLElement {
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
     if (cameras.length) this._renderCamera(cameras[this._index], cameras.length);
-    else { this.$("settings").camera = null; this.$("zones").camera = null; }
+    else {
+      this.$("settings").camera = null;
+      this.$("zones").camera = null;
+      this.$("recordings").configure(this._hass, null);
+    }
     this._renderDots(cameras.length);
   }
 
@@ -126,6 +130,9 @@ class VistodaBlinkView extends HTMLElement {
     this.$("snapshot").alt = `Snapshot ${device.name}`;
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
+    this.$("recordings").configure(this._hass, {
+      provider: "blink", alias: cameraState?.attributes?.alias,
+    });
     this.$("zones").hass = this._hass;
     if (url && this.$("snapshot").src !== url) {
       this._failedImage = "";
@@ -188,13 +195,6 @@ class VistodaBlinkView extends HTMLElement {
     const turnOn = entityState(this._hass, motion)?.state !== "on";
     await this._action("motion", () => this._hass.callService("switch", turnOn
       ? "turn_on" : "turn_off", { entity_id: motion.entity_id }), "Movimento aggiornato");
-  }
-
-  async _recordClip() {
-    const camera = this._current("camera");
-    await this._action("record", () => this._hass.callService("blink_live_bridge", "record", {
-      entity_id: camera.entity_id,
-    }), "Registrazione richiesta");
   }
 
   async _setAlarm(armed) {

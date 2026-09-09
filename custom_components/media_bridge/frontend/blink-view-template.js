@@ -23,10 +23,11 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     <div class="facts"><div class="fact"><span>Batteria</span><strong id="battery">—</strong></div>
       <div class="fact"><span>Temperatura</span><strong id="temperature">—</strong></div>
       <div class="fact"><span>Clip recenti</span><strong id="clips">0</strong></div></div>
-    <div class="actions"><button class="primary" id="live">Apri live</button>
-      <button id="refresh">Aggiorna snapshot</button><button id="record">Registra clip</button>
+    <div class="actions"><button class="primary" id="live" title="Apri il live in Home Assistant">Apri live</button>
+      <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera">Aggiorna snapshot</button>
       <button id="motion">Movimento</button><button id="details">Dettagli e impostazioni</button></div>
-    <div class="muted" id="message" role="status"></div></div>
+    <div class="muted" id="message" role="status"></div>
+    <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></div>
 </section>
 <nav class="pager" id="pager" aria-label="Seleziona telecamera"><button id="previous"
   aria-label="Telecamera precedente" title="Telecamera precedente"

@@ -12,6 +12,7 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import (
     BLINK_BRIDGE_DOMAIN,
+    CONF_ALIAS,
     CONF_PROVIDER,
     DOMAIN,
     PROVIDERS,
@@ -80,6 +81,7 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
             "available": False,
             "title": f"Vistoda · {provider.upper()}",
             "truncated": False,
+            "entries": [],
         }
         for provider in PROVIDERS
     }
@@ -91,6 +93,13 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
         entry_providers[entry.entry_id] = provider
         providers[provider]["configured"] = True
         providers[provider]["title"] = entry.title
+        providers[provider]["entries"].append(
+            {
+                "entry_id": entry.entry_id,
+                "alias": entry.data.get(CONF_ALIAS),
+                "name": entry.title,
+            }
+        )
         runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
         coordinator = getattr(runtime, "coordinator", None)
         providers[provider]["available"] = bool(coordinator and coordinator.last_update_success)
@@ -101,6 +110,8 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
         coordinator = getattr(runtime, "coordinator", None)
         if coordinator and coordinator.last_update_success:
             providers["blink"]["available"] = True
+    for provider in PROVIDERS:
+        providers[provider]["entries"].sort(key=lambda item: (item["name"], item["entry_id"]))
     return providers, entry_providers
 
 

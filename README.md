@@ -94,7 +94,7 @@ Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
 
 The Blink view groups cameras into one navigable gallery and exposes arming,
-motion, clip recording, cached snapshots and native live opening. Snapshot
+motion, cached snapshots and native live opening. Snapshot
 refresh is explicit so merely opening the panel does not wake battery cameras.
 Every image shows its provider capture time; horizontal swipes and arrow
 controls wrap continuously through the gallery, with round page indicators and
@@ -107,7 +107,30 @@ when the provider rejects their schema. The Mini speaker control uses the
 official integer scale 1–8. Unknown and unproven features stay hidden. On mobile, the header back
 button exits Vistoda to the previous Home Assistant page, with the Casa
 dashboard as a safe fallback. The EZVIZ view opens the protected HA camera and
-refreshes its snapshot; SceneTrove remains the recording-ingest and spool owner.
+refreshes its snapshot.
+
+Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
+30 or 60 seconds from the current shared stream; the provider writes a bounded
+file and immutable SHA-256 manifest without generating a cloud motion event.
+The per-camera UI lists status, timestamp, duration and size, then offers signed
+download, confirmed deletion, one-file NFS backup or checksum-verified batch
+backup. EZVIZ remains independent from SceneTrove: neither archive deletes or
+adopts the other's media.
+
+Production mounts `/media/vistoda_archives` through the Home Assistant
+Supervisor network-storage API. Vistoda refuses backup unless the path is an
+actual NFS filesystem, at least 512 MiB remain, the file is at most 256 MiB and
+its received byte count and SHA-256 match the provider manifest. Publication is
+atomic and includes a JSON sidecar. The NAS child dataset has its own 20 GiB
+hard quota, compression and an export restricted to iot-01; Vistoda never falls
+back to the HAOS disk.
+
+Blink Sync Module USB and EZVIZ microSD contents remain vendor-owned and hidden:
+the Blink Android routes are identified but not live-canary proven, while the
+current EZVIZ CP4 storage contract is unknown. Blink WebRTC talk signaling is
+also identified, but device/session negotiation is not yet independently
+implemented; EZVIZ currently proves downstream H.264/AAC only. Full-duplex
+buttons will appear only after real uplink and recovery canaries pass.
 
 Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
 Assistant OAuth access token. HA resolves the private config entry and adds the

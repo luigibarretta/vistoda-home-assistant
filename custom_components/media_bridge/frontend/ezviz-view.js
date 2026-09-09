@@ -1,4 +1,5 @@
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
+import "./provider-recordings.js";
 import {
   devicesWithDomain,
   entityState,
@@ -6,6 +7,7 @@ import {
   openMoreInfo,
   pictureUrl,
   setText,
+  snapshotTimeText,
 } from "./panel-helpers.js";
 
 class VistodaEzvizView extends HTMLElement {
@@ -17,6 +19,7 @@ class VistodaEzvizView extends HTMLElement {
     this._nonce = Date.now();
     this._imageUrl = "";
     this._imageState = "empty";
+    this._snapshotObservedAt = null;
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -45,17 +48,20 @@ class VistodaEzvizView extends HTMLElement {
           <ha-icon icon="mdi:loading"></ha-icon><strong>Caricamento snapshot…</strong></div>
           <img id="snapshot" alt="Snapshot spioncino EZVIZ" hidden></div>
         <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Ingresso</h3>
-          <div class="muted">VTM cloud privato con remux MPEG-TS condiviso</div></div>
+          <div class="muted">VTM cloud privato con remux MPEG-TS condiviso</div>
+          <div class="muted" id="snapshot-time"></div></div>
           <span class="badge off" id="camera-state">Non disponibile</span></div>
           <div class="facts"><div class="fact"><span>Connessione</span>
             <strong id="connection">—</strong></div><div class="fact"><span>Live</span>
             <strong>Su richiesta</strong></div><div class="fact"><span>Snapshot</span>
             <strong id="snapshot-state">Verifica…</strong></div></div>
-          <div class="actions"><button class="primary" id="live">Apri live</button>
-            <button id="refresh">Aggiorna snapshot</button></div>
+          <div class="actions"><button class="primary" id="live"
+            title="Apri il live in Home Assistant">Apri live</button>
+            <button id="refresh" title="Ricarica lo snapshot EZVIZ">Aggiorna snapshot</button></div>
           <div class="muted" id="message" role="status"></div>
-          <div class="notice muted">Le registrazioni di ingestione restano gestite da SceneTrove;
-            questa vista non libera o duplica il suo spool remoto.</div></div></section>
+          <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings>
+          <div class="notice muted">Questo archivio è standalone e separato da SceneTrove:
+            registra soltanto quando lo richiedi qui.</div></div></section>
       <section class="card empty" id="empty" hidden>Nessuna telecamera EZVIZ configurata.</section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("live").addEventListener("click", () => this._openLive());
@@ -66,6 +72,7 @@ class VistodaEzvizView extends HTMLElement {
     });
     this.$("snapshot").addEventListener("load", () => {
       this._imageState = "loaded";
+      this._snapshotObservedAt = Date.now();
       this._renderImage();
       setText(this.shadowRoot, "message", "Snapshot disponibile");
     });
@@ -87,13 +94,26 @@ class VistodaEzvizView extends HTMLElement {
     this.$("availability").classList.toggle("off", !provider?.available);
     this.$("camera-card").hidden = !device;
     this.$("empty").hidden = Boolean(device);
-    if (!device) return;
+    if (!device) {
+      this.$("recordings").configure(this._hass, null);
+      return;
+    }
     setText(this.shadowRoot, "camera-name", device.name);
     const available = state && state.state !== "unavailable";
     setText(this.shadowRoot, "camera-state", available ? "Disponibile" : "Non disponibile");
     this.$("camera-state").classList.toggle("off", !available);
     setText(this.shadowRoot, "connection", connectivityState?.state === "on"
       ? "Connesso" : connectivityState?.state === "off" ? "Disconnesso" : "Non rilevata");
+    setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
+      state,
+      this._hass?.locale?.language || "it-IT",
+      this._snapshotObservedAt,
+    ));
+    const entry = provider?.entries?.find((item) => item.alias === state?.attributes?.alias)
+      || provider?.entries?.[0];
+    this.$("recordings").configure(this._hass, entry ? {
+      provider: "ezviz", entryId: entry.entry_id, alias: entry.alias,
+    } : null);
     const url = pictureUrl(this._hass, camera, this._nonce);
     if (url && this._imageUrl !== url) {
       this._imageUrl = url;

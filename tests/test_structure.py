@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.17.2"
+    assert manifest["version"] == "0.18.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -202,7 +202,7 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     assert '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
     assert 'openMoreInfo(this, this._current("camera")' in blink
     assert "Aggiorna snapshot" in blink_template
-    assert "SceneTrove" in ezviz
+    assert "SceneTrove" in ezviz and "standalone e separato" in ezviz
     assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz
     assert "api_token" not in blink + ezviz
 

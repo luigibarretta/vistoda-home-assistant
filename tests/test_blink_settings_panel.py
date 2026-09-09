@@ -17,7 +17,8 @@ def test_blink_settings_use_the_authenticated_typed_websocket_boundary() -> None
     assert "connection" not in settings
     assert "api_token" not in settings + draft + view
     assert "Authorization" not in settings + draft + view
-    assert "Registra clip" in template
+    assert "vistoda-provider-recordings" in template
+    assert "Registra clip" not in template
 
 
 def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
