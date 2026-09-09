@@ -3,7 +3,13 @@ import "./ring-view.js";
 import "./blink-view.js";
 import "./ezviz-view.js";
 import { BASE_STYLES } from "./panel-styles.js";
-import { PROVIDERS, PROVIDER_META, providerFromPanel } from "./panel-helpers.js";
+import {
+  CASA_PATH,
+  isVistodaPath,
+  PROVIDERS,
+  PROVIDER_META,
+  providerFromPanel,
+} from "./panel-helpers.js";
 
 const VIEW_TAGS = {
   overview: "vistoda-overview",
@@ -53,6 +59,7 @@ class VistodaPanel extends HTMLElement {
         main { width:min(1120px,100%); margin:0 auto; padding:26px 18px 48px; }
         header { display:flex; align-items:center; justify-content:space-between; gap:20px;
           margin-bottom:20px; }
+        .header-start { display:flex; align-items:center; gap:12px; min-width:0; }
         .identity { display:flex; align-items:center; gap:15px; }
         .mark { display:grid; place-items:center; width:56px; height:56px; border-radius:18px;
           color:#fff; background:linear-gradient(145deg,#6246ea,#27b3a2); }
@@ -66,16 +73,20 @@ class VistodaPanel extends HTMLElement {
           text-decoration:none; font-weight:650; }
         nav a.active { color:#fff; background:linear-gradient(135deg,#6246ea,#4967e9); }
         nav ha-icon { --mdc-icon-size:20px; }
-        #reload { flex:0 0 auto; }
+        #back { display:none; } #reload { flex:0 0 auto; }
         @media (max-width:600px) {
-          main { padding:18px 12px 36px; } header { align-items:flex-start; }
-          .mark { width:48px; height:48px; border-radius:15px; } h1 { font-size:24px; }
+          main { padding:18px 12px 36px; } header { align-items:center; gap:8px; }
+          #back { display:grid; place-items:center; min-width:44px; padding:8px; }
+          .mark { display:none; } .identity { gap:8px; } h1 { font-size:24px; }
+          header p { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
           #reload { min-width:44px; padding:8px; } #reload span { display:none; }
         }
       </style>
-      <main><header><div class="identity"><div class="mark">
+      <main><header><div class="header-start"><button id="back"
+        aria-label="Torna indietro, fuori da Vistoda"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
+        <div class="identity"><div class="mark">
         <ha-icon icon="mdi:shield-home"></ha-icon></div><div><h1>Vistoda</h1>
-        <p class="muted"></p></div></div><button id="reload" aria-label="Aggiorna inventario">
+        <p class="muted"></p></div></div></div><button id="reload" aria-label="Aggiorna inventario">
         <ha-icon icon="mdi:refresh"></ha-icon><span>Aggiorna</span></button></header>
         <nav aria-label="Provider Vistoda"><a href="/vistoda" data-provider="overview">
           <ha-icon icon="mdi:view-dashboard"></ha-icon>Panoramica</a>
@@ -89,11 +100,29 @@ class VistodaPanel extends HTMLElement {
       link.classList.toggle("active", active);
       if (active) link.setAttribute("aria-current", "page");
     });
+    this.shadowRoot.getElementById("back").addEventListener("click", () => this._leavePanel());
     this.shadowRoot.getElementById("reload").addEventListener("click", () => this._loadInfo());
     this._child = document.createElement(VIEW_TAGS[this._provider]);
     this._child.hass = this._hass;
     this.shadowRoot.getElementById("content").replaceChildren(this._child);
     this._loadInfo();
+  }
+
+  _leavePanel() {
+    const fallback = () => {
+      if (isVistodaPath(globalThis.location?.pathname)) this._navigate(CASA_PATH);
+    };
+    if (globalThis.history?.length > 1) {
+      globalThis.history.back();
+      globalThis.setTimeout(fallback, 500);
+    } else {
+      this._navigate(CASA_PATH);
+    }
+  }
+
+  _navigate(path) {
+    globalThis.history.pushState(null, "", path);
+    globalThis.dispatchEvent(new CustomEvent("location-changed"));
   }
 
   async _loadInfo() {

@@ -28,13 +28,14 @@ export const MEDIA_STYLES = `
   .provider-head h2 { margin:4px 0 5px; font-size:23px; }
   .media-card { overflow:hidden; }
   .stage { position:relative; aspect-ratio:16/9; min-height:220px;
-    display:grid; place-items:center; background:#111; }
+    display:grid; place-items:center; background:#111; touch-action:pan-y; user-select:none; }
   .stage img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
   .stage .placeholder { color:#ddd; text-align:center; padding:20px; }
   .stage .placeholder ha-icon { --mdc-icon-size:48px; display:block; margin:0 auto 10px; }
   .media-body { padding:20px; }
   .media-title { display:flex; align-items:flex-start; justify-content:space-between; gap:15px; }
   .media-title h3 { margin:0 0 5px; font-size:21px; }
+  #snapshot-time { margin-top:3px; font-size:13px; }
   .facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;
     margin:16px 0; }
   .fact { padding:12px; border-radius:13px; background:var(--secondary-background-color); }

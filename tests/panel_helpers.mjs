@@ -2,11 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  CASA_PATH,
   devicesWithDomain,
   firstEntity,
+  isVistodaPath,
   pictureUrl,
   providerFromPanel,
+  snapshotTimeText,
+  snapshotTimestamp,
   stateText,
+  swipeStep,
+  wrappedIndex,
 } from "../custom_components/media_bridge/frontend/panel-helpers.js";
 
 const info = {
@@ -67,3 +73,25 @@ test("state labels include units and hide unavailable values", () => {
   assert.equal(stateText(hass, { entity_id: "sensor.missing" }, "Assente"), "Assente");
 }
 );
+
+test("Blink snapshot timestamps use the provider epoch and an observed refresh fallback", () => {
+  const state = { attributes: { thumbnail: "/thumbnail.jpg?ts=1788935529&ext=" } };
+  assert.equal(snapshotTimestamp(state), 1788935529000);
+  assert.equal(snapshotTimestamp(state, 1788935530000), 1788935530000);
+  assert.match(snapshotTimeText(state, "it-IT"), /^Snapshot del .*2026/);
+  assert.equal(snapshotTimeText({ attributes: {} }), "Ora snapshot non disponibile");
+});
+
+test("horizontal swipes wrap forever and ignore short or vertical gestures", () => {
+  assert.equal(wrappedIndex(4, 1, 5), 0);
+  assert.equal(wrappedIndex(0, -1, 5), 4);
+  assert.equal(swipeStep({ x: 180, y: 20 }, { x: 80, y: 25 }), 1);
+  assert.equal(swipeStep({ x: 80, y: 20 }, { x: 180, y: 25 }), -1);
+  assert.equal(swipeStep({ x: 80, y: 20 }, { x: 100, y: 150 }), 0);
+});
+
+test("mobile exit fallback targets Casa only while still inside Vistoda", () => {
+  assert.equal(CASA_PATH, "/casa-famiglia/casa");
+  assert.equal(isVistodaPath("/vistoda-blink"), true);
+  assert.equal(isVistodaPath("/casa-famiglia/casa"), false);
+});

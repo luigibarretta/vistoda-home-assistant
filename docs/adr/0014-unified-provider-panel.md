@@ -31,8 +31,13 @@ user actions.
 
 Ring keeps full-duplex communication, local recording and controls. Blink gets
 system arming, camera navigation, snapshot refresh, motion and native live
-opening. EZVIZ gets snapshot and native live opening while SceneTrove remains
-the owner of recording ingest and spool acknowledgement.
+opening. Its gallery derives capture time from the provider thumbnail metadata,
+wraps both arrow and horizontal-swipe navigation, and ignores predominantly
+vertical gestures so mobile page scrolling remains usable. The shared mobile
+header exposes a back control; it follows browser history and falls back to the
+Casa dashboard if the target remains inside Vistoda. EZVIZ gets snapshot and
+native live opening while SceneTrove remains the owner of recording ingest and
+spool acknowledgement.
 
 ## Consequences
 

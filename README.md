@@ -83,9 +83,12 @@ background Home Assistant button safely.
 
 The Blink view groups cameras into one navigable gallery and exposes arming,
 motion, cached snapshots and native live opening. Snapshot refresh is explicit
-so merely opening the panel does not wake battery cameras. The EZVIZ view opens
-the protected HA camera and refreshes its snapshot; SceneTrove remains the
-recording-ingest and spool owner.
+so merely opening the panel does not wake battery cameras. Every image shows its
+provider capture time; horizontal swipes and arrow controls wrap continuously
+through the gallery. On mobile, the header back button exits Vistoda to the
+previous Home Assistant page, with the Casa dashboard as a safe fallback. The
+EZVIZ view opens the protected HA camera and refreshes its snapshot; SceneTrove
+remains the recording-ingest and spool owner.
 
 Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
 Assistant OAuth access token. HA resolves the private config entry and adds the

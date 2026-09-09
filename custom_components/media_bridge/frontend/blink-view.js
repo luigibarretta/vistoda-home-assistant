@@ -7,7 +7,10 @@ import {
   pictureUrl,
   providerDevices,
   setText,
+  snapshotTimeText,
   stateText,
+  swipeStep,
+  wrappedIndex,
 } from "./panel-helpers.js";
 
 class VistodaBlinkView extends HTMLElement {
@@ -18,6 +21,8 @@ class VistodaBlinkView extends HTMLElement {
     this._index = 0;
     this._nonce = 0;
     this._failedImage = "";
+    this._snapshotTimes = new Map();
+    this._swipeStart = null;
     this._mounted = false;
   }
 
@@ -39,10 +44,11 @@ class VistodaBlinkView extends HTMLElement {
         <div class="actions"><button id="disarm">Disarma</button>
           <button class="primary" id="arm">Arma</button></div></section>
       <section class="card media-card" id="gallery">
-        <div class="stage"><div class="placeholder" id="placeholder"><ha-icon icon="mdi:cctv"></ha-icon>
+        <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon icon="mdi:cctv"></ha-icon>
           Snapshot non disponibile</div><img id="snapshot" alt=""></div>
         <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Telecamera</h3>
-          <div class="muted" id="camera-position"></div></div><span class="badge off" id="camera-state">
+          <div class="muted" id="camera-position"></div>
+          <div class="muted" id="snapshot-time"></div></div><span class="badge off" id="camera-state">
           Non disponibile</span></div>
           <div class="facts"><div class="fact"><span>Batteria</span><strong id="battery">—</strong></div>
             <div class="fact"><span>Temperatura</span><strong id="temperature">—</strong></div>
@@ -62,6 +68,9 @@ class VistodaBlinkView extends HTMLElement {
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("arm").addEventListener("click", () => this._setAlarm(true));
     this.$("disarm").addEventListener("click", () => this._setAlarm(false));
+    this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
+    this.$("stage").addEventListener("pointerup", (event) => this._finishSwipe(event));
+    this.$("stage").addEventListener("pointercancel", () => { this._swipeStart = null; });
     this.$("snapshot").addEventListener("error", (event) => {
       this._failedImage = event.currentTarget.src;
       this._showImage(false);
@@ -111,6 +120,11 @@ class VistodaBlinkView extends HTMLElement {
     const clips = cameraState?.attributes?.recent_clips || [];
     setText(this.shadowRoot, "camera-name", device.name);
     setText(this.shadowRoot, "camera-position", `${this._index + 1} di ${count}`);
+    setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
+      cameraState,
+      this._hass?.locale?.language || "it-IT",
+      this._snapshotTimes.get(camera?.entity_id),
+    ));
     setText(this.shadowRoot, "camera-state", cameraState && cameraState.state !== "unavailable"
       ? "Disponibile" : "Non disponibile");
     this.$("camera-state").classList.toggle("off", !cameraState || cameraState.state === "unavailable");
@@ -146,8 +160,21 @@ class VistodaBlinkView extends HTMLElement {
   _move(step) {
     const count = this._cameras().length;
     if (!count) return;
-    this._index = (this._index + step + count) % count;
+    this._index = wrappedIndex(this._index, step, count);
     this._render();
+  }
+
+  _startSwipe(event) {
+    if (event.isPrimary === false || this._cameras().length < 2) return;
+    this._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  }
+
+  _finishSwipe(event) {
+    const start = this._swipeStart;
+    this._swipeStart = null;
+    if (!start || start.id !== event.pointerId) return;
+    const step = swipeStep(start, { x: event.clientX, y: event.clientY });
+    if (step) this._move(step);
   }
 
   _current(domain) { return firstEntity(this._cameras()[this._index], domain); }
@@ -159,6 +186,7 @@ class VistodaBlinkView extends HTMLElement {
       await this._hass.callService("blink_live_bridge", "trigger_camera", {
         entity_id: camera.entity_id,
       });
+      this._snapshotTimes.set(camera.entity_id, Date.now());
       this._nonce = Date.now();
       this._render();
     }, "Snapshot aggiornato");
