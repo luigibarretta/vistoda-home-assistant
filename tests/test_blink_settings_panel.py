@@ -88,6 +88,8 @@ def test_blink_settings_use_five_single_open_accordions_and_embed_zones() -> Non
     assert '<slot name="zones"></slot>' in settings
     assert 'slot="zones"' in template and "embedded" in template
     assert "details[open] .chevron" in styles
+    panel_styles = (FRONTEND / "panel-styles.js").read_text(encoding="utf-8")
+    assert "[hidden] { display:none !important; }" in panel_styles
 
 
 def test_blink_pager_arrows_have_accessible_names_without_hover_tooltips() -> None:

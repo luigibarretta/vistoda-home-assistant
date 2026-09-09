@@ -1,6 +1,7 @@
 export const BASE_STYLES = `
   :host { display:block; min-height:100%; color:var(--primary-text-color); }
   * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
   .card { border:1px solid var(--divider-color); border-radius:22px;
     background:var(--card-background-color); box-shadow:var(--ha-card-box-shadow); }
   button, .button { min-height:44px; border:0; border-radius:13px; padding:9px 14px;
