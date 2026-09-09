@@ -74,6 +74,23 @@ class RecordingListData:
             self.data["entries"][entry_id] = remaining
         return self._public(remaining), changed
 
+    def update(self, entry_id: str, list_id: str, name: str) -> tuple[list[dict], bool]:
+        """Rename one list while preserving its recording memberships."""
+        lists = self._entry(entry_id)
+        item = next((value for value in lists if value["list_id"] == list_id), None)
+        if item is None:
+            raise RecordingListError("list_not_found")
+        normalized = normalize_list_name(name)
+        if any(
+            value["list_id"] != list_id and value["name"].casefold() == normalized.casefold()
+            for value in lists
+        ):
+            raise RecordingListError("duplicate_name")
+        if item["name"] == normalized:
+            return self._public(lists), False
+        item["name"] = normalized
+        return self._public(lists), True
+
     def set_membership(
         self, entry_id: str, list_id: str, recording_id: str, included: bool
     ) -> tuple[list[dict], bool]:

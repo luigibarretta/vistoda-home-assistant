@@ -30,9 +30,19 @@ class RingRecordingArchive extends HTMLElement {
   }
 
   configure(hass, entry) {
+    const changedEntry = this._entry?.entry_id && this._entry.entry_id !== entry.entry_id;
     this._hass = hass;
     this._entry = entry;
     if (!this.shadowRoot.hasChildNodes()) this._mount();
+    if (changedEntry) {
+      this._player.release();
+      this._recordings = [];
+      this._page = 1;
+      this._infoId = null;
+      this._storage = null;
+      this._lists.reset();
+      this._lists.update([]);
+    }
     this.load();
   }
 
@@ -111,6 +121,12 @@ class RingRecordingArchive extends HTMLElement {
     for (const view of ["cards", "rows"]) {
       this.$(`view-${view}`).setAttribute("aria-pressed", String(this._view === view));
     }
+    this.$("view-cards").querySelector("ha-icon").setAttribute(
+      "icon", this._view === "cards" ? "mdi:view-grid" : "mdi:view-grid-outline",
+    );
+    this.$("view-rows").querySelector("ha-icon").setAttribute(
+      "icon", this._view === "rows" ? "mdi:view-list" : "mdi:view-list-outline",
+    );
   }
 
   _context(recording) {

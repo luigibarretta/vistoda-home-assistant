@@ -15,6 +15,7 @@ from .ring_recording_lists import async_get_recording_lists
 def async_register(hass: HomeAssistant) -> None:
     """Register bounded list mutation commands."""
     websocket_api.async_register_command(hass, ws_ring_recording_list_create)
+    websocket_api.async_register_command(hass, ws_ring_recording_list_update)
     websocket_api.async_register_command(hass, ws_ring_recording_list_delete)
     websocket_api.async_register_command(hass, ws_ring_recording_list_membership)
 
@@ -58,6 +59,30 @@ async def ws_ring_recording_list_create(hass, connection, msg: dict[str, Any]) -
         _validation_error(connection, msg["id"], error)
         return
     connection.send_result(msg["id"], {"lists": lists, "created_list_id": list_id})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ring/recording_lists/update",
+        vol.Required("entry_id"): str,
+        vol.Required("list_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("name"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.async_response
+async def ws_ring_recording_list_update(hass, connection, msg: dict[str, Any]) -> None:
+    """Rename one list without changing its recording memberships."""
+    if _resolve(hass, msg["entry_id"]) is None:
+        connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
+        return
+    try:
+        lists = await async_get_recording_lists(hass).async_update(
+            msg["entry_id"], msg["list_id"], msg["name"]
+        )
+    except RecordingListError as error:
+        _validation_error(connection, msg["id"], error)
+        return
+    connection.send_result(msg["id"], {"lists": lists})
 
 
 @websocket_api.websocket_command(

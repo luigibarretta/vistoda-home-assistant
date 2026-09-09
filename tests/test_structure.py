@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.14.6"
+    assert manifest["version"] == "0.14.7"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -215,6 +215,7 @@ def test_ring_door_service_is_vistoda_first_and_visible() -> None:
     assert "await runtime.client.unlock_ring(alias)" in service
     assert '"official_fallback"' in service
     assert "outcome is unknown" in service
+    assert 'call.data.get("entry_id")' in service
     assert "api_token" not in service
 
 

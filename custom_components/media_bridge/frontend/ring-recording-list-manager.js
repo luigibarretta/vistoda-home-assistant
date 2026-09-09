@@ -1,9 +1,15 @@
 export class RingRecordingListManager {
   constructor(host) {
     this.host = host;
+    this.reset();
+  }
+
+  reset() {
     this.lists = [];
     this.filterId = "";
     this.openRecordingId = null;
+    this.editingId = null;
+    this.managing = false;
   }
 
   mount(root) {
@@ -13,13 +19,21 @@ export class RingRecordingListManager {
       this.openRecordingId = null;
       this.host.changed(true);
     });
-    this.$("new-list").addEventListener("click", () => this._showForm());
+    this.$("new-list").addEventListener("click", () => {
+      this.managing = true;
+      this._showForm();
+      this._renderManager();
+    });
+    this.$("manage-lists").addEventListener("click", () => {
+      this.managing = !this.managing;
+      this.editingId = null;
+      this._renderManager();
+    });
     this.$("cancel-list").addEventListener("click", () => this._hideForm());
     this.$("list-form").addEventListener("submit", (event) => {
       event.preventDefault();
       this._create();
     });
-    this.$("delete-list").addEventListener("click", () => this._delete());
   }
 
   update(lists) {
@@ -39,7 +53,8 @@ export class RingRecordingListManager {
     });
     select.replaceChildren(all, ...options);
     select.value = this.filterId;
-    this.$("delete-list").hidden = !this.filterId;
+    this.$("manage-count").textContent = String(this.lists.length);
+    this._renderManager();
   }
 
   filtered(recordings) {
@@ -103,12 +118,23 @@ export class RingRecordingListManager {
     });
   }
 
-  async _delete() {
-    const item = this.lists.find((value) => value.list_id === this.filterId);
+  async _rename(item, name) {
+    if (!name) return this.host.status("Inserisci un nome per la lista.");
+    await this._mutate({
+      type: "media_bridge/ring/recording_lists/update",
+      list_id: item.list_id,
+      name,
+    }, "Lista modificata.", () => { this.editingId = null; });
+  }
+
+  async _delete(item) {
     if (!item || !window.confirm(`Eliminare la lista “${item.name}”? Le registrazioni resteranno salvate.`)) return;
     await this._mutate({
       type: "media_bridge/ring/recording_lists/delete", list_id: item.list_id,
-    }, "Lista eliminata.", () => { this.filterId = ""; });
+    }, "Lista eliminata.", () => {
+      if (this.filterId === item.list_id) this.filterId = "";
+      if (this.editingId === item.list_id) this.editingId = null;
+    });
   }
 
   async _membership(recording, item, input) {
@@ -135,6 +161,7 @@ export class RingRecordingListManager {
         invalid_name: "Il nome della lista non è valido.",
         list_limit: "Hai raggiunto il numero massimo di liste.",
         membership_limit: "Questa lista ha raggiunto il numero massimo di registrazioni.",
+        list_not_found: "La lista non esiste più.",
       };
       this.host.status(messages[error?.code] || "Impossibile aggiornare le liste.");
     }
@@ -149,5 +176,67 @@ export class RingRecordingListManager {
   _hideForm() {
     this.$("list-form").hidden = true;
     this.$("list-name").value = "";
+  }
+
+  _renderManager() {
+    if (!this.$) return;
+    const panel = this.$("list-manager");
+    panel.hidden = !this.managing;
+    this.$("manage-lists").setAttribute("aria-expanded", String(this.managing));
+    if (!this.managing) return;
+    this.$("list-empty").hidden = this.lists.length !== 0;
+    this.$("list-items").replaceChildren(...this.lists.map((item) => this._listRow(item)));
+  }
+
+  _listRow(item) {
+    const row = document.createElement("div");
+    row.className = "list-item";
+    if (this.editingId === item.list_id) {
+      const form = document.createElement("form");
+      form.className = "list-edit";
+      const input = document.createElement("input");
+      input.value = item.name;
+      input.maxLength = 64;
+      input.setAttribute("aria-label", `Nuovo nome per ${item.name}`);
+      form.append(input, this._button("mdi:content-save", "Salva", "submit"),
+        this._button("mdi:close", "Annulla", "button", () => {
+          this.editingId = null;
+          this._renderManager();
+        }));
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        this._rename(item, input.value.trim());
+      });
+      row.append(form);
+      queueMicrotask(() => input.focus());
+      return row;
+    }
+    const summary = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = item.name;
+    const count = document.createElement("span");
+    count.className = "hint";
+    count.textContent = `${item.recording_ids.length} registrazioni`;
+    summary.append(name, count);
+    const actions = document.createElement("div");
+    actions.className = "list-item-actions";
+    actions.append(
+      this._button("mdi:pencil-outline", "Modifica", "button", () => {
+        this.editingId = item.list_id;
+        this._renderManager();
+      }),
+      this._button("mdi:delete-outline", "Elimina", "button", () => this._delete(item), true),
+    );
+    row.append(summary, actions);
+    return row;
+  }
+
+  _button(icon, label, type, action = null, danger = false) {
+    const button = document.createElement("button");
+    button.type = type;
+    button.className = `row-action${danger ? " danger" : ""}`;
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`;
+    if (action) button.addEventListener("click", action);
+    return button;
   }
 }

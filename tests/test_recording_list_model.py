@@ -28,6 +28,26 @@ def test_duplicate_names_are_rejected_case_insensitively() -> None:
         model.create("ring-a", " preferite ")
 
 
+def test_list_can_be_renamed_without_losing_memberships() -> None:
+    model = RecordingListData(None)
+    _, first_id = model.create("ring-a", "Da rivedere")
+    model.set_membership("ring-a", first_id, "recording-1", True)
+    _, second_id = model.create("ring-a", "Importanti")
+
+    lists, changed = model.update("ring-a", first_id, "  Preferite  ")
+
+    assert changed is True
+    assert lists[0] == {
+        "list_id": first_id,
+        "name": "Preferite",
+        "recording_ids": ["recording-1"],
+    }
+    with pytest.raises(RecordingListError, match="duplicate_name"):
+        model.update("ring-a", second_id, "preferite")
+    with pytest.raises(RecordingListError, match="list_not_found"):
+        model.update("ring-a", "missing", "Nuova")
+
+
 def test_snapshot_prunes_orphans_and_delete_keeps_media_outside_the_model() -> None:
     model = RecordingListData(None)
     _, list_id = model.create("ring-a", "Importanti")

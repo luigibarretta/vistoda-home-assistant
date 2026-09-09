@@ -31,5 +31,8 @@ def ws_ring_call_answered(hass, connection, msg: dict[str, Any]) -> None:
     if resolve_ring(hass, msg["entry_id"]) is None:
         connection.send_error(msg["id"], "not_found", "Ring bridge is not loaded")
         return
-    hass.bus.async_fire(EVENT_RING_CALL_ANSWERED, {"call_id": msg["call_id"]})
+    hass.bus.async_fire(
+        EVENT_RING_CALL_ANSWERED,
+        {"call_id": msg["call_id"], "entry_id": msg["entry_id"]},
+    )
     connection.send_result(msg["id"], {"acknowledged": True})

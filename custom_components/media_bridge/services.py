@@ -1,5 +1,6 @@
 """Home Assistant service boundary for safe Ring door opening."""
 
+import voluptuous as vol
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -17,7 +18,7 @@ SERVICE_OPEN_RING_DOOR = "open_ring_door"
 def async_register(hass: HomeAssistant) -> None:
     """Register one Vistoda-first unlock action with a safe fallback."""
 
-    async def handle(_call: ServiceCall) -> None:
+    async def handle(call: ServiceCall) -> None:
         candidates = []
         for entry in hass.config_entries.async_entries(DOMAIN):
             runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
@@ -25,8 +26,15 @@ def async_register(hass: HomeAssistant) -> None:
                 runtime, BridgeRuntime
             ):
                 candidates.append((entry, runtime))
+        requested_entry_id = call.data.get("entry_id")
+        if requested_entry_id:
+            candidates = [item for item in candidates if item[0].entry_id == requested_entry_id]
+            if not candidates:
+                raise ServiceValidationError("Selected Vistoda Ring bridge is not loaded")
         if len(candidates) != 1:
-            raise ServiceValidationError("Exactly one loaded Vistoda Ring bridge is required")
+            raise ServiceValidationError(
+                "Select entry_id when more than one Vistoda Ring bridge is loaded"
+            )
         entry, runtime = candidates[0]
         alias = entry.data[CONF_ALIAS]
         if runtime.client is not None:
@@ -42,17 +50,24 @@ def async_register(hass: HomeAssistant) -> None:
                         "Vistoda sent the native command but its outcome is unknown; "
                         "official fallback was suppressed to avoid a duplicate unlock"
                     ) from error
-                hass.bus.async_fire("vistoda_ring_door_open_requested", {"path": "native"})
+                hass.bus.async_fire(
+                    "vistoda_ring_door_open_requested",
+                    {"path": "native", "entry_id": entry.entry_id, "alias": alias},
+                )
                 return
         source = resolve_source(hass, OPEN_DOOR)
         state = hass.states.get(source) if source else None
         if state is None or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             raise ServiceValidationError("Neither Vistoda nor official Ring is available")
         await hass.services.async_call("button", "press", {"entity_id": source}, blocking=True)
-        hass.bus.async_fire("vistoda_ring_door_open_requested", {"path": "official_fallback"})
+        hass.bus.async_fire(
+            "vistoda_ring_door_open_requested",
+            {"path": "official_fallback", "entry_id": entry.entry_id, "alias": alias},
+        )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_OPEN_RING_DOOR,
         handle,
+        schema=vol.Schema({vol.Optional("entry_id"): str}),
     )

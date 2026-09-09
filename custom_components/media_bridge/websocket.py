@@ -66,10 +66,12 @@ def ws_ring_info(
             {
                 "entry_id": entry.entry_id,
                 "name": entry.title,
+                "alias": entry.data[CONF_ALIAS],
                 "available": bool(runtime and runtime.coordinator.last_update_success),
                 "controls": controls,
             }
         )
+    entries.sort(key=lambda item: (item["name"].casefold(), item["alias"], item["entry_id"]))
     connection.send_result(msg["id"], {"entries": entries})
 
 

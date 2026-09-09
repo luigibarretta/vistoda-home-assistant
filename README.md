@@ -58,8 +58,8 @@ paginated archive defaults to cards on mobile and to table rows on wider
 screens; the user's explicit choice is kept in that browser. Both views expose
 date, duration, size and confirmed deletion actions. A recording can belong to
 multiple custom lists, which are stored centrally by Home Assistant and shared
-across authenticated clients. The list filter, creation and deletion controls
-never alter the underlying media. Each item can load its bounded media through
+across authenticated clients. A dedicated manager creates, renames and deletes
+lists; deleting a list never deletes its underlying media. Each item can load its bounded media through
 the authenticated Home Assistant WebSocket, play it with native browser
 controls and seek backward or forward by ten seconds. The browser receives no
 bridge URL or bearer and revokes the local media URL when playback changes or
@@ -80,7 +80,12 @@ temporary startup guard for the public upstream padding/header-parser defects,
 without logging push contents or modifying Home Assistant site packages.
 
 The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
-a recording inventory sensor and a link to the provider-specific panel. The
+a recording inventory sensor and a link to the provider-specific panel. When
+several Ring config entries exist, the panel shows an intercom selector, keeps
+the browser's last choice and honors an exact `entry` deep-link parameter. All
+sessions, controls, recordings, lists and door actions remain scoped to that
+config entry; `media_bridge.open_ring_door` requires `entry_id` only when the
+choice would otherwise be ambiguous. The
 official Ring device remains an optional rollback/event source. Vistoda adds
 answering, full-duplex audio, battery, native controls and private recordings.
 Microphone capture requires a browser gesture and cannot be modeled as a

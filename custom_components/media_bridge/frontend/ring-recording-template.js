@@ -14,9 +14,19 @@ export function recordingArchiveTemplate() {
         background:var(--primary-color)}[hidden]{display:none!important}.archive-controls{margin-top:13px;
         justify-content:space-between;align-items:center}.view-switch{padding:3px;border-radius:13px;
         background:var(--secondary-background-color)}.view-switch button{background:transparent}
+      .view-switch button[aria-pressed="true"]{color:var(--text-primary-color,#fff);
+        background:var(--primary-color);box-shadow:0 2px 7px color-mix(in srgb,var(--primary-color) 38%,transparent)}
       .list-controls{flex:1;justify-content:flex-end}.list-controls select{max-width:270px;flex:1}
       .list-form{width:100%;justify-content:flex-end}.list-form input{min-width:190px;
         border:1px solid var(--divider-color);background:var(--card-background-color)}
+      .list-manager{width:100%;padding:11px;border:1px solid var(--divider-color);border-radius:14px;
+        background:color-mix(in srgb,var(--secondary-background-color) 62%,transparent)}
+      .list-items{display:grid;gap:8px}.list-item{display:flex;align-items:center;justify-content:space-between;
+        gap:10px;padding:8px;border-radius:10px;background:var(--card-background-color)}
+      .list-item>div:first-child{display:grid;gap:2px;min-width:0}.list-item strong{overflow-wrap:anywhere}
+      .list-item-actions,.list-edit{display:flex;gap:7px;align-items:center}.list-edit{width:100%}
+      .list-edit input{flex:1;min-width:120px;border:1px solid var(--divider-color);
+        background:var(--card-background-color)}.count{font-size:12px;font-weight:800;opacity:.75}
       .table-wrap{overflow-x:auto;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:690px}
       th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--divider-color)}
       th{font-size:12px;color:var(--secondary-text-color);text-transform:uppercase;letter-spacing:.04em}
@@ -40,6 +50,8 @@ export function recordingArchiveTemplate() {
         .archive-controls{align-items:stretch}.view-switch{width:100%}.view-switch button{flex:1}
         .list-controls{justify-content:stretch}.list-controls select{max-width:none;min-width:0;width:100%}
         .list-form{justify-content:stretch}.list-form input{width:100%;flex:1}.pager{justify-content:space-between}
+        .list-item{align-items:stretch;flex-direction:column}.list-item-actions button{flex:1}
+        .list-edit{flex-wrap:wrap}.list-edit input{width:100%;flex-basis:100%}.list-edit button{flex:1}
         .cards{grid-template-columns:1fr}.recording-card .row-action{flex:1}.table-wrap .row-action span{display:none}}
     </style>
     <div class="head"><div><h3>Registrazioni salvate</h3><div class="hint" id="status"
@@ -52,11 +64,15 @@ export function recordingArchiveTemplate() {
       <button id="view-rows" aria-pressed="false"><ha-icon icon="mdi:view-list-outline"></ha-icon>Tabella</button>
       </div><div class="list-controls"><select id="list-filter" aria-label="Filtra per lista"></select>
       <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon>Nuova lista</button>
-      <button class="danger" id="delete-list" hidden><ha-icon icon="mdi:playlist-remove"></ha-icon>
-      Elimina lista</button></div><form class="list-form" id="list-form" hidden>
+      <button id="manage-lists" aria-expanded="false"><ha-icon icon="mdi:playlist-edit"></ha-icon>
+      Gestisci <span class="count" id="manage-count">0</span></button></div><form class="list-form"
+      id="list-form" hidden>
       <input id="list-name" maxlength="64" autocomplete="off" placeholder="Nome della lista"
         aria-label="Nome della nuova lista"><button type="submit">Crea</button>
-      <button type="button" id="cancel-list">Annulla</button></form></div>
+      <button type="button" id="cancel-list">Annulla</button></form>
+      <section class="list-manager" id="list-manager" aria-label="Gestione liste" hidden>
+      <div class="hint" id="list-empty">Non hai ancora creato liste personalizzate.</div>
+      <div class="list-items" id="list-items"></div></section></div>
     <div class="cards" id="cards" hidden></div>
     <div class="table-wrap" id="table-wrap"><table><thead><tr><th>Data</th><th>Durata</th>
       <th>Dimensione</th><th>Azioni</th></tr></thead><tbody id="rows"></tbody></table></div>

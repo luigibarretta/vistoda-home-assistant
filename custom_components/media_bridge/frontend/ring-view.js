@@ -1,4 +1,5 @@
 import { RingAudioSession } from "./ring-audio-session.js";
+import { chooseRingEntry, saveRingEntry, storedRingEntry } from "./ring-entry-selection.js";
 import "./ring-controls.js";
 import "./ring-recordings.js";
 import { BASE_STYLES } from "./panel-styles.js";
@@ -11,7 +12,11 @@ class VistodaRingView extends HTMLElement {
     this._entry = null;
     this._audio = null;
     this._available = false;
-    this._callId = new URLSearchParams(globalThis.location?.search || "").get("answer") || "";
+    const query = new URLSearchParams(globalThis.location?.search || "");
+    this._callId = query.get("answer") || "";
+    this._requestedEntryId = query.get("entry") || "";
+    this._storage = this._storageAccess();
+    this._entries = [];
     this._answerMode = /^[A-Za-z0-9_-]{1,64}$/.test(this._callId);
     this._acknowledged = false;
     this._ackPending = false;
@@ -39,6 +44,9 @@ class VistodaRingView extends HTMLElement {
           align-items:center; justify-content:center; gap:7px; }
         .actions button[hidden] { display:none !important; }
         .actions ha-icon { --mdc-icon-size:20px; }
+        .device-select { min-height:40px;max-width:100%;margin-top:11px;border:1px solid
+          var(--divider-color);border-radius:11px;padding:7px 11px;color:var(--primary-text-color);
+          background:var(--secondary-background-color);font:inherit; }
         .spin { animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         .privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid var(--divider-color);
@@ -49,7 +57,8 @@ class VistodaRingView extends HTMLElement {
       <section class="card call">
         <div class="device"><div><div class="eyebrow">Ring Intercom</div>
           <h2 id="device-name">Citofono</h2><div class="muted">Ascolto e conversazione
-          simultanei · massimo 2 minuti</div></div>
+          simultanei · massimo 2 minuti</div><select class="device-select" id="device-select"
+          aria-label="Seleziona Ring Intercom" hidden></select></div>
           <span class="badge off" id="availability">Verifica…</span></div>
         <div class="status"><span class="dot" id="dot"></span><span id="status">Pronto</span></div>
         <div class="actions"><button class="primary" id="call"><ha-icon id="call-icon"
@@ -67,17 +76,25 @@ class VistodaRingView extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("call").addEventListener("click", () => this._toggleCall());
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
+    this.$("device-select").addEventListener("change", (event) => {
+      this._selectEntry(event.target.value);
+    });
     await this._loadEntry();
   }
 
   async _loadEntry() {
     try {
       const result = await this._hass.callWS({ type: "media_bridge/ring/info" });
-      this._entry = result.entries[0] || null;
+      this._entries = result.entries || [];
+      this._entry = chooseRingEntry(
+        this._entries, this._requestedEntryId, storedRingEntry(this._storage),
+      );
+      if (this._requestedEntryId && this._entry?.entry_id !== this._requestedEntryId) {
+        this._answerMode = false;
+      }
       this._available = Boolean(this._entry?.available);
-      const badge = this.$("availability");
-      badge.textContent = this._available ? "Disponibile" : "Non disponibile";
-      badge.classList.toggle("off", !this._available);
+      this._renderEntrySelector();
+      this._renderAvailability();
       if (this._entry) this._configureEntry();
       this._renderState(this._entry ? { phase: "idle" } : {
         phase: "error", message: "Nessun bridge Ring configurato",
@@ -98,6 +115,45 @@ class VistodaRingView extends HTMLElement {
     this.$("controls").hass = this._hass;
     this.$("controls").configure(this._entry.controls);
     this.$("recordings").configure(this._hass, this._entry);
+  }
+
+  async _selectEntry(entryId) {
+    const entry = this._entries.find((item) => item.entry_id === entryId);
+    if (!entry || entry === this._entry) return;
+    const select = this.$("device-select");
+    select.disabled = true;
+    await this._audio?.destroy();
+    this._entry = entry;
+    this._available = Boolean(entry.available);
+    saveRingEntry(this._storage, entry.entry_id);
+    this._acknowledged = false;
+    this._ackAttempts = 0;
+    this._renderAvailability();
+    this._configureEntry();
+    this._renderState({ phase: "idle" });
+    select.disabled = false;
+  }
+
+  _renderEntrySelector() {
+    const select = this.$("device-select");
+    select.replaceChildren(...this._entries.map((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.entry_id;
+      option.textContent = entry.name.replace(/^Vistoda · /, "")
+        + (entry.available ? "" : " · non disponibile");
+      return option;
+    }));
+    select.hidden = this._entries.length < 2;
+    if (this._entry) {
+      select.value = this._entry.entry_id;
+      saveRingEntry(this._storage, this._entry.entry_id);
+    }
+  }
+
+  _renderAvailability() {
+    const badge = this.$("availability");
+    badge.textContent = this._available ? "Disponibile" : "Non disponibile";
+    badge.classList.toggle("off", !this._available);
   }
 
   _renderState(state) {
@@ -164,6 +220,10 @@ class VistodaRingView extends HTMLElement {
     } finally {
       this._ackPending = false;
     }
+  }
+
+  _storageAccess() {
+    try { return globalThis.localStorage; } catch (_error) { return null; }
   }
 
   disconnectedCallback() { this._audio?.destroy(); }

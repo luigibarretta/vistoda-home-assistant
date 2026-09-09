@@ -3,3 +3,11 @@ open_ring_door:
   description: >-
     Use the native Vistoda path first. Fall back once to the official Ring
     integration only when Vistoda is unavailable before sending the command.
+  fields:
+    entry_id:
+      name: Ring bridge
+      description: Required only when more than one Vistoda Ring bridge is configured.
+      required: false
+      selector:
+        config_entry:
+          integration: media_bridge

@@ -52,6 +52,15 @@ class RingRecordingLists:
                 await self._store.async_save(model.data)
             return lists, changed
 
+    async def async_update(self, entry_id: str, list_id: str, name: str) -> list[dict]:
+        """Rename and persist one list."""
+        async with self._lock:
+            model = await self._async_model()
+            lists, changed = model.update(entry_id, list_id, name)
+            if changed:
+                await self._store.async_save(model.data)
+            return lists
+
     async def async_set_membership(
         self, entry_id: str, list_id: str, recording_id: str, included: bool
     ) -> list[dict]:

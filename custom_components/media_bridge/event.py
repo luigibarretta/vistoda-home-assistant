@@ -9,7 +9,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .client_ring_events import RingPushEvent
-from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING, ring_event_signal
+from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING, ring_event_signal
 from .ring_contract import (
     DING,
     INTERCOM_UNLOCK,
@@ -85,6 +85,8 @@ class RingEvent(RingFacadeEntity, EventEntity):
             self._attr_event_types[0],
             {
                 "source": "vistoda_native",
+                "entry_id": self._entry.entry_id,
+                "alias": self._entry.data[CONF_ALIAS],
                 "occurred_at": event.occurred_at,
                 "sequence": event.sequence,
             },
@@ -115,5 +117,6 @@ class RingEvent(RingFacadeEntity, EventEntity):
             for key, value in state.attributes.items()
             if key not in {"event_type", "event_types", "friendly_name", "attribution"}
         }
+        attributes.update({"entry_id": self._entry.entry_id, "alias": self._entry.data[CONF_ALIAS]})
         self._trigger_event(event_type, attributes)
         self.async_write_ha_state()
