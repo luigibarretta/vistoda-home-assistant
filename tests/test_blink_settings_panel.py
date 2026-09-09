@@ -62,6 +62,7 @@ def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
 
 
 def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
     zones = (FRONTEND / "blink-zones.js").read_text(encoding="utf-8")
     model = (FRONTEND / "blink-zone-model.js").read_text(encoding="utf-8")
     styles = (FRONTEND / "blink-zone-styles.js").read_text(encoding="utf-8")
@@ -72,6 +73,7 @@ def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:
     assert "GRID_COLUMNS = 20" in model and "GRID_ROWS = 15" in model
     assert "aspect-ratio:16/9" in styles
     assert "vistoda-blink-zones" in view
+    assert "modello. Zone," not in settings
     assert "Authorization" not in zones + view
 
 

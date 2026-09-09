@@ -60,7 +60,7 @@ class VistodaBlinkSettings extends HTMLElement {
         <div id="summary"></div><div id="fields"></div>
         <div class="muted" id="status" role="status"></div>
         <div class="notice muted">Vistoda mostra soltanto funzioni riconosciute per questo
-        modello. Zone, audio bidirezionale e rimozione rimangono nascoste finché
+        modello. Audio bidirezionale Blink e rimozione rimangono nascosti finché
         i relativi contratti non superano le verifiche di sicurezza.</div></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this._load());
