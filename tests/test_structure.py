@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.14.2"
+    assert manifest["version"] == "0.14.3"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -188,10 +188,10 @@ def test_panel_inventory_is_authenticated_bounded_and_secret_free() -> None:
     assert "MAX_ENTITIES_PER_PROVIDER = 256" in inventory
     assert "entity.disabled_by is not None" in inventory
     assert "STATE_UNAVAILABLE" in inventory
+    assert "devices.async_get(entity.device_id)" in inventory
+    assert "devices.devices.get" not in inventory
     assert "async_register_panel_info(hass)" in websocket
-    assert "api_token" not in inventory
-    assert "CONF_URL" not in inventory
-    assert "unique_id" not in inventory
+    assert all(value not in inventory for value in ("api_token", "CONF_URL", "unique_id"))
 
 
 def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:

@@ -48,7 +48,7 @@ def ws_panel_info(
             continue
         seen[provider] += 1
         device_id = entity.device_id or f"{provider}:unassigned"
-        device = devices.devices.get(entity.device_id) if entity.device_id else None
+        device = devices.async_get(entity.device_id) if entity.device_id else None
         group = grouped[provider].setdefault(
             device_id,
             {
