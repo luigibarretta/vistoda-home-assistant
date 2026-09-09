@@ -21,5 +21,6 @@
 | [0017](0017-private-playback-and-call-acknowledgement.md) | Private playback and coordinated call acknowledgement |
 | [0018](0018-ring-push-upstream-guard.md) | Temporary guarded Ring push listener |
 | [0019](0019-selectable-ring-recording-storage.md) | Selectable Ring recording storage |
+| [0020](0020-mobile-ring-archive-and-recording-lists.md) | Mobile Ring archive and recording lists |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

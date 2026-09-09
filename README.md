@@ -54,11 +54,16 @@ the bounded WebM/MP4 through Home Assistant's authenticated WebSocket proxy;
 it never receives a bridge token. **Registra automaticamente** is persisted
 globally in the config entry and applies to every Vistoda browser. The archive
 retains 30 days and at most 512 MiB; Ring Call Recording is not required. Its
-paginated table exposes date, duration, size and confirmed deletion actions.
-Each row can load its bounded media through the authenticated Home Assistant
-WebSocket, play it with native browser controls and seek backward or forward by
-ten seconds. The browser receives no bridge URL or bearer and revokes the local
-media URL when playback changes or the panel closes.
+paginated archive defaults to cards on mobile and to table rows on wider
+screens; the user's explicit choice is kept in that browser. Both views expose
+date, duration, size and confirmed deletion actions. A recording can belong to
+multiple custom lists, which are stored centrally by Home Assistant and shared
+across authenticated clients. The list filter, creation and deletion controls
+never alter the underlying media. Each item can load its bounded media through
+the authenticated Home Assistant WebSocket, play it with native browser
+controls and seek backward or forward by ten seconds. The browser receives no
+bridge URL or bearer and revokes the local media URL when playback changes or
+the panel closes.
 
 The archive header reports the effective storage directory. An Info action on
 every row reveals and copies the exact file path without widening the mobile

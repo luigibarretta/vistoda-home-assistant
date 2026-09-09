@@ -66,29 +66,42 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     archive = (frontend / "ring-recording-archive.js").read_text(encoding="utf-8")
     template = (frontend / "ring-recording-template.js").read_text(encoding="utf-8")
     storage = (frontend / "recording-storage.js").read_text(encoding="utf-8")
+    list_manager = (frontend / "ring-recording-list-manager.js").read_text(encoding="utf-8")
+    item = (frontend / "ring-recording-item.js").read_text(encoding="utf-8")
+    player = (frontend / "ring-recording-player.js").read_text(encoding="utf-8")
     ezviz = (frontend / "ezviz-view.js").read_text(encoding="utf-8")
     blink = (frontend / "blink-view.js").read_text(encoding="utf-8")
     websocket = Path("custom_components/media_bridge/ring_recording_websocket.py").read_text(
         encoding="utf-8"
     )
+    list_ws = Path("custom_components/media_bridge/ring_recording_list_websocket.py").read_text()
     call_ws = Path("custom_components/media_bridge/ring_call_websocket.py").read_text()
     assert 'id="call"' in view and 'id="stop"' not in view
     assert "mdi:phone-hangup" in view and "mdi:microphone-off" in view
     assert ".actions button[hidden] { display:none !important; }" in view
     assert "mdi:lock-open-variant" in controls and "Comando inviato" in controls
     assert all(
-        value in archive + template
+        value in archive + template + item
         for value in ("<table>", "Durata", "Pagina", "Riproduci", "Elimina tutte")
     )
-    assert "media_bridge/ring/recordings/read" in archive
-    assert "this._seekButton(-10)" in archive and "this._seekButton(10)" in archive
-    assert "URL.revokeObjectURL" in archive
+    assert "media_bridge/ring/recordings/read" in player
+    assert "this._seekButton(-10)" in player and "this._seekButton(10)" in player
+    assert "URL.revokeObjectURL" in player
     assert "window.confirm" in archive
-    assert "mdi:information-outline" in archive
+    assert "mdi:information-outline" in item
+    assert 'id="view-cards"' in template and 'id="view-rows"' in template
+    assert "preferredRecordingView" in archive and "recordingCard" in archive
+    assert "Nuova lista" in template and "Aggiungi alle liste" in list_manager
+    assert "media_bridge/ring/recording_lists/set_membership" in list_manager
     assert "Percorso file" in storage and "content-copy" in storage
     assert "recordingStorageSummary" in archive
     assert "media_bridge/ring/recordings/read" in websocket
     assert "media_bridge/ring/recordings/delete_all" in websocket
+    assert '"lists": lists' in websocket
+    assert all(
+        f"media_bridge/ring/recording_lists/{command}" in list_ws
+        for command in ("create", "delete", "set_membership")
+    )
     assert "media_bridge/ring/call/answer" in call_ws
     assert "vistoda_ring_call_answered" in call_ws
     assert "media_bridge/ring/call/answer" in view

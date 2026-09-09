@@ -59,8 +59,9 @@ class VistodaPanel extends HTMLElement {
         main { width:min(1120px,100%); margin:0 auto; padding:26px 18px 48px; }
         header { display:flex; align-items:center; justify-content:space-between; gap:20px;
           margin-bottom:20px; }
-        .header-start { display:flex; align-items:center; gap:12px; min-width:0; }
-        .identity { display:flex; align-items:center; gap:15px; }
+        .header-start { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
+        .identity { display:flex; align-items:center; gap:15px; min-width:0; flex:1; }
+        .identity > div:last-child { min-width:0; }
         .mark { display:grid; place-items:center; width:56px; height:56px; border-radius:18px;
           color:#fff; background:linear-gradient(145deg,#6246ea,#27b3a2); }
         .mark ha-icon { --mdc-icon-size:30px; }
@@ -75,10 +76,10 @@ class VistodaPanel extends HTMLElement {
         nav ha-icon { --mdc-icon-size:20px; }
         #back { display:none; } #reload { flex:0 0 auto; }
         @media (max-width:600px) {
-          main { padding:18px 12px 36px; } header { align-items:center; gap:8px; }
+          main { padding:18px 12px 36px; } header { align-items:flex-start; gap:8px; }
           #back { display:grid; place-items:center; min-width:44px; padding:8px; }
           .mark { display:none; } .identity { gap:8px; } h1 { font-size:24px; }
-          header p { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          header p { white-space:normal; overflow:visible; line-height:1.35; }
           #reload { min-width:44px; padding:8px; } #reload span { display:none; }
         }
       </style>

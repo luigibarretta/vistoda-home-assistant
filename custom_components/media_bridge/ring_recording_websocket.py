@@ -9,6 +9,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .errors import BridgeError
+from .ring_recording_lists import async_get_recording_lists
 
 
 @callback
@@ -50,6 +51,20 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "Ring archive is unavailable")
         return
+    recordings = [
+        {
+            "recording_id": item.recording_id,
+            "started_at": item.started_at,
+            "ended_at": item.ended_at,
+            "bytes": item.bytes,
+            "media_type": item.media_type,
+            "storage_path": item.storage_path,
+        }
+        for item in archive.recordings
+    ]
+    lists = await async_get_recording_lists(hass).async_snapshot(
+        msg["entry_id"], {item["recording_id"] for item in recordings}
+    )
     connection.send_result(
         msg["id"],
         {
@@ -62,17 +77,8 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
                 if archive.storage is not None
                 else None
             ),
-            "recordings": [
-                {
-                    "recording_id": item.recording_id,
-                    "started_at": item.started_at,
-                    "ended_at": item.ended_at,
-                    "bytes": item.bytes,
-                    "media_type": item.media_type,
-                    "storage_path": item.storage_path,
-                }
-                for item in archive.recordings
-            ],
+            "recordings": recordings,
+            "lists": lists,
         },
     )
 
@@ -172,6 +178,9 @@ async def ws_ring_recording_delete(hass, connection, msg: dict[str, Any]) -> Non
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "Recording deletion failed")
         return
+    await async_get_recording_lists(hass).async_remove_recordings(
+        msg["entry_id"], {msg["recording_id"]}
+    )
     connection.send_result(msg["id"], {"deleted": 1, "failed": 0})
 
 
@@ -196,10 +205,13 @@ async def ws_ring_recordings_delete_all(hass, connection, msg: dict[str, Any]) -
         return
     deleted = 0
     failed = 0
+    deleted_ids = set()
     for recording in recordings:
         try:
             await runtime.client.delete_ring_recording(alias, recording.recording_id)
             deleted += 1
+            deleted_ids.add(recording.recording_id)
         except BridgeError:
             failed += 1
+    await async_get_recording_lists(hass).async_remove_recordings(msg["entry_id"], deleted_ids)
     connection.send_result(msg["id"], {"deleted": deleted, "failed": failed})

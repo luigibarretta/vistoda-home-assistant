@@ -3,10 +3,12 @@ import test from "node:test";
 
 import {
   RECORDINGS_PER_PAGE,
+  preferredRecordingView,
   recordingDate,
   recordingDuration,
   recordingPage,
   recordingSize,
+  saveRecordingView,
 } from "../custom_components/media_bridge/frontend/recording-table.js";
 
 const recordings = Array.from({ length: 19 }, (_, index) => ({
@@ -22,6 +24,19 @@ test("archive pagination is bounded and clamps invalid pages", () => {
     ["8", "9", "10", "11", "12", "13", "14", "15"]);
   assert.equal(recordingPage(recordings, 99).page, 3);
   assert.equal(recordingPage([], -5).page, 1);
+});
+
+test("archive defaults to cards on mobile and persists an explicit choice", () => {
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  assert.equal(preferredRecordingView(storage, true), "cards");
+  assert.equal(preferredRecordingView(storage, false), "rows");
+  assert.equal(saveRecordingView(storage, "rows"), true);
+  assert.equal(preferredRecordingView(storage, true), "rows");
+  assert.equal(saveRecordingView(storage, "invalid"), false);
 });
 
 test("archive metadata receives readable duration, date and size labels", () => {

@@ -1,4 +1,23 @@
 export const RECORDINGS_PER_PAGE = 8;
+export const RECORDING_VIEW_KEY = "vistoda-ring-archive-view";
+
+export function preferredRecordingView(storage, mobile) {
+  try {
+    const saved = storage?.getItem(RECORDING_VIEW_KEY);
+    if (["cards", "rows"].includes(saved)) return saved;
+  } catch (_error) { /* Browser storage can be disabled. */ }
+  return mobile ? "cards" : "rows";
+}
+
+export function saveRecordingView(storage, view) {
+  if (!["cards", "rows"].includes(view)) return false;
+  try {
+    storage?.setItem(RECORDING_VIEW_KEY, view);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
 
 export function recordingPage(recordings, requestedPage, pageSize = RECORDINGS_PER_PAGE) {
   const pages = Math.max(1, Math.ceil(recordings.length / pageSize));

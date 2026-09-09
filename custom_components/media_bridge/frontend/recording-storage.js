@@ -11,11 +11,9 @@ export function recordingStorageSummary(storage) {
   return `Archivio: ${storage.directory} · ${LABELS[storage.kind] || storage.kind}`;
 }
 
-export function recordingInfoRow(recording, storage) {
-  const row = document.createElement("tr");
-  row.className = "info-row";
-  const cell = document.createElement("td");
-  cell.colSpan = 4;
+export function recordingInfoContent(recording, storage) {
+  const content = document.createElement("div");
+  content.className = "recording-info";
   const line = document.createElement("div");
   line.className = "path-line";
   const text = document.createElement("div");
@@ -34,11 +32,20 @@ export function recordingInfoRow(recording, storage) {
   copy.className = "row-action path-copy";
   copy.disabled = !recording.storage_path;
   copy.innerHTML = '<ha-icon icon="mdi:content-copy"></ha-icon><span>Copia</span>';
-  copy.addEventListener("click", () => row.dispatchEvent(new CustomEvent("copy-path", {
+  copy.addEventListener("click", () => content.dispatchEvent(new CustomEvent("copy-path", {
     detail: { path: recording.storage_path },
   })));
   line.append(text, copy);
-  cell.append(line);
+  content.append(line);
+  return content;
+}
+
+export function recordingInfoRow(recording, storage) {
+  const row = document.createElement("tr");
+  row.className = "info-row";
+  const cell = document.createElement("td");
+  cell.colSpan = 4;
+  cell.append(recordingInfoContent(recording, storage));
   row.append(cell);
   return row;
 }
