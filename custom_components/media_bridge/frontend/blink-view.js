@@ -1,5 +1,6 @@
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import "./blink-settings.js";
+import "./blink-zones.js";
 import {
   devicesWithDomain,
   entityState,
@@ -62,7 +63,8 @@ class VistodaBlinkView extends HTMLElement {
       <nav class="pager" aria-label="Seleziona telecamera"><button id="previous"
         aria-label="Telecamera precedente">←</button><div class="dots" id="dots"></div>
         <button id="next" aria-label="Telecamera successiva">→</button></nav>
-      <vistoda-blink-settings id="settings"></vistoda-blink-settings>`;
+      <vistoda-blink-settings id="settings"></vistoda-blink-settings>
+      <vistoda-blink-zones id="zones"></vistoda-blink-zones>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
@@ -97,7 +99,7 @@ class VistodaBlinkView extends HTMLElement {
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
     if (cameras.length) this._renderCamera(cameras[this._index], cameras.length);
-    else this.$("settings").camera = null;
+    else { this.$("settings").camera = null; this.$("zones").camera = null; }
     this._renderDots(cameras.length);
   }
 
@@ -146,10 +148,12 @@ class VistodaBlinkView extends HTMLElement {
     this.$("snapshot").alt = `Snapshot ${device.name}`;
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
+    this.$("zones").hass = this._hass;
     if (url && this.$("snapshot").src !== url) {
       this._failedImage = "";
       this.$("snapshot").src = url;
     }
+    this.$("zones").camera = { alias: cameraState?.attributes?.alias, name: device.name, snapshot: url };
     this._showImage(Boolean(url) && this._failedImage !== url);
   }
 

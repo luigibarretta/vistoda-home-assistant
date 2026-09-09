@@ -24,5 +24,6 @@
 | [0020](0020-mobile-ring-archive-and-recording-lists.md) | Mobile Ring archive and recording lists |
 | [0021](0021-multiple-ring-entries-and-list-management.md) | Multiple Ring entries and explicit list management |
 | [0022](0022-canonical-nested-panel-routes.md) | Canonical nested routes keep the Vistoda sidebar selected |
+| [0023](0023-native-blink-zone-editor.md) | Verified native Blink v1 zone editor with rollback |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

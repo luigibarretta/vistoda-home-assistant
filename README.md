@@ -101,7 +101,10 @@ controls wrap continuously through the gallery, with round page indicators and
 full-size touch targets. A model-aware detail view reads redacted settings from
 the Blink provider. Administrators can change only typed, recognized fields;
 each update carries a revision, is read back, and is restored when verification
-fails. Unknown and unproven features stay hidden. On mobile, the header back
+fails. Verified v1 cameras also expose a touch editor for the native 20×15
+activity grid and up to two privacy rectangles; Owl/Mini v2 zones remain hidden
+when the provider rejects their schema. The Mini speaker control uses the
+official integer scale 1–8. Unknown and unproven features stay hidden. On mobile, the header back
 button exits Vistoda to the previous Home Assistant page, with the Casa
 dashboard as a safe fallback. The EZVIZ view opens the protected HA camera and
 refreshes its snapshot; SceneTrove remains the recording-ingest and spool owner.
