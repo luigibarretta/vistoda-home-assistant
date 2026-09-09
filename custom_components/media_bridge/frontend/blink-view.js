@@ -1,6 +1,6 @@
-import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import "./blink-settings.js";
 import "./blink-zones.js";
+import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import {
   devicesWithDomain,
   entityState,
@@ -25,6 +25,7 @@ class VistodaBlinkView extends HTMLElement {
     this._failedImage = "";
     this._snapshotTimes = new Map();
     this._swipeStart = null;
+    this._detailOpen = false;
     this._mounted = false;
   }
 
@@ -33,38 +34,7 @@ class VistodaBlinkView extends HTMLElement {
 
   _mount() {
     this._mounted = true;
-    this.shadowRoot.innerHTML = `
-      <style>${BASE_STYLES}${MEDIA_STYLES}
-        #message { min-height:21px; margin-top:12px; }
-      </style>
-      <section class="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
-        <h2>Telecamere Blink</h2><div class="muted">Gli snapshot esistenti non risvegliano
-        le camere. Aggiornamento e live partono soltanto su richiesta.</div></div>
-        <span class="badge off" id="availability">Verifica…</span></section>
-      <section class="card system" id="system"><div><strong id="system-name">Sistema Blink</strong>
-        <div class="muted" id="system-state">Stato non disponibile</div></div>
-        <div class="actions"><button id="disarm">Disarma</button>
-          <button class="primary" id="arm">Arma</button></div></section>
-      <section class="card media-card" id="gallery">
-        <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon icon="mdi:cctv"></ha-icon>
-          Snapshot non disponibile</div><img id="snapshot" alt=""></div>
-        <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Telecamera</h3>
-          <div class="muted" id="camera-position"></div>
-          <div class="muted" id="snapshot-time"></div></div><span class="badge off" id="camera-state">
-          Non disponibile</span></div>
-          <div class="facts"><div class="fact"><span>Batteria</span><strong id="battery">—</strong></div>
-            <div class="fact"><span>Temperatura</span><strong id="temperature">—</strong></div>
-            <div class="fact"><span>Clip recenti</span><strong id="clips">0</strong></div></div>
-          <div class="actions"><button class="primary" id="live">Apri live</button>
-            <button id="refresh">Aggiorna snapshot</button><button id="record">Registra clip</button>
-            <button id="motion">Movimento</button></div>
-          <div class="muted" id="message" role="status"></div></div>
-      </section>
-      <nav class="pager" aria-label="Seleziona telecamera"><button id="previous"
-        aria-label="Telecamera precedente">←</button><div class="dots" id="dots"></div>
-        <button id="next" aria-label="Telecamera successiva">→</button></nav>
-      <vistoda-blink-settings id="settings"></vistoda-blink-settings>
-      <vistoda-blink-zones id="zones"></vistoda-blink-zones>`;
+    this.shadowRoot.innerHTML = BLINK_VIEW_TEMPLATE;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
@@ -72,6 +42,8 @@ class VistodaBlinkView extends HTMLElement {
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
     this.$("record").addEventListener("click", () => this._recordClip());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
+    this.$("details").addEventListener("click", () => { this._detailOpen = true; this._render(); });
+    this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
     this.$("arm").addEventListener("click", () => this._setAlarm(true));
     this.$("disarm").addEventListener("click", () => this._setAlarm(false));
     this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
@@ -92,10 +64,15 @@ class VistodaBlinkView extends HTMLElement {
     const provider = this._info?.providers?.blink;
     const cameras = this._cameras();
     this._index = Math.min(this._index, Math.max(cameras.length - 1, 0));
+    if (!cameras.length) this._detailOpen = false;
     this.$("availability").textContent = provider?.available ? "Operativo" : "Non disponibile";
     this.$("availability").classList.toggle("off", !provider?.available);
     this._renderAlarm();
-    this.$("gallery").hidden = cameras.length === 0;
+    this.$("provider-head").hidden = this._detailOpen;
+    this.$("gallery").hidden = this._detailOpen || cameras.length === 0;
+    this.$("pager").hidden = this._detailOpen || cameras.length === 0;
+    this.$("details-page").hidden = !this._detailOpen || cameras.length === 0;
+    if (this._detailOpen) this.$("system").hidden = true;
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
     if (cameras.length) this._renderCamera(cameras[this._index], cameras.length);
@@ -126,6 +103,7 @@ class VistodaBlinkView extends HTMLElement {
     const motion = firstEntity(device, "switch");
     const clips = cameraState?.attributes?.recent_clips || [];
     setText(this.shadowRoot, "camera-name", device.name);
+    setText(this.shadowRoot, "details-title", device.name);
     setText(this.shadowRoot, "camera-position", `${this._index + 1} di ${count}`);
     setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
       cameraState,
@@ -162,6 +140,7 @@ class VistodaBlinkView extends HTMLElement {
       const button = document.createElement("button");
       button.className = `dot${index === this._index ? " active" : ""}`;
       button.setAttribute("aria-label", `Apri telecamera ${index + 1}`);
+      button.title = `Apri telecamera ${index + 1}`;
       if (index === this._index) button.setAttribute("aria-current", "true");
       button.addEventListener("click", () => { this._index = index; this._render(); });
       return button;

@@ -8,13 +8,16 @@ FRONTEND = ROOT / "custom_components/media_bridge/frontend"
 
 def test_blink_settings_use_the_authenticated_typed_websocket_boundary() -> None:
     settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    draft = (FRONTEND / "blink-setting-draft.js").read_text(encoding="utf-8")
     view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
     assert "blink_live_bridge/camera/settings" in settings
-    assert "key: field.key, value, revision: this._settings.revision" in settings
+    assert 'type: "blink_live_bridge/camera/settings/update"' in draft
+    assert "alias, key, value, revision: current.revision" in draft
     assert "connection" not in settings
-    assert "api_token" not in settings + view
-    assert "Authorization" not in settings + view
-    assert "Registra clip" in view
+    assert "api_token" not in settings + draft + view
+    assert "Authorization" not in settings + draft + view
+    assert "Registra clip" in template
 
 
 def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
@@ -24,6 +27,17 @@ def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
     assert "booleanStateText(field.value)" in settings
     assert 'return value === true ? "Attivata" : "Disattivata"' in model
     assert 'field.value ? "Attiva" : "Spenta"' not in settings
+
+
+def test_blink_settings_stage_one_confirmed_batch_and_show_ha_temperature_unit() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    draft = (FRONTEND / "blink-setting-draft.js").read_text(encoding="utf-8")
+    model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
+    assert "Salva modifiche" in settings
+    assert "Confermi ${count}" in settings
+    assert "commitDraft" in settings and "applied.reverse()" in draft
+    assert "temperatureValueText" in settings
+    assert "unit_system?.temperature" in model
 
 
 def test_video_quality_uses_described_radio_choices() -> None:
@@ -67,12 +81,15 @@ def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:
     model = (FRONTEND / "blink-zone-model.js").read_text(encoding="utf-8")
     styles = (FRONTEND / "blink-zone-styles.js").read_text(encoding="utf-8")
     view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
     assert "blink_live_bridge/camera/zones" in zones
     assert "blink_live_bridge/camera/zones/update" in zones
     assert "activity_masks: this._masks, privacy_zones: this._privacy" in zones
     assert "GRID_COLUMNS = 20" in model and "GRID_ROWS = 15" in model
     assert "aspect-ratio:16/9" in styles
-    assert "vistoda-blink-zones" in view
+    assert "vistoda-blink-zones" in template
+    assert 'id="details-page"' in template
+    assert "Dettagli e impostazioni" in template
     assert "modello. Zone," not in settings
     assert "Authorization" not in zones + view
 

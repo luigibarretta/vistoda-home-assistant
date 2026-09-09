@@ -105,10 +105,13 @@ class VistodaPanel extends HTMLElement {
         }
       </style>
       <main><header><div class="header-start"><button id="back"
-        aria-label="Torna indietro, fuori da Vistoda"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
+        aria-label="Torna indietro, fuori da Vistoda" title="Torna alla pagina precedente"
+        data-tooltip="Esce da Vistoda e torna alla pagina precedente"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
         <div class="identity"><div class="mark">
         <ha-icon icon="mdi:shield-home"></ha-icon></div><div><h1>Vistoda</h1>
-        <p class="muted"></p></div></div></div><button id="reload" aria-label="Aggiorna inventario">
+        <p class="muted"></p></div></div></div><button id="reload" aria-label="Aggiorna inventario"
+        title="Aggiorna inventario Vistoda"
+        data-tooltip="Rilegge dispositivi e stati di tutti i provider Vistoda">
         <ha-icon icon="mdi:refresh"></ha-icon><span>Aggiorna</span></button></header>
         <nav aria-label="Provider Vistoda"><a href="/vistoda" data-provider="overview">
           <ha-icon icon="mdi:view-dashboard"></ha-icon>Panoramica</a>

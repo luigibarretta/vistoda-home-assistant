@@ -21,6 +21,14 @@ export function booleanStateText(value) {
   return value === true ? "Attivata" : "Disattivata";
 }
 
+export function temperatureValueText(value, hass) {
+  if (!Number.isFinite(value)) return "—";
+  const unit = hass?.config?.unit_system?.temperature === "°F" ? "°F" : "°C";
+  const converted = unit === "°F" ? value : (value - 32) * 5 / 9;
+  const locale = hass?.locale?.language || "it-IT";
+  return `${converted.toLocaleString(locale, { maximumFractionDigits: 1 })} ${unit}`;
+}
+
 export function videoQualityOptions(options = [], current = "") {
   const available = new Set(options);
   if (current) available.add(current);

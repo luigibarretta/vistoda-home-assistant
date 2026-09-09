@@ -17,7 +17,8 @@ export class RingLocalRecorder {
     this.startedAt = null;
   }
 
-  get active() { return this.recorder?.state === "recording"; }
+  get active() { return ["recording", "paused"].includes(this.recorder?.state); }
+  get paused() { return this.recorder?.state === "paused"; }
 
   supportedType() {
     const Recorder = this.environment.MediaRecorder;
@@ -66,6 +67,18 @@ export class RingLocalRecorder {
     }
     this.bytes += blob.size;
     this.chunks.push(blob);
+  }
+
+  pause() {
+    if (this.recorder?.state !== "recording") return;
+    this.recorder.pause();
+    this.onState("paused");
+  }
+
+  resume() {
+    if (this.recorder?.state !== "paused") return;
+    this.recorder.resume();
+    this.onState("recording");
   }
 
   stop(save = true) {

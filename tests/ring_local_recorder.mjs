@@ -27,6 +27,8 @@ class Recorder {
   }
   addEventListener(name, callback) { this.listeners.set(name, callback); }
   start() { this.state = "recording"; }
+  pause() { this.state = "paused"; }
+  resume() { this.state = "recording"; }
   stop() {
     this.state = "inactive";
     this.listeners.get("stop")?.();
@@ -51,6 +53,10 @@ test("local recorder mixes, uploads and preserves bounded metadata", async () =>
     { AudioContext: Context, MediaRecorder: Recorder },
   );
   await recorder.start(media("remote"), media("microphone"), true);
+  recorder.pause();
+  assert.equal(recorder.paused, true);
+  assert.equal(recorder.active, true);
+  recorder.resume();
   recorder.collect(new Blob([new Uint8Array(1024)], { type: "audio/webm" }));
   const result = await recorder.stop(true);
 
@@ -59,7 +65,7 @@ test("local recorder mixes, uploads and preserves bounded metadata", async () =>
   assert.equal(calls[0].entry_id, "ring-entry");
   assert.equal(calls[0].media_type, "audio/webm;codecs=opus");
   assert.ok(calls[0].media_base64.length > 1000);
-  assert.deepEqual(states, ["recording", "uploading", "saved"]);
+  assert.deepEqual(states, ["recording", "paused", "recording", "uploading", "saved"]);
 });
 
 test("base64 conversion is chunk-safe", () => {

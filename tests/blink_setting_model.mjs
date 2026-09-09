@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   booleanStateText,
+  temperatureValueText,
   videoQualityOptions,
 } from "../custom_components/media_bridge/frontend/blink-setting-model.js";
 
@@ -23,4 +24,12 @@ test("video qualities use the Blink order, recommendation and bandwidth copy", (
 test("the provider current value remains visible when support metadata is incomplete", () => {
   const options = videoQualityOptions([], "standard");
   assert.deepEqual(options.map(({ value }) => value), ["standard"]);
+});
+
+test("Blink Fahrenheit values follow the Home Assistant temperature unit", () => {
+  const celsius = { config: { unit_system: { temperature: "°C" } }, locale: { language: "it-IT" } };
+  const fahrenheit = { config: { unit_system: { temperature: "°F" } }, locale: { language: "it-IT" } };
+  assert.equal(temperatureValueText(68, celsius), "20 °C");
+  assert.equal(temperatureValueText(68, fahrenheit), "68 °F");
+  assert.equal(temperatureValueText(null, celsius), "—");
 });

@@ -12,9 +12,10 @@ function action(icon, label, className, disabled, expanded, callback) {
 function actions(recording, context) {
   const wrap = document.createElement("div");
   wrap.className = "row-actions";
+  const playLabel = context.playerOpen ? "Chiudi player" : "Riproduci";
   wrap.append(
-    action("mdi:play-circle-outline", "Riproduci", "row-action",
-      context.busy || context.loading, null, () => context.onPlay(recording)),
+    action(context.playerOpen ? "mdi:close-circle-outline" : "mdi:play-circle-outline",
+      playLabel, "row-action", context.busy, context.playerOpen, () => context.onPlay(recording)),
     action("mdi:playlist-plus", "Liste", "row-action", context.busy,
       context.listsOpen, () => context.onLists(recording)),
     action("mdi:information-outline", "Info", "row-action", context.busy,

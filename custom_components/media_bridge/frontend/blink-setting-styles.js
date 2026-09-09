@@ -47,6 +47,11 @@ export const BLINK_SETTING_STYLES = `
   .text-control button { min-height:42px; }
   .value { display:block; margin-top:3px; font-size:13px; }
   .readonly { color:var(--secondary-text-color); }
+  .draft-actions { position:sticky; bottom:10px; z-index:5; display:flex; align-items:center;
+    justify-content:flex-end; gap:9px; margin-top:14px; padding:10px; border-radius:14px;
+    background:color-mix(in srgb,var(--card-background-color) 92%,transparent);
+    border:1px solid var(--divider-color); box-shadow:var(--ha-card-box-shadow); }
+  .draft-actions[hidden] { display:none; }
   #status { min-height:21px; margin-top:12px; }
   .notice { margin-top:16px; padding:12px; border-radius:12px;
     background:color-mix(in srgb,var(--primary-color) 10%,transparent); }

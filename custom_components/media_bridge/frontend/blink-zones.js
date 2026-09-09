@@ -23,7 +23,9 @@ class VistodaBlinkZones extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${BASE_STYLES}${BLINK_ZONE_STYLES}</style>
       <section class="card zones"><header><div><div class="eyebrow">Rilevamento e privacy</div>
         <h3>Zone telecamera</h3><div class="muted">Griglia Blink nativa 20 × 15.</div></div>
-        <button id="reload" aria-label="Ricarica zone">↻</button></header>
+        <button id="reload" aria-label="Rileggi le zone dal cloud Blink"
+          title="Rileggi le zone dal cloud Blink"
+          data-tooltip="Rilegge dal cloud Blink le zone di questa telecamera">↻</button></header>
         <div class="tabs" role="tablist"><button id="activity" role="tab">Zone attività</button>
           <button id="privacy" role="tab">Zone privacy</button></div>
         <div class="editor" id="editor"><img id="photo" alt=""><div class="grid" id="grid"></div>
@@ -98,6 +100,7 @@ class VistodaBlinkZones extends HTMLElement {
       width: `${zone.w / GRID_COLUMNS * 100}%`, height: `${zone.h / GRID_ROWS * 100}%` });
     if (index >= 0 && this._tab === "privacy" && this._editable()) { const remove = document.createElement("button");
       remove.textContent = "×"; remove.setAttribute("aria-label", `Elimina zona privacy ${index + 1}`);
+      remove.title = `Elimina zona privacy ${index + 1}`;
       remove.addEventListener("click", () => { this._privacy.splice(index, 1); this._render(); }); item.append(remove); }
     return item;
   }
@@ -134,6 +137,7 @@ class VistodaBlinkZones extends HTMLElement {
 
   async _save() {
     if (allActivityDisabled(this._masks)) { this._status("Almeno una zona attività deve restare attiva."); return; }
+    if (!globalThis.confirm("Confermi il salvataggio delle zone Blink per questa telecamera?")) return;
     this._status("Salvataggio, verifica e ripristino automatico in caso di errore…"); this.$("save").disabled = true;
     try { const zones = await this._hass.callWS({ type: "blink_live_bridge/camera/zones/update",
       alias: this._camera.alias, revision: this._zones.revision, activity_masks: this._masks, privacy_zones: this._privacy });

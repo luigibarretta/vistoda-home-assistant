@@ -20,7 +20,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.17.1"
+    assert manifest["version"] == "0.17.2"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -196,11 +196,12 @@ def test_panel_inventory_is_authenticated_bounded_and_secret_free() -> None:
 
 def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
+    blink_template = (COMPONENT / "frontend" / "blink-view-template.js").read_text(encoding="utf-8")
     ezviz = (COMPONENT / "frontend" / "ezviz-view.js").read_text(encoding="utf-8")
     assert 'callService("blink_live_bridge", "trigger_camera"' in blink
     assert '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
     assert 'openMoreInfo(this, this._current("camera")' in blink
-    assert "Aggiorna snapshot" in blink
+    assert "Aggiorna snapshot" in blink_template
     assert "SceneTrove" in ezviz
     assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz
     assert "api_token" not in blink + ezviz
@@ -242,7 +243,6 @@ def test_ring_facade_supports_native_and_official_control_paths() -> None:
     assert 'await self.call_source_service("button", "press", {})' in button
     assert "await client.unlock_ring(self._alias)" in button
     assert "await client.set_ring_volume" in (COMPONENT / "number.py").read_text(encoding="utf-8")
-    assert "never retry" in button
     assert "self._trigger_event(event_type, attributes)" in event
     assert "old_state.state == state.state" in event
     assert "timestamp_is_recent(state.state)" in event

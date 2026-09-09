@@ -10,6 +10,16 @@ export const BASE_STYLES = `
     background:linear-gradient(135deg,#6246ea,#4967e9); }
   button.danger { color:#fff; background:linear-gradient(135deg,#d84d75,#f47740); }
   button:disabled { opacity:.48; cursor:not-allowed; }
+  [data-tooltip] { position:relative; }
+  [data-tooltip]::after { content:attr(data-tooltip); position:absolute; z-index:20;
+    top:calc(100% + 8px); right:0; width:max-content; max-width:min(260px,75vw);
+    padding:8px 10px; border-radius:9px; color:var(--primary-text-color);
+    background:var(--card-background-color); border:1px solid var(--divider-color);
+    box-shadow:var(--ha-card-box-shadow); font-size:12px; font-weight:500; line-height:1.35;
+    text-align:left; white-space:normal; opacity:0; visibility:hidden; pointer-events:none;
+    transform:translateY(-3px); transition:opacity .14s ease,transform .14s ease; }
+  [data-tooltip]:hover::after, [data-tooltip]:focus-visible::after {
+    opacity:1; visibility:visible; transform:translateY(0); }
   .eyebrow { color:var(--primary-color); font-size:12px; font-weight:750;
     letter-spacing:.08em; text-transform:uppercase; }
   .muted { color:var(--secondary-text-color); line-height:1.45; }

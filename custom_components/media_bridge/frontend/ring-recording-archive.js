@@ -134,10 +134,11 @@ class RingRecordingArchive extends HTMLElement {
       date: this._date(recording), duration: recordingDuration(recording),
       size: recordingSize(recording.bytes), busy: this._busy,
       loading: this._player.loadingId === recording.recording_id,
+      playerOpen: this._player.isOpen(recording.recording_id),
       infoOpen: this._infoId === recording.recording_id,
       listsOpen: this._lists.openRecordingId === recording.recording_id,
       listNames: this._lists.names(recording.recording_id), detail: this._detail(recording),
-      onPlay: (item) => this._player.play(item), onDelete: (item) => this._deleteOne(item),
+      onPlay: (item) => this._togglePlayer(item), onDelete: (item) => this._deleteOne(item),
       onInfo: (item) => this._toggleInfo(item), onLists: (item) => this._lists.toggle(item.recording_id),
     };
   }
@@ -163,6 +164,11 @@ class RingRecordingArchive extends HTMLElement {
   _toggleInfo(recording) {
     this._infoId = this._infoId === recording.recording_id ? null : recording.recording_id;
     this._render();
+  }
+
+  _togglePlayer(recording) {
+    if (this._player.isOpen(recording.recording_id)) this._player.close();
+    else this._player.play(recording);
   }
 
   _setView(view) {
