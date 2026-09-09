@@ -17,6 +17,25 @@ def test_blink_settings_use_the_authenticated_typed_websocket_boundary() -> None
     assert "Registra clip" in view
 
 
+def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
+    assert 'button.setAttribute("aria-checked", String(field.value))' in settings
+    assert "booleanStateText(field.value)" in settings
+    assert 'return value === true ? "Attivata" : "Disattivata"' in model
+    assert 'field.value ? "Attiva" : "Spenta"' not in settings
+
+
+def test_video_quality_uses_described_radio_choices() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
+    assert 'input.type = "radio"' in settings
+    assert "Standard (consigliata)" in model
+    assert "almeno 3 Mbps" in model
+    assert "almeno 2 Mbps" in model
+    assert "almeno 500 Kbps" in model
+
+
 def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     styles = (FRONTEND / "panel-styles.js").read_text(encoding="utf-8")
     view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")

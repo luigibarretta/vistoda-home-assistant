@@ -1,4 +1,6 @@
 import { BASE_STYLES } from "./panel-styles.js";
+import { booleanStateText, videoQualityOptions } from "./blink-setting-model.js";
+import { BLINK_SETTING_STYLES } from "./blink-setting-styles.js";
 
 const META = {
   motion_detection: ["Rilevamento movimento", "Abilita gli eventi di movimento", "Movimento"],
@@ -8,7 +10,7 @@ const META = {
   video_recording: ["Registrazione video", "Consenti alla camera di registrare", "Video e audio"],
   audio_streaming: ["Streaming audio", "Consenti le funzioni audio", "Video e audio"],
   clip_length: ["Durata clip", "Durata delle clip di movimento", "Video e audio", "s"],
-  video_quality: ["Qualità video", "Risoluzione usata dalla camera", "Video e audio"],
+  video_quality: ["Qualità video", "Regola la risoluzione video della telecamera", "Video e audio"],
   end_clip_early: ["Termina clip a movimento finito", "Ferma la clip quando cessa il movimento", "Video e audio"],
   night_vision: ["Visione notturna", "Modalità degli infrarossi", "Visione notturna"],
   ir_intensity: ["Intensità IR", "Luminosità dei LED infrarossi", "Visione notturna"],
@@ -19,7 +21,7 @@ const META = {
 
 const OPTION_LABELS = {
   off: "Disattivata", on: "Attivata", auto: "Automatica",
-  saver: "Risparmio", standard: "Standard", best: "Massima",
+  saver: "Risparmio", standard: "Standard", best: "Migliore",
 };
 
 class VistodaBlinkSettings extends HTMLElement {
@@ -42,40 +44,7 @@ class VistodaBlinkSettings extends HTMLElement {
 
   _mount() {
     this.shadowRoot.innerHTML = `
-      <style>${BASE_STYLES}
-        :host { display:block; margin-top:18px; }
-        .settings { padding:20px; }
-        header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
-        h3 { margin:3px 0 4px; font-size:21px; }
-        #summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;
-          margin:16px 0; }
-        .datum { padding:11px; border-radius:12px; background:var(--secondary-background-color); }
-        .datum span { display:block; color:var(--secondary-text-color); font-size:12px; }
-        .datum strong { display:block; margin-top:3px; overflow-wrap:anywhere; }
-        .section-title { margin:20px 0 7px; font-size:13px; color:var(--secondary-text-color);
-          letter-spacing:.05em; text-transform:uppercase; }
-        .field { display:flex; align-items:center; justify-content:space-between; gap:18px;
-          min-height:68px; padding:12px 0; border-top:1px solid var(--divider-color); }
-        .field:first-child { border-top:0; } .field strong { display:block; }
-        .field small { display:block; margin-top:3px; color:var(--secondary-text-color); }
-        .control { flex:0 0 auto; min-width:112px; text-align:right; }
-        .toggle { min-width:58px; border-radius:999px; padding:7px; background:var(--divider-color); }
-        .toggle[aria-checked="true"] { color:#fff; background:var(--primary-color); }
-        select, input { min-height:42px; max-width:150px; border:1px solid var(--divider-color);
-          border-radius:10px; padding:7px; color:var(--primary-text-color);
-          background:var(--secondary-background-color); font:inherit; }
-        input[type="range"] { min-height:30px; width:145px; padding:0; }
-        .value { display:block; margin-top:3px; font-size:13px; }
-        .readonly { color:var(--secondary-text-color); }
-        #status { min-height:21px; margin-top:12px; }
-        .notice { margin-top:16px; padding:12px; border-radius:12px;
-          background:color-mix(in srgb,var(--primary-color) 10%,transparent); }
-        @media (max-width:650px) {
-          #summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
-          .settings { padding:16px; } .field { align-items:flex-start; }
-          .control { min-width:96px; } input[type="range"] { width:115px; }
-        }
-      </style>
+      <style>${BASE_STYLES}${BLINK_SETTING_STYLES}</style>
       <section class="card settings"><header><div><div class="eyebrow">Dettaglio camera</div>
         <h3 id="title">Impostazioni Blink</h3><div class="muted">Valori letti direttamente
         dalla camera, senza esporre credenziali.</div></div><button id="reload"
@@ -147,34 +116,42 @@ class VistodaBlinkSettings extends HTMLElement {
 
   _field(field) {
     const meta = META[field.key] || [field.key, "", "Altro"];
-    const row = document.createElement("div"); row.className = "field";
+    const row = document.createElement("div");
+    row.className = `field${field.key === "video_quality" ? " quality" : ""}`;
     const text = document.createElement("div");
     const label = document.createElement("strong"); label.textContent = meta[0]; text.append(label);
     const help = document.createElement("small"); help.textContent = meta[1]; text.append(help);
     const control = document.createElement("div"); control.className = "control";
-    control.append(this._control(field, meta[3])); row.append(text, control); return row;
+    control.append(this._control(field, meta)); row.append(text, control); return row;
   }
 
-  _control(field, unit = "") {
-    const admin = this._hass?.user?.is_admin !== false;
-    if (!field.writable || !admin) {
+  _control(field, meta) {
+    const [label, , , unit = ""] = meta;
+    const editable = field.writable && this._hass?.user?.is_admin === true;
+    if (field.key === "video_quality") return this._qualityControl(field, editable, label);
+    if (!editable) {
       const value = document.createElement("span"); value.className = "readonly";
       value.textContent = this._value(field.value, unit); return value;
     }
     if (field.kind === "boolean") {
       const button = document.createElement("button"); button.className = "toggle";
       button.setAttribute("role", "switch"); button.setAttribute("aria-checked", String(field.value));
-      button.textContent = field.value ? "Attiva" : "Spenta";
+      button.setAttribute("aria-label", `${label}: ${booleanStateText(field.value)}`);
+      const state = document.createElement("span"); state.className = "toggle-state";
+      state.textContent = booleanStateText(field.value);
+      const track = document.createElement("span"); track.className = "switch-track";
+      track.setAttribute("aria-hidden", "true"); button.append(state, track);
       button.addEventListener("click", () => this._update(field, !field.value)); return button;
     }
     if (field.kind === "select") {
-      const select = document.createElement("select");
+      const select = document.createElement("select"); select.setAttribute("aria-label", label);
       for (const option of field.options) select.add(new Option(OPTION_LABELS[option] || option, option));
       select.value = field.value; select.addEventListener("change", () => this._update(field, select.value));
       return select;
     }
     const wrapper = document.createElement("label");
     const input = document.createElement("input"); input.type = "range";
+    input.setAttribute("aria-label", label);
     Object.assign(input, { min: field.min, max: field.max, step: field.step, value: field.value });
     const output = document.createElement("span"); output.className = "value";
     output.textContent = this._value(field.value, unit);
@@ -183,8 +160,26 @@ class VistodaBlinkSettings extends HTMLElement {
     wrapper.append(input, output); return wrapper;
   }
 
+  _qualityControl(field, editable, label) {
+    const group = document.createElement("fieldset"); group.className = "quality-options";
+    group.setAttribute("aria-label", label);
+    const name = `video-quality-${this._camera?.alias || "camera"}`;
+    for (const option of videoQualityOptions(field.options, field.value)) {
+      const row = document.createElement("label"); row.className = "quality-option";
+      const input = document.createElement("input"); input.type = "radio";
+      input.name = name; input.value = option.value; input.checked = option.value === field.value;
+      input.disabled = !editable;
+      input.addEventListener("change", () => { if (input.checked) this._update(field, option.value); });
+      const copy = document.createElement("span");
+      const title = document.createElement("strong"); title.textContent = option.label;
+      const help = document.createElement("small"); help.textContent = option.description;
+      copy.append(title, help); row.append(input, copy); group.append(row);
+    }
+    return group;
+  }
+
   _value(value, unit) {
-    if (typeof value === "boolean") return value ? "Attiva" : "Spenta";
+    if (typeof value === "boolean") return booleanStateText(value);
     return `${OPTION_LABELS[value] || value}${unit ? ` ${unit}` : ""}`;
   }
 
