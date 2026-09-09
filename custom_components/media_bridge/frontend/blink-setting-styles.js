@@ -42,6 +42,9 @@ export const BLINK_SETTING_STYLES = `
     border-radius:10px; padding:7px; color:var(--primary-text-color);
     background:var(--secondary-background-color); font:inherit; }
   input[type="range"] { min-height:30px; width:145px; padding:0; }
+  .text-control { display:flex; align-items:center; gap:8px; }
+  .text-control input { width:min(210px,42vw); max-width:none; }
+  .text-control button { min-height:42px; }
   .value { display:block; margin-top:3px; font-size:13px; }
   .readonly { color:var(--secondary-text-color); }
   #status { min-height:21px; margin-top:12px; }

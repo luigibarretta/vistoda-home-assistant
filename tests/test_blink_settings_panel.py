@@ -36,6 +36,23 @@ def test_video_quality_uses_described_radio_choices() -> None:
     assert "almeno 500 Kbps" in model
 
 
+def test_model_aware_blink_controls_have_native_labels() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    for key in (
+        "flip_video",
+        "photo_capture",
+        "auto_thumbnail",
+        "status_led",
+        "speaker_volume",
+        "sync_strength",
+        "camera_name",
+    ):
+        assert key in settings
+    assert 'medium: "Media"' in settings
+    assert 'recording: "Durante la registrazione"' in settings
+    assert 'if (field.kind === "text")' in settings
+
+
 def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     styles = (FRONTEND / "panel-styles.js").read_text(encoding="utf-8")
     view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")

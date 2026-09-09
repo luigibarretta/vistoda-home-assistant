@@ -14,6 +14,13 @@ const META = {
   end_clip_early: ["Termina clip a movimento finito", "Ferma la clip quando cessa il movimento", "Video e audio"],
   night_vision: ["Visione notturna", "Modalità degli infrarossi", "Visione notturna"],
   ir_intensity: ["Intensità IR", "Luminosità dei LED infrarossi", "Visione notturna"],
+  flip_video: ["Ruota video", "Ruota l’immagine quando la camera è capovolta", "Video e foto"],
+  photo_capture: ["Acquisizione foto", "Una foto ogni ora; richiede un piano Blink idoneo", "Video e foto"],
+  auto_thumbnail: ["Miniatura automatica", "Aggiorna la miniatura durante gli eventi", "Video e foto"],
+  status_led: ["LED di stato", "Quando deve accendersi il LED della telecamera", "Generali"],
+  speaker_volume: ["Volume altoparlante", "Livello audio dell’altoparlante della telecamera", "Audio"],
+  sync_strength: ["Segnale Sync Module", "Ultima intensità radio rilevata", "Diagnostica", "dBm"],
+  camera_name: ["Nome telecamera", "Nome mostrato da Blink e Vistoda", "Generali"],
   temperature_alerts: ["Avvisi temperatura", "Stato configurato nell’account Blink", "Diagnostica"],
   temperature_min: ["Temperatura minima", "Soglia inferiore", "Diagnostica", "°F"],
   temperature_max: ["Temperatura massima", "Soglia superiore", "Diagnostica", "°F"],
@@ -22,6 +29,7 @@ const META = {
 const OPTION_LABELS = {
   off: "Disattivata", on: "Attivata", auto: "Automatica",
   saver: "Risparmio", standard: "Standard", best: "Migliore",
+  low: "Bassa", medium: "Media", high: "Alta", recording: "Durante la registrazione",
 };
 
 class VistodaBlinkSettings extends HTMLElement {
@@ -52,8 +60,8 @@ class VistodaBlinkSettings extends HTMLElement {
         <div id="summary"></div><div id="fields"></div>
         <div class="muted" id="status" role="status"></div>
         <div class="notice muted">Vistoda mostra soltanto funzioni riconosciute per questo
-        modello. Zone, rinomina, LED e rimozione restano nell’app Blink finché i relativi
-        contratti non superano le verifiche di sicurezza.</div></section>`;
+        modello. Zone, audio bidirezionale e rimozione rimangono nascoste finché
+        i relativi contratti non superano le verifiche di sicurezza.</div></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this._load());
   }
@@ -79,7 +87,7 @@ class VistodaBlinkSettings extends HTMLElement {
   _render() {
     this.hidden = !this._camera?.alias;
     if (this.hidden) return;
-    this.$("title").textContent = this._camera.name || "Impostazioni Blink";
+    this.$("title").textContent = this._settings?.name || this._camera.name || "Impostazioni Blink";
     if (!this._settings) { this.$("summary").replaceChildren(); this.$("fields").replaceChildren(); return; }
     this._renderSummary();
     const groups = new Map();
@@ -133,6 +141,7 @@ class VistodaBlinkSettings extends HTMLElement {
       const value = document.createElement("span"); value.className = "readonly";
       value.textContent = this._value(field.value, unit); return value;
     }
+    if (field.kind === "text") return this._textControl(field, label);
     if (field.kind === "boolean") {
       const button = document.createElement("button"); button.className = "toggle";
       button.setAttribute("role", "switch"); button.setAttribute("aria-checked", String(field.value));
@@ -158,6 +167,20 @@ class VistodaBlinkSettings extends HTMLElement {
     input.addEventListener("input", () => { output.textContent = this._value(Number(input.value), unit); });
     input.addEventListener("change", () => this._update(field, Number(input.value)));
     wrapper.append(input, output); return wrapper;
+  }
+
+  _textControl(field, label) {
+    const wrapper = document.createElement("div"); wrapper.className = "text-control";
+    const input = document.createElement("input"); input.type = "text";
+    input.value = field.value; input.maxLength = field.max || 255;
+    input.setAttribute("aria-label", label);
+    const save = document.createElement("button"); save.textContent = "Salva"; save.disabled = true;
+    input.addEventListener("input", () => { save.disabled = input.value.trim() === field.value; });
+    save.addEventListener("click", () => this._update(field, input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !save.disabled) { event.preventDefault(); save.click(); }
+    });
+    wrapper.append(input, save); return wrapper;
   }
 
   _qualityControl(field, editable, label) {
