@@ -58,7 +58,7 @@ export function pictureUrl(hass, entity, nonce = 0) {
 function timestampMs(value) {
   if (value === null || value === undefined || value === "") return null;
   const source = String(value);
-  const queryValues = [...source.matchAll(/[?&]ts=([^&]+)/g)];
+  const queryValues = [...source.matchAll(/[?&]ts=([^&?]+)/g)];
   let candidate = queryValues.at(-1)?.[1] || source;
   try { candidate = decodeURIComponent(candidate); } catch (_error) { return null; }
   if (/^\d{10,13}$/.test(candidate)) {

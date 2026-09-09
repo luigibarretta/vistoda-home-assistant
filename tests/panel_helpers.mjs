@@ -75,7 +75,9 @@ test("state labels include units and hide unavailable values", () => {
 );
 
 test("Blink snapshot timestamps use the provider epoch and an observed refresh fallback", () => {
-  const state = { attributes: { thumbnail: "/thumbnail.jpg?ts=1788935529&ext=" } };
+  const state = { attributes: {
+    thumbnail: "/thumbnail.jpg?ts=/nested/thumbnail.jpg?ts=1788935529&ext=&ext=",
+  } };
   assert.equal(snapshotTimestamp(state), 1788935529000);
   assert.equal(snapshotTimestamp(state, 1788935530000), 1788935530000);
   assert.match(snapshotTimeText(state, "it-IT"), /^Snapshot del .*2026/);
