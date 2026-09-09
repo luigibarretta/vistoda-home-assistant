@@ -104,10 +104,11 @@ each update carries a revision, is read back, and is restored when verification
 fails. Verified v1 cameras also expose a touch editor for the native 20×15
 activity grid and up to two privacy rectangles; Owl/Mini v2 zones remain hidden
 when the provider rejects their schema. The Mini speaker control uses the
-official integer scale 1–8. Unknown and unproven features stay hidden. On mobile, the header back
-button exits Vistoda to the previous Home Assistant page, with the Casa
-dashboard as a safe fallback. The EZVIZ view opens the protected HA camera and
-refreshes its snapshot.
+official integer scale 1–8. Unknown and unproven features stay hidden. Camera
+settings follow the official app's five task-oriented sections, with one
+accordion open at a time. On mobile, the header back button exits Vistoda to the
+previous Home Assistant page, with the Casa dashboard as a safe fallback. The
+EZVIZ view opens the protected HA camera and refreshes its snapshot.
 
 Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
 30 or 60 seconds from the current shared stream; the provider writes a bounded
@@ -125,12 +126,13 @@ atomic and includes a JSON sidecar. The NAS child dataset has its own 20 GiB
 hard quota, compression and an export restricted to iot-01; Vistoda never falls
 back to the HAOS disk.
 
-Blink Sync Module USB and EZVIZ microSD contents remain vendor-owned and hidden:
-the Blink Android routes are identified but not live-canary proven, while the
-current EZVIZ CP4 storage contract is unknown. Blink WebRTC talk signaling is
-also identified, but device/session negotiation is not yet independently
-implemented; EZVIZ currently proves downstream H.264/AAC only. Full-duplex
-buttons will appear only after real uplink and recovery canaries pass.
+Blink Sync Module USB contents remain vendor-owned but are available through a
+read-only status, clip inventory and signed download surface. Vistoda exposes no
+provider deletion, eject, format or mount action. The current EZVIZ CP4 microSD
+contract remains unavailable to the HAOS bridge. Blink WebRTC 4.1 signaling and
+camera capability discovery are independently implemented, but media/session
+negotiation is still gated; EZVIZ currently proves downstream H.264/AAC only.
+Full-duplex buttons will appear only after real uplink and recovery canaries pass.
 
 Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
 Assistant OAuth access token. HA resolves the private config entry and adds the

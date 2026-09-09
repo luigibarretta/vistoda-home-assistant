@@ -30,12 +30,11 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></div>
 </section>
 <nav class="pager" id="pager" aria-label="Seleziona telecamera"><button id="previous"
-  aria-label="Telecamera precedente" title="Telecamera precedente"
-  data-tooltip="Mostra la telecamera precedente">←</button><div class="dots" id="dots"></div>
-  <button id="next" aria-label="Telecamera successiva" title="Telecamera successiva"
-  data-tooltip="Mostra la telecamera successiva">→</button></nav>
+  aria-label="Telecamera precedente">←</button><div class="dots" id="dots"></div>
+  <button id="next" aria-label="Telecamera successiva">→</button></nav>
+<vistoda-blink-storage id="storage"></vistoda-blink-storage>
 <section id="details-page" hidden><div class="detail-head"><button id="details-back"
   title="Torna alle telecamere">← Telecamere</button><div><div class="eyebrow">Dettaglio camera</div>
   <h2 id="details-title">Impostazioni</h2></div></div>
-  <vistoda-blink-settings id="settings"></vistoda-blink-settings>
-  <vistoda-blink-zones id="zones"></vistoda-blink-zones></section>`;
+  <vistoda-blink-settings id="settings"><vistoda-blink-zones id="zones" slot="zones"
+    embedded></vistoda-blink-zones></vistoda-blink-settings></section>`;

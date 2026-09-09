@@ -1,4 +1,5 @@
 import "./blink-settings.js";
+import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
@@ -72,6 +73,8 @@ class VistodaBlinkView extends HTMLElement {
     this.$("gallery").hidden = this._detailOpen || cameras.length === 0;
     this.$("pager").hidden = this._detailOpen || cameras.length === 0;
     this.$("details-page").hidden = !this._detailOpen || cameras.length === 0;
+    this.$("storage").hidden = this._detailOpen;
+    this.$("storage").hass = this._hass;
     if (this._detailOpen) this.$("system").hidden = true;
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;

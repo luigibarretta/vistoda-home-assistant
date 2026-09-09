@@ -1,5 +1,8 @@
 export const BLINK_ZONE_STYLES = `
   :host { display:block; margin-top:18px; }
+  :host([embedded]) { margin-top:14px; }
+  :host([embedded]) .zones { box-shadow:none; border:1px solid var(--divider-color);
+    background:var(--secondary-background-color); }
   .zones { padding:20px; }
   header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
   h3 { margin:3px 0 4px; font-size:21px; }

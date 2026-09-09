@@ -3,13 +3,26 @@ export const BLINK_SETTING_STYLES = `
   .settings { padding:20px; }
   header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
   h3 { margin:3px 0 4px; font-size:21px; }
+  .accordion { margin-top:18px; border:1px solid var(--divider-color); border-radius:16px;
+    overflow:hidden; }
+  .setting-section { border-top:1px solid var(--divider-color); }
+  .setting-section:first-child { border-top:0; }
+  .setting-section[hidden] { display:none; }
+  summary { display:grid; grid-template-columns:32px minmax(0,1fr) 24px; gap:12px;
+    align-items:center; min-height:74px; padding:15px; cursor:pointer; list-style:none;
+    background:var(--card-background-color); }
+  summary::-webkit-details-marker { display:none; }
+  summary > ha-icon:first-child { color:var(--primary-color); --mdc-icon-size:26px; }
+  .section-copy strong, .section-copy small { display:block; }
+  .section-copy small { margin-top:3px; color:var(--secondary-text-color); line-height:1.35; }
+  .chevron { color:var(--secondary-text-color); transition:transform .18s ease; }
+  details[open] .chevron { transform:rotate(180deg); }
+  .section-body { padding:0 16px 14px 60px; background:var(--card-background-color); }
   #summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;
-    margin:16px 0; }
+    margin:0 0 10px; }
   .datum { padding:11px; border-radius:12px; background:var(--secondary-background-color); }
   .datum span { display:block; color:var(--secondary-text-color); font-size:12px; }
   .datum strong { display:block; margin-top:3px; overflow-wrap:anywhere; }
-  .section-title { margin:20px 0 7px; font-size:13px; color:var(--secondary-text-color);
-    letter-spacing:.05em; text-transform:uppercase; }
   .field { display:flex; align-items:center; justify-content:space-between; gap:18px;
     min-height:68px; padding:12px 0; border-top:1px solid var(--divider-color); }
   .field:first-child { border-top:0; } .field strong { display:block; }
@@ -58,6 +71,8 @@ export const BLINK_SETTING_STYLES = `
   @media (max-width:650px) {
     #summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .settings { padding:16px; } .field { align-items:flex-start; }
+    summary { grid-template-columns:28px minmax(0,1fr) 22px; gap:9px; padding:13px 10px; }
+    .section-body { padding:0 10px 12px; }
     .control { min-width:96px; } .toggle { min-width:144px; }
     input[type="range"] { width:115px; }
   }

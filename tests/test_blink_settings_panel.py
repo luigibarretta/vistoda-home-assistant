@@ -53,6 +53,7 @@ def test_video_quality_uses_described_radio_choices() -> None:
 
 def test_model_aware_blink_controls_have_native_labels() -> None:
     settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    schema = (FRONTEND / "blink-setting-schema.js").read_text(encoding="utf-8")
     for key in (
         "flip_video",
         "photo_capture",
@@ -62,10 +63,39 @@ def test_model_aware_blink_controls_have_native_labels() -> None:
         "sync_strength",
         "camera_name",
     ):
-        assert key in settings
-    assert 'medium: "Media"' in settings
-    assert 'recording: "Durante la registrazione"' in settings
+        assert key in schema
+    assert 'medium: "Media"' in schema
+    assert 'recording: "Durante la registrazione"' in schema
     assert 'if (field.kind === "text")' in settings
+
+
+def test_blink_settings_use_five_single_open_accordions_and_embed_zones() -> None:
+    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    schema = (FRONTEND / "blink-setting-schema.js").read_text(encoding="utf-8")
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
+    styles = (FRONTEND / "blink-setting-styles.js").read_text(encoding="utf-8")
+    assert schema.count('key: "') == 5
+    for title in (
+        "Impostazioni generali",
+        "Impostazioni movimento",
+        "Impostazioni video e foto",
+        "Impostazioni audio",
+        "Impostazioni privacy",
+    ):
+        assert title in schema
+    assert '<details class="setting-section"' in settings
+    assert "_keepSingleSectionOpen" in settings
+    assert '<slot name="zones"></slot>' in settings
+    assert 'slot="zones"' in template and "embedded" in template
+    assert "details[open] .chevron" in styles
+
+
+def test_blink_pager_arrows_have_accessible_names_without_hover_tooltips() -> None:
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
+    assert 'id="previous"\n  aria-label="Telecamera precedente">' in template
+    assert 'id="next" aria-label="Telecamera successiva">' in template
+    assert "Mostra la telecamera precedente" not in template
+    assert "Mostra la telecamera successiva" not in template
 
 
 def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
@@ -74,6 +104,22 @@ def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     assert ".pager button.dot" in styles
     assert '.dot::before { content:""; width:8px; height:8px; border-radius:50%' in styles
     assert 'button.setAttribute("aria-current", "true")' in view
+
+
+def test_blink_usb_archive_is_read_only_and_uses_signed_downloads() -> None:
+    storage = (FRONTEND / "blink-storage.js").read_text(encoding="utf-8")
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
+    assert 'type: "blink_live_bridge/local_storage/list"' in storage
+    assert 'type: "auth/sign_path"' in storage
+    assert "/api/blink_live_bridge/v1/local-storage/" in storage
+    assert "vistoda-blink-storage" in template
+    for mutation in (
+        "local_storage/delete",
+        "local_storage/eject",
+        "local_storage/format",
+        "local_storage/mount",
+    ):
+        assert mutation not in storage
 
 
 def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:

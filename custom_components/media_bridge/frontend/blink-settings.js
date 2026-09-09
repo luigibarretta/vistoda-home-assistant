@@ -4,38 +4,11 @@ import {
 } from "./blink-setting-model.js";
 import { BLINK_SETTING_STYLES } from "./blink-setting-styles.js";
 import {
+  BLINK_OPTION_LABELS, BLINK_SETTING_META, BLINK_SETTING_SECTIONS, settingSection,
+} from "./blink-setting-schema.js";
+import {
   cameraDraft, commitDraft, reconcileDraft, stagedField, stageValue,
 } from "./blink-setting-draft.js";
-
-const META = {
-  motion_detection: ["Rilevamento movimento", "Abilita gli eventi di movimento", "Movimento"],
-  motion_sensitivity: ["Sensibilità", "Sensibilità del sensore di movimento", "Movimento"],
-  retrigger_time: ["Tempo di riattivazione", "Pausa tra due eventi", "Movimento", "s"],
-  early_notification: ["Notifica anticipata", "Avvisa all’inizio del movimento", "Movimento"],
-  video_recording: ["Registrazione video", "Consenti alla camera di registrare", "Video e audio"],
-  audio_streaming: ["Streaming audio", "Consenti le funzioni audio", "Video e audio"],
-  clip_length: ["Durata clip", "Durata delle clip di movimento", "Video e audio", "s"],
-  video_quality: ["Qualità video", "Regola la risoluzione video della telecamera", "Video e audio"],
-  end_clip_early: ["Termina clip a movimento finito", "Ferma la clip quando cessa il movimento", "Video e audio"],
-  night_vision: ["Visione notturna", "Modalità degli infrarossi", "Visione notturna"],
-  ir_intensity: ["Intensità IR", "Luminosità dei LED infrarossi", "Visione notturna"],
-  flip_video: ["Ruota video", "Ruota l’immagine quando la camera è capovolta", "Video e foto"],
-  photo_capture: ["Acquisizione foto", "Una foto ogni ora; richiede un piano Blink idoneo", "Video e foto"],
-  auto_thumbnail: ["Miniatura automatica", "Aggiorna la miniatura durante gli eventi", "Video e foto"],
-  status_led: ["LED di stato", "Quando deve accendersi il LED della telecamera", "Generali"],
-  speaker_volume: ["Volume altoparlante", "Livello audio dell’altoparlante della telecamera", "Audio"],
-  sync_strength: ["Segnale Sync Module", "Ultima intensità radio rilevata", "Diagnostica", "dBm"],
-  camera_name: ["Nome telecamera", "Nome mostrato da Blink e Vistoda", "Generali"],
-  temperature_alerts: ["Avvisi temperatura", "Stato configurato nell’account Blink", "Diagnostica"],
-  temperature_min: ["Temperatura minima", "Soglia inferiore", "Diagnostica", "°F"],
-  temperature_max: ["Temperatura massima", "Soglia superiore", "Diagnostica", "°F"],
-};
-
-const OPTION_LABELS = {
-  off: "Disattivata", on: "Attivata", auto: "Automatica",
-  saver: "Risparmio", standard: "Standard", best: "Migliore",
-  low: "Bassa", medium: "Media", high: "Alta", recording: "Durante la registrazione",
-};
 
 class VistodaBlinkSettings extends HTMLElement {
   constructor() {
@@ -56,6 +29,14 @@ class VistodaBlinkSettings extends HTMLElement {
   }
 
   _mount() {
+    const sections = BLINK_SETTING_SECTIONS.map((section, index) => `
+      <details class="setting-section" data-section="${section.key}" ${index === 0 ? "open" : ""}>
+        <summary><ha-icon icon="${section.icon}"></ha-icon><span class="section-copy">
+          <strong>${section.title}</strong><small>${section.description}</small></span>
+          <ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon></summary>
+        <div class="section-body">${section.key === "general" ? '<div id="summary"></div>' : ""}
+          <div id="group-${section.key}"></div>${section.key === "privacy" ? '<slot name="zones"></slot>' : ""}</div>
+      </details>`).join("");
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLES}${BLINK_SETTING_STYLES}</style>
       <section class="card settings"><header><div><div class="eyebrow">Dettaglio camera</div>
@@ -64,7 +45,7 @@ class VistodaBlinkSettings extends HTMLElement {
         aria-label="Rileggi le impostazioni dal cloud Blink"
         title="Rileggi le impostazioni dal cloud Blink"
         data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate">↻</button></header>
-        <div id="summary"></div><div id="fields"></div><div class="draft-actions" id="draft-actions"
+        <div class="accordion" id="fields">${sections}</div><div class="draft-actions" id="draft-actions"
           hidden><span class="muted" id="draft-count"></span><button id="discard">Annulla</button>
           <button class="primary" id="save">Salva modifiche</button></div>
         <div class="muted" id="status" role="status"></div>
@@ -75,6 +56,16 @@ class VistodaBlinkSettings extends HTMLElement {
     this.$("reload").addEventListener("click", () => this._load());
     this.$("discard").addEventListener("click", () => this._discard());
     this.$("save").addEventListener("click", () => this._saveDraft());
+    for (const section of this.shadowRoot.querySelectorAll("details")) {
+      section.addEventListener("toggle", () => this._keepSingleSectionOpen(section));
+    }
+  }
+
+  _keepSingleSectionOpen(active) {
+    if (!active.open) return;
+    for (const section of this.shadowRoot.querySelectorAll("details")) {
+      if (section !== active) section.open = false;
+    }
   }
 
   async _load() {
@@ -100,25 +91,24 @@ class VistodaBlinkSettings extends HTMLElement {
     this.hidden = !this._camera?.alias;
     if (this.hidden) return;
     this.$("title").textContent = this._settings?.name || this._camera.name || "Impostazioni Blink";
-    if (!this._settings) { this.$("summary").replaceChildren(); this.$("fields").replaceChildren(); return; }
+    if (!this._settings) { this.$("summary").replaceChildren();
+      for (const section of BLINK_SETTING_SECTIONS) this.$(`group-${section.key}`).replaceChildren();
+      return; }
     this._renderSummary();
-    const groups = new Map();
+    const groups = new Map(BLINK_SETTING_SECTIONS.map((section) => [section.key, []]));
     for (const field of this._settings.settings || []) {
-      const section = (META[field.key] || [field.key, "", "Altro"])[2];
-      if (!groups.has(section)) groups.set(section, []);
-      groups.get(section).push(field);
+      groups.get(settingSection(field)).push(field);
     }
-    const content = [];
-    for (const [section, fields] of groups) {
-      const title = document.createElement("h4"); title.className = "section-title";
-      title.textContent = section; content.push(title);
-      const list = document.createElement("div");
-      list.replaceChildren(...fields.map((field) => this._field(stagedField(field, this._draft()))));
-      content.push(list);
+    for (const section of BLINK_SETTING_SECTIONS) {
+      const fields = groups.get(section.key);
+      this.$(`group-${section.key}`).replaceChildren(
+        ...fields.map((field) => this._field(stagedField(field, this._draft()))));
+      const panel = this.shadowRoot.querySelector(`[data-section="${section.key}"]`);
+      panel.hidden = !fields.length && !["general", "privacy"].includes(section.key);
     }
-    this.$("fields").replaceChildren(...content);
     this._renderDraftActions();
-    this.$("status").textContent = groups.size ? "" : "Nessuna impostazione riconosciuta.";
+    this.$("status").textContent = (this._settings.settings || []).length
+      ? "" : "Nessuna impostazione riconosciuta.";
   }
 
   _renderSummary() {
@@ -136,7 +126,7 @@ class VistodaBlinkSettings extends HTMLElement {
   }
 
   _field(field) {
-    const meta = META[field.key] || [field.key, "", "Altro"];
+    const meta = BLINK_SETTING_META[field.key] || [field.key, "", "general"];
     const row = document.createElement("div");
     row.className = `field${field.key === "video_quality" ? " quality" : ""}`;
     const text = document.createElement("div");
@@ -167,7 +157,7 @@ class VistodaBlinkSettings extends HTMLElement {
     }
     if (field.kind === "select") {
       const select = document.createElement("select"); select.setAttribute("aria-label", label);
-      for (const option of field.options) select.add(new Option(OPTION_LABELS[option] || option, option));
+      for (const option of field.options) select.add(new Option(BLINK_OPTION_LABELS[option] || option, option));
       select.value = field.value; select.addEventListener("change", () => this._stage(field.key, select.value));
       return select;
     }
@@ -216,7 +206,7 @@ class VistodaBlinkSettings extends HTMLElement {
       return temperatureValueText(value, this._hass);
     }
     if (typeof value === "boolean") return booleanStateText(value);
-    return `${OPTION_LABELS[value] || value}${unit ? ` ${unit}` : ""}`;
+    return `${BLINK_OPTION_LABELS[value] || value}${unit ? ` ${unit}` : ""}`;
   }
 
   _draft() { return cameraDraft(this._drafts, this._camera?.alias || ""); }
