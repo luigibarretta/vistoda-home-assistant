@@ -31,7 +31,7 @@ export class RingAudioSession {
     const generation = ++this.generation;
     this.onState({ phase: "starting", mode });
     try {
-      const media = await createRingAudioMedia(mode, this);
+      const media = await this.createMedia(mode);
       if (generation !== this.generation) { await media.release(); return; }
       this.localMedia = media;
       const pc = new RTCPeerConnection({ iceServers: [{ urls: STUN }] });
@@ -104,7 +104,7 @@ export class RingAudioSession {
     const generation = this.generation;
     let next;
     try {
-      next = await createRingAudioMedia(mode, this);
+      next = await this.createMedia(mode);
       if (generation !== this.generation) { await next.release(); return; }
       await this.sender.replaceTrack(next.stream.getAudioTracks()[0]);
       if (generation !== this.generation) { await next.release(); return; }
@@ -154,6 +154,8 @@ export class RingAudioSession {
       gatheringChanged();
     });
   }
+
+  createMedia(mode) { return createRingAudioMedia(mode, this); }
 
   async play(event, generation) {
     this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
