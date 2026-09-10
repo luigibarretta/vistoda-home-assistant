@@ -3,7 +3,7 @@
 final result: passed
 
 - Date: 2026-09-10
-- Current implementation: deployed Vistoda Home Assistant `0.24.2`.
+- Current implementation: deployed Vistoda Home Assistant `0.24.3`.
 - Blink evidence browser: Google Chrome, mobile viewport `390 × 794` CSS pixels.
 - Deployed capture:
   `/home/ansible/audits/vistoda-0.22.1/blink-mobile.png` (`390 × 2720`).
@@ -54,8 +54,8 @@ add-on namespace, and the cards/table selector communicates its active state.
 
 ## Ring event history
 
-- Implementation: deployed Vistoda Home Assistant `0.24.2` and Vistoda Ring
-  app `0.12.0`, served by Home Assistant from `/vistoda_static/0.24.2`.
+- Implementation: deployed Vistoda Home Assistant `0.24.3` and Vistoda Ring
+  app `0.12.0`, served by Home Assistant from `/vistoda_static/0.24.3`.
 - Browser: Google Chrome, `393 × 800` CSS pixels at device scale `1.6`, producing
   the same `629 × 1280` raster dimensions as the supplied Ring reference.
 - Reference: `artifacts/qa/ring-reference.jpg`.
@@ -74,7 +74,8 @@ the back action. It also opened and cancelled the identity dialog, confirming
 Ring, Home Assistant and custom sources without changing the saved values.
 
 The first visual pass exposed the mobile header's minimum-content overflow. The
-final pass has all three 44 px header controls visible, no document-level
-horizontal overflow, a deliberately scrollable localized filter row and zero
-console errors. Ring's combined `Home in Casoria` Location label is displayed
-once; notification wording separately avoids repeating the structured city.
+final pass has all three 44 px header controls visible, every event glyph
+centered in its circular background, no document-level horizontal overflow, a
+deliberately scrollable localized filter row and zero console errors. Ring's
+combined `Home in Casoria` Location label is displayed once; notification
+wording separately avoids repeating the structured city.

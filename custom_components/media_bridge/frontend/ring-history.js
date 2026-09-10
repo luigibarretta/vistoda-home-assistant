@@ -54,8 +54,10 @@ export class RingHistory extends HTMLElement {
           font-size:14px;border-bottom:1px solid var(--divider-color)}
         .event{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;
           align-items:center;padding:17px 20px;border-bottom:1px solid var(--divider-color)}
-        .event-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;
-          background:var(--secondary-background-color)}.event-icon ha-icon{--mdc-icon-size:24px}
+        .event-icon{position:relative;display:block;width:38px;height:38px;border-radius:50%;
+          background:var(--secondary-background-color)}.event-icon ha-icon{position:absolute;
+          top:50%;left:50%;display:block;width:24px;height:24px;--mdc-icon-size:24px;
+          transform:translate(-50%,-50%)}
         .event-icon.unlock{color:#229ed9}.event-icon.live{color:#ef7b2d}
         .event-icon.ding{color:var(--primary-color)}.event-icon.motion{color:#e3a21a}
         .event-icon.activity{color:var(--secondary-text-color)}
