@@ -28,11 +28,15 @@ export class BlinkLiveSession {
 
   get active() { return ["webrtc", "switching", "legacy"].includes(this.mode); }
 
-  async start(alias, entityId) {
+  async start(alias, entityId, preferredTransport = "walnut") {
     if (this.active) return;
     const generation = ++this.generation;
     this.entityId = entityId;
     this.fallbackUsed = false;
+    if (preferredTransport !== "cayuga") {
+      await this._activateLegacy("policy", generation);
+      return;
+    }
     this.mode = "webrtc";
     const webRtc = this.makeWebRtc((state) => this._webRtcState(state, generation));
     this.webRtc = webRtc;
@@ -82,7 +86,8 @@ export class BlinkLiveSession {
     this.mode = "switching";
     this.onState({ phase: "connecting", transport: "walnut", legacyAvailable: false,
       microphone: false, speaker: false, message: trigger === "automatic"
-        ? "Passaggio automatico al live compatibile…" : "Apertura live compatibile…" });
+        ? "Passaggio automatico al live compatibile…" : trigger === "policy"
+          ? "Apertura live Blink…" : "Apertura live compatibile…" });
     const webRtc = this.webRtc; this.webRtc = null;
     if (webRtc) await webRtc.stop(false);
     if (generation !== this.generation) return;
@@ -94,7 +99,7 @@ export class BlinkLiveSession {
       this.mode = "legacy";
       this.onState({ phase: "active", transport: "walnut", legacyAvailable: false,
         microphone: false, speaker: false,
-        message: "Live compatibile attivo · audio bidirezionale non disponibile" });
+        message: "Live Blink attivo · audio bidirezionale non disponibile per questo trasporto" });
     } catch (error) {
       legacy.stop(); this.legacy = null; this.mode = "error";
       this.onState({ phase: "error", transport: "walnut", legacyAvailable: false,

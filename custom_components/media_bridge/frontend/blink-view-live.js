@@ -21,7 +21,11 @@ export const blinkViewLive = {
       },
     );
     this._liveSession = session;
-    await this._liveSession.start(camera.attributes.alias, this._current("camera").entity_id);
+    const preferredTransport = camera.attributes.preferred_live_transport === "cayuga"
+      ? "cayuga" : "walnut";
+    await this._liveSession.start(
+      camera.attributes.alias, this._current("camera").entity_id, preferredTransport,
+    );
   },
 
   _renderLive() {
