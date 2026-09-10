@@ -13,7 +13,7 @@ export const providerRecordingsTemplate = (styles, listTemplate) => `<style>${st
       <option id="provider-storage" value="provider" disabled>Supporto della camera</option></select>
       <button class="primary" id="start" title="Registra il live localmente">Registra live</button></div>
     <div class="destination-note muted" id="destination-note"></div>
-    <div class="archive-path muted" id="archive-path" hidden><span>Percorso interno add-on:</span>
+    <div class="archive-path muted" id="archive-path" hidden><span id="archive-owner">Percorso interno add-on:</span>
       <code id="archive-directory"></code><button class="icon-action" id="copy-archive-path"
       aria-label="Copia percorso archivio locale" title="Copia percorso archivio locale"
       data-tooltip="Copia il percorso interno dell’archivio"><ha-icon icon="mdi:content-copy"></ha-icon></button></div>

@@ -160,6 +160,8 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "duration_seconds" in recordings and "15 secondi" in recordings
     assert "Backup archivio" in recordings and "backup-all" in recordings
     assert "Percorso interno add-on" in recordings and "content-copy" in recordings
+    assert "Percorso interno add-on Vistoda Blink" in recordings
+    assert "Percorso interno add-on Vistoda EZVIZ" in recordings
     assert "mdi:delete-outline" in provider_item and "mdi:playlist-plus" in provider_item
     assert "media_bridge/provider/recording_lists/${action}" in provider_lists
     assert 'this._message("set_membership")' in provider_lists

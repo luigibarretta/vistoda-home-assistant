@@ -22,7 +22,9 @@ media. Successful deletion removes stale membership references.
 
 The standalone providers return a bounded storage descriptor. Vistoda shows the
 real internal add-on directory once with a copy action. It never presents the
-path as a host or network mount.
+path as a host or network mount. The UI also names the owning add-on: Blink and
+EZVIZ may both report the absolute container path `/data/recordings`, but their
+Supervisor-managed `/data` namespaces are physically isolated.
 
 Blink USB inventory keeps backend pagination and matching frontend page
 controls. Each clip has an explicit checkbox and guarded single or selected
@@ -35,6 +37,7 @@ percentage. No eject or mount route is exposed.
 EZVIZ snapshots are persisted as complete bounded JPEGs in private HA storage.
 The camera entity serves only that cache. A provider fetch occurs solely through
 the explicit authenticated refresh command; success updates the entity timestamp.
+Loading that JPEG later never replaces its capture time with the page-load time.
 
 ## Consequences
 

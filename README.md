@@ -109,7 +109,8 @@ settings follow the official app's five task-oriented sections, with one
 accordion open at a time. On mobile, the header back button exits Vistoda to the
 previous Home Assistant page, with the Casa dashboard as a safe fallback. The
 EZVIZ view opens the protected HA camera and refreshes its snapshot only after
-the explicit action. Landing reads the private cache without a provider request.
+the explicit action. Landing reads the private cache without a provider request
+and keeps the saved capture timestamp instead of replacing it with page-load time.
 
 Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
 30 or 60 seconds from the current shared stream; the provider writes a bounded
@@ -117,7 +118,9 @@ file and immutable SHA-256 manifest without generating a cloud motion event.
 The per-camera UI consumes server-side ten-item pages and lists status,
 timestamp, duration and size. Compact Material Design icon actions provide
 playback, signed download, confirmed single or selected deletion and NFS backup.
-The actual private add-on spool path is visible and copyable. Blink and EZVIZ
+The actual private add-on spool path is visible and copyable, always qualified
+with the owning add-on because the same `/data/recordings` absolute path names
+two isolated Supervisor-managed data namespaces. Blink and EZVIZ
 recordings can belong to multiple centrally stored custom lists; users can
 create, rename and delete lists without deleting media. EZVIZ remains
 independent from SceneTrove: neither archive deletes or adopts the other's media.

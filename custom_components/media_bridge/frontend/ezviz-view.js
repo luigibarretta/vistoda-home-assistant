@@ -19,7 +19,7 @@ class VistodaEzvizView extends HTMLElement {
     this._nonce = 0;
     this._imageUrl = "";
     this._imageState = "empty";
-    this._snapshotObservedAt = null;
+    this._snapshotRequestedAt = null;
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -72,9 +72,8 @@ class VistodaEzvizView extends HTMLElement {
     });
     this.$("snapshot").addEventListener("load", () => {
       this._imageState = "loaded";
-      this._snapshotObservedAt = Date.now();
       this._renderImage();
-      setText(this.shadowRoot, "message", "Snapshot disponibile");
+      setText(this.shadowRoot, "message", "Ultimo snapshot salvato disponibile");
     });
   }
 
@@ -107,7 +106,7 @@ class VistodaEzvizView extends HTMLElement {
     setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
       state,
       this._hass?.locale?.language || "it-IT",
-      this._snapshotObservedAt,
+      this._snapshotRequestedAt,
     ));
     const entry = provider?.entries?.find((item) => item.alias === state?.attributes?.alias)
       || provider?.entries?.[0];
@@ -140,7 +139,7 @@ class VistodaEzvizView extends HTMLElement {
     try {
       const result = await this._hass.callWS({ type: "media_bridge/ezviz/snapshot/refresh",
         entry_id: entry.entry_id });
-      this._snapshotObservedAt = Date.parse(result.updated_at) || Date.now();
+      this._snapshotRequestedAt = Date.parse(result.updated_at) || Date.now();
       this._nonce = Date.now(); this._render();
     } catch (_error) {
       setText(this.shadowRoot, "message", "Nuovo snapshot non disponibile.");

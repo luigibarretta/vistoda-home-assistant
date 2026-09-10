@@ -111,6 +111,9 @@ class VistodaProviderRecordings extends HTMLElement {
       : "La registrazione standalone resta separata da SceneTrove e dalla microSD della camera.";
     const directory = this._storage?.directory;
     this.$("archive-path").hidden = !directory;
+    this.$("archive-owner").textContent = this._config?.provider === "blink"
+      ? "Percorso interno add-on Vistoda Blink:"
+      : "Percorso interno add-on Vistoda EZVIZ:";
     this.$("archive-directory").textContent = directory || "";
     this.$("copy-archive-path").disabled = !directory;
     this.$("summary").textContent = `Archivio locale (${this._pagination.total_items})`;
