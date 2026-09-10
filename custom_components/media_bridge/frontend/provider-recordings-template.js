@@ -1,4 +1,4 @@
-export const providerRecordingsTemplate = (styles, listTemplate) => `<style>${styles}</style>
+export const providerRecordingsTemplate = (styles, listTemplate, bulkListTemplate) => `<style>${styles}</style>
   <section><div class="head"><div><h4>Registrazione live locale</h4>
     <div class="muted">Cattura il flusso che stai visualizzando, senza creare eventi cloud.</div>
     </div><div class="head-actions"><button id="backup-all" title="Backup archivio"
@@ -20,11 +20,15 @@ export const providerRecordingsTemplate = (styles, listTemplate) => `<style>${st
       data-tooltip="Copia il percorso interno dell’archivio"><ha-icon icon="mdi:content-copy"></ha-icon></button></div>
     <div class="message muted" id="message" role="status"></div>
     <vistoda-provider-recording-player id="player"></vistoda-provider-recording-player>
-    <details open><summary id="summary">Archivio locale</summary>${listTemplate}
+    <details open><summary id="summary">Archivio locale</summary>${listTemplate}${bulkListTemplate}
     <div class="bulk-actions" id="bulk-actions" hidden><strong id="selected-count">0 selezionate</strong>
+      <div class="bulk-buttons">
+      <button class="icon-action" id="add-selected-to-lists" aria-label="Aggiungi selezionate alle liste"
+      title="Aggiungi selezionate alle liste" data-tooltip="Aggiungi tutte le clip selezionate a una o più liste">
+      <ha-icon icon="mdi:playlist-plus"></ha-icon></button>
       <button class="icon-action danger" id="delete-selected" aria-label="Elimina selezionate"
       title="Elimina registrazioni selezionate" data-tooltip="Elimina le registrazioni selezionate">
-      <ha-icon icon="mdi:delete-sweep-outline"></ha-icon></button></div><div class="list" id="list"></div>
+      <ha-icon icon="mdi:delete-sweep-outline"></ha-icon></button></div></div><div class="list" id="list"></div>
     <nav class="archive-pager" aria-label="Pagine archivio"><button id="previous">
     <ha-icon icon="mdi:chevron-left"></ha-icon><span>Precedente</span></button>
     <span id="page-label">Pagina 1 di 1</span><button id="next">

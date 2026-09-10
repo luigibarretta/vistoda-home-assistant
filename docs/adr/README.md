@@ -27,5 +27,6 @@
 | [0023](0023-native-blink-zone-editor.md) | Verified native Blink v1 zone editor with rollback |
 | [0024](0024-provider-recording-archives-and-nfs.md) | Blink/EZVIZ standalone archives, NFS backup and gated vendor media |
 | [0025](0025-provider-archive-management-and-manual-snapshots.md) | Provider lists, guarded Blink USB management and manual EZVIZ snapshots |
+| [0026](0026-atomic-bulk-provider-list-membership.md) | Atomic bulk list membership for provider archives |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

@@ -5,6 +5,10 @@ const model = await import(new URL(
   "../custom_components/media_bridge/frontend/provider-recording-model.js",
   import.meta.url,
 ));
+const bulkLists = await import(new URL(
+  "../custom_components/media_bridge/frontend/provider-recording-bulk-lists.js",
+  import.meta.url,
+));
 
 test("Blink and EZVIZ recording commands expose no provider credentials", () => {
   const blink = { provider: "blink", alias: "balcone" };
@@ -45,4 +49,20 @@ test("signed media paths stay on Home Assistant", () => {
     model.recordingMediaPath({ provider: "ezviz", entryId: "entry" }, "id", true),
     "/api/media_bridge/ezviz/recordings/entry/id/playback.mp4",
   );
+});
+
+test("bulk list membership is scoped, deduplicated, and credential-free", () => {
+  const message = bulkLists.bulkMembershipCommand(
+    { provider: "ezviz", entryId: "entry-1", api_token: "never-send" },
+    ["list-a", "list-b", "list-a"],
+    ["local:a", "local:b", "local:a"],
+  );
+  assert.deepEqual(message, {
+    type: "media_bridge/provider/recording_lists/add_memberships",
+    provider: "ezviz",
+    entry_id: "entry-1",
+    list_ids: ["list-a", "list-b"],
+    recording_ids: ["local:a", "local:b"],
+  });
+  assert.equal(JSON.stringify(message).includes("never-send"), false);
 });

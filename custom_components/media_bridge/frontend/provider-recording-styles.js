@@ -28,6 +28,7 @@ export const PROVIDER_RECORDING_STYLES = `
   .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:10px;
     margin:10px 0; padding:9px 11px; border-radius:12px; background:var(--secondary-background-color); }
   .bulk-actions[hidden] { display:none !important; }
+  .bulk-buttons { display:flex; align-items:center; gap:7px; margin-left:auto; }
   .archive-path { display:flex; align-items:center; gap:8px; margin:8px 0 2px; min-width:0; }
   .archive-path code { overflow-wrap:anywhere; color:var(--primary-text-color); }
   .archive-path button { flex:0 0 auto; }

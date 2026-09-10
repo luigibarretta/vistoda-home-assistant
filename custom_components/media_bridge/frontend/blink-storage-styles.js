@@ -34,6 +34,7 @@ export const BLINK_STORAGE_STYLES = `
   .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:10px;
     margin:12px 0; padding:9px 11px; border-radius:12px; background:var(--secondary-background-color); }
   .bulk-actions[hidden] { display:none !important; }
+  .bulk-buttons { display:flex; align-items:center; gap:7px; margin-left:auto; }
   .format-action { width:36px; height:36px; min-width:36px; border-radius:999px; }
   .archive-pager { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
     gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--divider-color); }

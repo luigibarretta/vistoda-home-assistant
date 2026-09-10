@@ -122,7 +122,10 @@ The actual private add-on spool path is visible and copyable, always qualified
 with the owning add-on because the same `/data/recordings` absolute path names
 two isolated Supervisor-managed data namespaces. Blink and EZVIZ
 recordings can belong to multiple centrally stored custom lists; users can
-create, rename and delete lists without deleting media. EZVIZ remains
+create, rename and delete lists without deleting media. Selecting several local
+Blink/EZVIZ recordings—or several Blink USB clips—opens one multi-list picker;
+the server adds every requested association atomically and preserves existing
+memberships. EZVIZ remains
 independent from SceneTrove: neither archive deletes or adopts the other's media.
 
 Production mounts `/media/vistoda_archives` through the Home Assistant

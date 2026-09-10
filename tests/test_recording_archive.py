@@ -142,6 +142,7 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     recording_backup_ui = (frontend / "provider-recording-backup.js").read_text()
     player = (frontend / "provider-recording-player.js").read_text()
     provider_lists = (frontend / "provider-recording-list-manager.js").read_text()
+    provider_bulk_lists = (frontend / "provider-recording-bulk-lists.js").read_text()
     provider_item = (frontend / "provider-recording-item.js").read_text()
     blink_storage = "\n".join(
         (frontend / name).read_text()
@@ -167,6 +168,9 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "mdi:delete-outline" in provider_item and "mdi:playlist-plus" in provider_item
     assert "media_bridge/provider/recording_lists/${action}" in provider_lists
     assert 'this._message("set_membership")' in provider_lists
+    assert "media_bridge/provider/recording_lists/add_memberships" in provider_bulk_lists
+    assert "list_ids" in provider_bulk_lists and "recording_ids" in provider_bulk_lists
+    assert "Aggiungi tutte le clip selezionate" in recordings + blink_storage
     assert all(
         value in provider_lists for value in ("Nuova lista", "Modifica lista", "Elimina lista")
     )
@@ -186,3 +190,4 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "format_usb" not in usb_backup and "eject_usb" not in usb_backup
     assert '"entries": []' in inventory and '"entry_id": entry.entry_id' in inventory
     assert "api_token" not in recordings + model + websocket + proxy + player
+    assert "api_token" not in provider_bulk_lists

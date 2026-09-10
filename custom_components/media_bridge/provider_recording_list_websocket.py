@@ -27,6 +27,7 @@ def async_register(hass: HomeAssistant) -> None:
         ws_update,
         ws_delete,
         ws_set_membership,
+        ws_add_memberships,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -151,3 +152,28 @@ async def ws_set_membership(hass, connection, msg: dict[str, Any]) -> None:
         _error(connection, msg["id"], error)
         return
     connection.send_result(msg["id"], {"lists": lists})
+
+
+@websocket_api.websocket_command(
+    _schema(
+        "add_memberships",
+        {
+            vol.Required("list_ids"): vol.All([LIST_ID], vol.Length(min=1, max=64)),
+            vol.Required("recording_ids"): vol.All([MEDIA_ID], vol.Length(min=1, max=100)),
+        },
+    )
+)
+@websocket_api.async_response
+async def ws_add_memberships(hass, connection, msg: dict[str, Any]) -> None:
+    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    if scope is None:
+        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
+        return
+    try:
+        lists, added = await async_get_provider_recording_lists(hass).async_add_memberships(
+            scope, msg["list_ids"], msg["recording_ids"]
+        )
+    except RecordingListError as error:
+        _error(connection, msg["id"], error)
+        return
+    connection.send_result(msg["id"], {"lists": lists, "added_memberships": added})

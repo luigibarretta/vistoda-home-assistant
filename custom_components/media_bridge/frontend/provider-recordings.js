@@ -3,6 +3,8 @@ import { PROVIDER_RECORDING_STYLES } from "./provider-recording-styles.js";
 import { recordingItem } from "./provider-recording-item.js";
 import { ProviderRecordingListManager, PROVIDER_LIST_STYLES,
   PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-manager.js";
+import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
+  PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { providerRecordingActions } from "./provider-recordings-actions.js";
 import { providerRecordingsTemplate } from "./provider-recordings-template.js";
 import "./provider-recording-player.js";
@@ -23,6 +25,8 @@ class VistodaProviderRecordings extends HTMLElement {
     this._selected = new Set();
     this._storage = null;
     this._listManager = new ProviderRecordingListManager(this);
+    this._bulkListManager = new ProviderRecordingBulkLists(this, this._listManager,
+      () => [...this._selected].map((id) => `local:${id}`));
     this._timer = null;
     this._mounted = false;
   }
@@ -54,7 +58,8 @@ class VistodaProviderRecordings extends HTMLElement {
   _mount() {
     this._mounted = true;
     this.shadowRoot.innerHTML = providerRecordingsTemplate(
-      BASE_STYLES + PROVIDER_RECORDING_STYLES + PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE);
+      BASE_STYLES + PROVIDER_RECORDING_STYLES + PROVIDER_LIST_STYLES + PROVIDER_BULK_LIST_STYLES,
+      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
     this.$("backup-all").addEventListener("click", () => this._backupAll());
@@ -64,6 +69,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("previous").addEventListener("click", () => this._go(this._pagination.page - 1));
     this.$("next").addEventListener("click", () => this._go(this._pagination.page + 1));
     this._listManager.mount(this.shadowRoot);
+    this._bulkListManager.mount(this.shadowRoot);
     this._render();
   }
 
@@ -145,9 +151,14 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("bulk-actions").hidden = this._selected.size === 0;
     this.$("selected-count").textContent = `${this._selected.size} selezionate`;
     this.$("delete-selected").disabled = this._busy;
+    this.$("add-selected-to-lists").disabled = this._busy;
   }
 
-  _listsChanged(resetPage) { if (resetPage) this._pagination.page = 1; this._render(); }
+  _bulkListsApplied() { this._selected.clear(); this._render(); }
+  _listsChanged(resetPage) {
+    if (resetPage) { this._pagination.page = 1; this._selected.clear(); }
+    this._render();
+  }
   _setMessage(value) { if (this.$) this.$("message").textContent = value; }
   _clearTimer() { if (this._timer) globalThis.clearTimeout(this._timer); this._timer = null; }
   _schedule(active) {

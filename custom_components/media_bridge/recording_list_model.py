@@ -113,6 +113,33 @@ class RecordingListData:
             return self._public(lists), True
         return self._public(lists), False
 
+    def add_memberships(
+        self, entry_id: str, list_ids: list[str], recording_ids: list[str]
+    ) -> tuple[list[dict], bool, int]:
+        """Add many recordings to many lists atomically and idempotently."""
+        unique_lists = list(dict.fromkeys(list_ids))
+        unique_recordings = list(dict.fromkeys(recording_ids))
+        if not unique_lists:
+            raise RecordingListError("list_not_found")
+        if not unique_recordings or any(
+            not value or len(value) > MAX_RECORDING_ID_LENGTH for value in unique_recordings
+        ):
+            raise RecordingListError("invalid_recording")
+        lists = self._entry(entry_id)
+        targets = []
+        for list_id in unique_lists:
+            item = next((value for value in lists if value["list_id"] == list_id), None)
+            if item is None:
+                raise RecordingListError("list_not_found")
+            missing = [value for value in unique_recordings if value not in item["recording_ids"]]
+            if len(item["recording_ids"]) + len(missing) > MAX_RECORDINGS_PER_LIST:
+                raise RecordingListError("membership_limit")
+            targets.append((item, missing))
+        added = sum(len(missing) for _, missing in targets)
+        for item, missing in targets:
+            item["recording_ids"].extend(missing)
+        return self._public(lists), added > 0, added
+
     def remove_recordings(self, entry_id: str, recording_ids: set[str]) -> bool:
         """Remove deleted recordings from every list in one write."""
         changed = False

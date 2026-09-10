@@ -65,6 +65,16 @@ class ProviderRecordingLists:
                 await self._store.async_save(model.data)
             return lists
 
+    async def async_add_memberships(
+        self, scope: str, list_ids: list[str], recording_ids: list[str]
+    ) -> tuple[list[dict], int]:
+        async with self._lock:
+            model = await self._async_model()
+            lists, changed, added = model.add_memberships(scope, list_ids, recording_ids)
+            if changed:
+                await self._store.async_save(model.data)
+            return lists, added
+
     async def _async_model(self) -> RecordingListData:
         if self._model is None:
             self._model = RecordingListData(await self._store.async_load())

@@ -2,6 +2,8 @@ import { BASE_STYLES } from "./panel-styles.js";
 import { BLINK_STORAGE_STYLES } from "./blink-storage-styles.js";
 import { ProviderRecordingListManager, PROVIDER_LIST_STYLES,
   PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-manager.js";
+import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
+  PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { blinkStorageActions } from "./blink-storage-actions.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
 
@@ -12,6 +14,8 @@ class VistodaBlinkStorage extends HTMLElement {
     this._storages = []; this._busy = false; this._loaded = false;
     this._page = 1; this._pageSize = 10; this._selected = new Set();
     this._listManager = new ProviderRecordingListManager(this);
+    this._bulkListManager = new ProviderRecordingBulkLists(this, this._listManager,
+      () => [...this._selected].map((id) => `usb:${id}`));
     this._mount();
   }
 
@@ -25,7 +29,8 @@ class VistodaBlinkStorage extends HTMLElement {
 
   _mount() {
     this.shadowRoot.innerHTML = blinkStorageTemplate(
-      BASE_STYLES + BLINK_STORAGE_STYLES + PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE);
+      BASE_STYLES + BLINK_STORAGE_STYLES + PROVIDER_LIST_STYLES + PROVIDER_BULK_LIST_STYLES,
+      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
     this.$("backup-all").addEventListener("click", () => this._backupAll());
@@ -38,6 +43,7 @@ class VistodaBlinkStorage extends HTMLElement {
       if (this.$("format-dialog").returnValue === "confirm") this._format();
     });
     this._listManager.mount(this.shadowRoot);
+    this._bulkListManager.mount(this.shadowRoot);
     this._render();
   }
 
@@ -69,7 +75,8 @@ class VistodaBlinkStorage extends HTMLElement {
     this.$("content").replaceChildren(...nodes);
     this.$("bulk-actions").hidden = this._selected.size === 0;
     this.$("selected-count").textContent = `${this._selected.size} selezionate`;
-    this.$("delete-selected").disabled = this._busy;
+    this.$("delete-selected").disabled = this._busy || !this._selectedDeletable();
+    this.$("add-selected-to-lists").disabled = this._busy;
   }
 
   _module(storage) {
@@ -113,7 +120,7 @@ class VistodaBlinkStorage extends HTMLElement {
     const key = this._selectionKey(storage, clip); const mediaId = this._mediaId(storage, clip);
     const selector = document.createElement("label"); selector.className = "select-clip";
     const checkbox = document.createElement("input"); checkbox.type = "checkbox";
-    checkbox.checked = this._selected.has(key); checkbox.disabled = this._busy || !storage.status?.can_delete_clips;
+    checkbox.checked = this._selected.has(key); checkbox.disabled = this._busy;
     checkbox.setAttribute("aria-label", `Seleziona clip ${clip.device_name || clip.id}`);
     checkbox.addEventListener("change", () => {
       checkbox.checked ? this._selected.add(key) : this._selected.delete(key); this._render();
@@ -156,7 +163,17 @@ class VistodaBlinkStorage extends HTMLElement {
 
   _selectionKey(storage, clip) { return `${storage.network_id}:${storage.sync_module_id}:${storage.manifest_id}:${clip.id}`; }
   _mediaId(storage, clip) { return `usb:${this._selectionKey(storage, clip)}`; }
-  _listsChanged(resetPage) { if (resetPage) this._page = 1; this._render(); }
+  _selectedDeletable() {
+    for (const storage of this._storages) for (const clip of storage.clips || []) {
+      if (this._selected.has(this._selectionKey(storage, clip)) && !storage.status?.can_delete_clips) return false;
+    }
+    return true;
+  }
+  _bulkListsApplied() { this._selected.clear(); this._render(); }
+  _listsChanged(resetPage) {
+    if (resetPage) { this._page = 1; this._selected.clear(); }
+    this._render();
+  }
   _setMessage(value) { if (this.$) this.$("status").textContent = value; }
   _button(icon, label, action, disabled = false) {
     const button = document.createElement("button");
