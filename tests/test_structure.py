@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.22.0"
+    assert manifest["version"] == "0.22.1"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -200,6 +200,7 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     assert "blink_live_bridge/webrtc/subscribe" in live and (
         'pc.addTransceiver("audio", { direction: "sendrecv" })' in live
     )
+    assert "await this.waitForIce(pc)" in live and "OFFER_ICE_HEADSTART_MS" not in live
     assert "Aggiorna snapshot" in blink_template
     assert "SceneTrove" in ezviz and "standalone e separato" in ezviz
     assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz

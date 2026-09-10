@@ -1,6 +1,6 @@
 import { blinkWebRtcMicrophone } from "./blink-webrtc-microphone.js";
 
-const OFFER_ICE_HEADSTART_MS = 120;
+const OFFER_ICE_TIMEOUT_MS = 8000;
 const MAX_ICE_CANDIDATES = 256;
 
 export class BlinkWebRtcSession {
@@ -45,7 +45,7 @@ export class BlinkWebRtcSession {
       pc.addTransceiver("audio", { direction: "sendrecv" });
       pc.addTransceiver("video", { direction: "recvonly" });
       await pc.setLocalDescription(await pc.createOffer());
-      await new Promise((resolve) => setTimeout(resolve, OFFER_ICE_HEADSTART_MS));
+      await this.waitForIce(pc);
       if (generation !== this.generation) return;
       const unsubscribe = await this.hass.connection.subscribeMessage(
         (event) => this._event(event, generation).catch(async (error) => {
@@ -165,6 +165,34 @@ export class BlinkWebRtcSession {
     if (!this.handle) return Promise.resolve();
     return this.hass.callWS({ type: "blink_live_bridge/webrtc/control",
       session_id: this.handle, action, ...values });
+  }
+
+  waitForIce(pc, timeoutMs = OFFER_ICE_TIMEOUT_MS) {
+    if (pc.iceGatheringState === "complete") return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        pc.removeEventListener("icegatheringstatechange", gatheringChanged);
+        pc.removeEventListener("icecandidate", candidateChanged);
+        if (error) reject(error); else resolve();
+      };
+      const gatheringChanged = () => {
+        if (pc.iceGatheringState === "complete") finish();
+      };
+      const candidateChanged = (event) => {
+        if (!event.candidate) finish();
+      };
+      pc.addEventListener("icegatheringstatechange", gatheringChanged);
+      pc.addEventListener("icecandidate", candidateChanged);
+      const timer = setTimeout(() => {
+        const hasCandidate = /^a=candidate:/m.test(pc.localDescription?.sdp ?? "");
+        finish(hasCandidate ? null : new Error("Raccolta ICE Blink scaduta"));
+      }, timeoutMs);
+      gatheringChanged();
+    });
   }
 
   async _play(event, generation) {
