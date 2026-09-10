@@ -18,7 +18,7 @@ def home_assistant_identity(hass, entry, alias: str) -> dict[str, str]:
     from homeassistant.helpers import device_registry as dr
 
     registry = dr.async_get(hass)
-    device = registry.async_get_device(identifiers={(DOMAIN, f"ring:{alias}")})
+    device = registry.async_get_device_by_identifier((DOMAIN, f"ring:{alias}"))
     device_name = None if device is None else device.name_by_user or device.name
     return {
         "device_name": _safe_text(device_name, entry.title),
@@ -91,6 +91,9 @@ def validate_update(selection: dict[str, str], custom: dict[str, str]) -> dict[s
 def _safe_text(value, fallback: str) -> str:
     return (
         value
-        if isinstance(value, str) and len(value) <= 128 and value.isprintable() and (value or not fallback)
+        if isinstance(value, str)
+        and len(value) <= 128
+        and value.isprintable()
+        and (value or not fallback)
         else fallback
     )

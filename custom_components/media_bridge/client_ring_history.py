@@ -72,9 +72,7 @@ class RingHistoryClientMixin:
 
 def _valid_event(event: RingHistoryEvent) -> bool:
     return (
-        _valid_text(event.event_id)
-        and event.event_type in EVENT_TYPES
-        and event.occurred_at >= 0
+        _valid_text(event.event_id) and event.event_type in EVENT_TYPES and event.occurred_at >= 0
     )
 
 

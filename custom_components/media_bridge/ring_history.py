@@ -114,13 +114,13 @@ class RingHistoryManager:
                     for item in local
                     if not any(_same_activity(item, remote) for remote in cloud)
                 ][:MAX_LOCAL_OVERLAY]
-                events = sorted([*cloud, *overlay], key=lambda item: item["occurred_at"], reverse=True)
+                events = sorted(
+                    [*cloud, *overlay], key=lambda item: item["occurred_at"], reverse=True
+                )
             next_cursor = provider.next_cursor if provider is not None else None
             return self._result(events, next_cursor, provider is None)
 
-    async def async_record(
-        self, event_type: str, occurred_at: int | None, source: str
-    ) -> bool:
+    async def async_record(self, event_type: str, occurred_at: int | None, source: str) -> bool:
         """Persist one observed event and publish a unique unlock notification event."""
         if event_type not in HISTORY_TYPES:
             return False
@@ -241,6 +241,7 @@ def _valid_event(item) -> bool:
 
 
 def _same_activity(left, right) -> bool:
-    return left["event_type"] == right["event_type"] and abs(
-        left["occurred_at"] - right["occurred_at"]
-    ) <= DEDUPE_SECONDS
+    return (
+        left["event_type"] == right["event_type"]
+        and abs(left["occurred_at"] - right["occurred_at"]) <= DEDUPE_SECONDS
+    )

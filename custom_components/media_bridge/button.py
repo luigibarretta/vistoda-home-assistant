@@ -35,9 +35,7 @@ class RingOpenDoor(RingFacadeEntity, ButtonEntity):
         runtime = self._hass.data[DOMAIN][self._entry.entry_id]
         if self.delegated:
             await self.call_source_service("button", "press", {})
-            await runtime.ring_history.async_record(
-                "unlock", None, "command:official_button"
-            )
+            await runtime.ring_history.async_record("unlock", None, "command:official_button")
             return
         client = runtime.client
         if client is None:

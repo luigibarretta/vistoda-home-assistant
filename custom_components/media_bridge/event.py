@@ -126,8 +126,6 @@ class RingEvent(RingFacadeEntity, EventEntity):
             occurred_at = int(datetime.fromisoformat(state.state).timestamp())
             self._entry.async_create_background_task(
                 self.hass,
-                runtime.ring_history.async_record(
-                    "unlock", occurred_at, "observed:official"
-                ),
+                runtime.ring_history.async_record("unlock", occurred_at, "observed:official"),
                 f"Vistoda Ring official unlock {self._entry.entry_id}",
             )

@@ -18,9 +18,7 @@ def async_register(hass: HomeAssistant) -> None:
         vol.Required("type"): "media_bridge/ring/history",
         vol.Required("entry_id"): str,
         vol.Optional("limit", default=20): vol.All(vol.Coerce(int), vol.Range(min=1, max=50)),
-        vol.Optional("cursor"): vol.All(
-            str, vol.Length(min=1, max=32), vol.Match(r"^[0-9]+$")
-        ),
+        vol.Optional("cursor"): vol.All(str, vol.Length(min=1, max=32), vol.Match(r"^[0-9]+$")),
     }
 )
 @websocket_api.async_response

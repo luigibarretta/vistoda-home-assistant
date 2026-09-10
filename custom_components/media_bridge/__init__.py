@@ -106,9 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await ring_status.async_config_entry_first_refresh()
         ring_history = RingHistoryManager(hass, entry, client, entry.data[CONF_ALIAS])
         await ring_history.async_initialize()
-        ring_events = RingEventListener(
-            hass, entry, client, entry.data[CONF_ALIAS], ring_history
-        )
+        ring_events = RingEventListener(hass, entry, client, entry.data[CONF_ALIAS], ring_history)
     base_url = hass.config.external_url or hass.config.internal_url
     snapshots = {}
     snapshot_updated_at = {}
