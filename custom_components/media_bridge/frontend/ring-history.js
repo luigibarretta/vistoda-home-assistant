@@ -34,8 +34,10 @@ export class RingHistory extends HTMLElement {
     this._mounted = true;
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLES}
-        .history{overflow:hidden}.head{display:flex;align-items:center;gap:13px;padding:19px 20px;
-          border-bottom:1px solid var(--divider-color)}.head h2{margin:0;font-size:22px;flex:1}
+        :host{width:100%;max-width:100%;min-width:0}.history{width:100%;max-width:100%;overflow:hidden}
+        .head{display:flex;align-items:center;gap:13px;padding:19px 20px;
+          border-bottom:1px solid var(--divider-color)}.head h2{margin:0;font-size:22px;flex:1;
+          min-width:0}
         .head button{min-width:44px;padding:8px}.location{padding:0 20px 16px;
           color:var(--secondary-text-color);font-size:13px}
         .filters{display:flex;gap:9px;padding:16px 20px;overflow-x:auto;
@@ -62,7 +64,7 @@ export class RingHistory extends HTMLElement {
           color:var(--secondary-text-color);font-variant-numeric:tabular-nums}
         .footer{display:grid;place-items:center;padding:17px 20px}.notice{margin:0;padding:12px 20px;
           color:var(--secondary-text-color);font-size:13px;text-align:center}
-        @media(max-width:520px){.head{padding:15px 14px}.head h2{font-size:20px}
+        @media(max-width:520px){.head{padding:15px 14px;gap:7px}.head h2{font-size:20px}
           .filters{padding:13px 14px}.event{padding:16px 14px}.day h3{padding-left:14px}
           .location{padding:0 14px 14px}}
       </style>
