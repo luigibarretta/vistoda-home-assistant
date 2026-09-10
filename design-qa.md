@@ -3,11 +3,11 @@
 final result: passed
 
 - Date: 2026-09-10
-- Implementation: deployed Vistoda Home Assistant `0.22.0`, served directly by
-  Home Assistant from `/vistoda_static/0.22.0`.
+- Implementation: deployed Vistoda Home Assistant `0.22.1`, served directly by
+  Home Assistant from `/vistoda_static/0.22.1`.
 - Browser: Google Chrome, mobile viewport `390 × 794` CSS pixels.
 - Deployed capture:
-  `/home/ansible/audits/vistoda-0.22.0/blink-mobile.png` (`390 × 2720`).
+  `/home/ansible/audits/vistoda-0.22.1/blink-mobile.png` (`390 × 2720`).
 
 ## Navigation and camera gallery
 
@@ -35,6 +35,11 @@ canary confirms early notification is active, image flip is inactive and all
 three requested video-quality descriptions are present. The activity/privacy
 zone editor preserves the native `20 × 15` model at a measured `1.7777` aspect
 ratio.
+
+The `0.22.1` browser transport waits for ICE gathering and embeds the gathered
+candidates in the Blink offer before subscribing. Its canary records only a
+sanitized structural summary (media sections, directions, codecs and candidate
+types), never SDP addresses, ICE credentials or device identifiers.
 
 ## Blink USB and local archives
 
