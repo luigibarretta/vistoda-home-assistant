@@ -9,7 +9,9 @@ from aiohttp import ClientError, ClientSession, ClientTimeout, ClientWSTimeout
 from .client_enrollment import EnrollmentClientMixin
 from .client_helpers import error_code, normalize_url
 from .client_provider_recordings import ProviderRecordingClientMixin
+from .client_ring_control import RingControlClientMixin
 from .client_ring_events import RingEventClientMixin
+from .client_ring_history import RingHistoryClientMixin
 from .const import PROVIDER_RING
 from .errors import (
     CannotConnectError,
@@ -27,7 +29,6 @@ from .models import (
     parse_audio_session,
     parse_recording,
     parse_recording_archive,
-    parse_ring_status,
 )
 
 JSON_LIMIT = 64 * 1024
@@ -38,7 +39,13 @@ RECORDING_LIST_LIMIT, RECORDING_UPLOAD_LIMIT = 512 * 1024, 8 * 1024 * 1024
 RELAY_TIMEOUT = ClientWSTimeout(ws_receive=125, ws_close=5)
 
 
-class BridgeClient(ProviderRecordingClientMixin, RingEventClientMixin, EnrollmentClientMixin):
+class BridgeClient(
+    ProviderRecordingClientMixin,
+    RingControlClientMixin,
+    RingEventClientMixin,
+    RingHistoryClientMixin,
+    EnrollmentClientMixin,
+):
     """Authenticate and consume one private bridge."""
 
     def __init__(self, session: ClientSession, base_url: str, token: str) -> None:
@@ -97,25 +104,6 @@ class BridgeClient(ProviderRecordingClientMixin, RingEventClientMixin, Enrollmen
             timeout=RELAY_TIMEOUT,
             heartbeat=15,
             max_msg_size=2 * 1024,
-        )
-
-    async def ring_status(self, alias: str):
-        """Return native Ring Intercom battery, connectivity and levels."""
-        payload = await self._json("GET", f"/v1/devices/{quote(alias, safe='')}/status")
-        return parse_ring_status(payload)
-
-    async def unlock_ring(self, alias: str) -> None:
-        """Issue one native unlock request without retries in Home Assistant."""
-        await self._empty("POST", f"/v1/devices/{quote(alias, safe='')}/unlock")
-
-    async def set_ring_volume(self, alias: str, setting: str, value: int) -> None:
-        """Set exactly one bounded native volume."""
-        if setting not in {"doorbell_volume", "mic_volume", "voice_volume"}:
-            raise ValueError("unknown Ring volume")
-        await self._empty(
-            "PATCH",
-            f"/v1/devices/{quote(alias, safe='')}/settings",
-            json={setting: value},
         )
 
     async def _empty(self, method: str, path: str, **kwargs: Any) -> None:

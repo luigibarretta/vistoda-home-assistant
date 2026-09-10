@@ -32,10 +32,15 @@ class RingOpenDoor(RingFacadeEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Open through the selected path; never retry an unlock."""
+        runtime = self._hass.data[DOMAIN][self._entry.entry_id]
         if self.delegated:
             await self.call_source_service("button", "press", {})
+            await runtime.ring_history.async_record(
+                "unlock", None, "command:official_button"
+            )
             return
-        client = self._hass.data[DOMAIN][self._entry.entry_id].client
+        client = runtime.client
         if client is None:
             raise RuntimeError("Native Ring bridge is unavailable")
         await client.unlock_ring(self._alias)
+        await runtime.ring_history.async_record("unlock", None, "command:native_button")

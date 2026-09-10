@@ -1,6 +1,7 @@
 """Native Ring Intercom events with a bounded official fallback."""
 
 import time
+from datetime import datetime
 
 from homeassistant.components.event import EventDeviceClass, EventEntity
 from homeassistant.config_entries import ConfigEntry
@@ -120,3 +121,13 @@ class RingEvent(RingFacadeEntity, EventEntity):
         attributes.update({"entry_id": self._entry.entry_id, "alias": self._entry.data[CONF_ALIAS]})
         self._trigger_event(event_type, attributes)
         self.async_write_ha_state()
+        if self._native_event_type == "intercom_unlock":
+            runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+            occurred_at = int(datetime.fromisoformat(state.state).timestamp())
+            self._entry.async_create_background_task(
+                self.hass,
+                runtime.ring_history.async_record(
+                    "unlock", occurred_at, "observed:official"
+                ),
+                f"Vistoda Ring official unlock {self._entry.entry_id}",
+            )

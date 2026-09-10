@@ -54,6 +54,9 @@ def async_register(hass: HomeAssistant) -> None:
                     "vistoda_ring_door_open_requested",
                     {"path": "native", "entry_id": entry.entry_id, "alias": alias},
                 )
+                await runtime.ring_history.async_record(
+                    "unlock", None, "command:native_service"
+                )
                 return
         source = resolve_source(hass, OPEN_DOOR)
         state = hass.states.get(source) if source else None
@@ -63,6 +66,9 @@ def async_register(hass: HomeAssistant) -> None:
         hass.bus.async_fire(
             "vistoda_ring_door_open_requested",
             {"path": "official_fallback", "entry_id": entry.entry_id, "alias": alias},
+        )
+        await runtime.ring_history.async_record(
+            "unlock", None, "command:official_service"
         )
 
     hass.services.async_register(

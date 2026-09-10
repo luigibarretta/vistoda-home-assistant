@@ -24,6 +24,7 @@ from .const import (
 from .coordinator import BridgeCoordinator
 from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
+from .ring_history import RingHistoryManager
 from .ring_status import RingStatusCoordinator
 
 CONFIG_SCHEMA = vol.Schema(
@@ -51,6 +52,7 @@ class BridgeRuntime:
     coordinator: BridgeCoordinator | BlinkAdapterCoordinator
     ring_status: RingStatusCoordinator | None = None
     ring_events: RingEventListener | None = None
+    ring_history: RingHistoryManager | None = None
     panel_url: str | None = None
     snapshots: dict[str, bytes] = field(default_factory=dict)
     snapshot_updated_at: dict[str, str] = field(default_factory=dict)
@@ -98,10 +100,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
     ring_status = None
     ring_events = None
+    ring_history = None
     if provider == PROVIDER_RING:
         ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS])
         await ring_status.async_config_entry_first_refresh()
-        ring_events = RingEventListener(hass, entry, client, entry.data[CONF_ALIAS])
+        ring_history = RingHistoryManager(hass, entry, client, entry.data[CONF_ALIAS])
+        await ring_history.async_initialize()
+        ring_events = RingEventListener(
+            hass, entry, client, entry.data[CONF_ALIAS], ring_history
+        )
     base_url = hass.config.external_url or hass.config.internal_url
     snapshots = {}
     snapshot_updated_at = {}
@@ -118,11 +125,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator=coordinator,
         ring_status=ring_status,
         ring_events=ring_events,
+        ring_history=ring_history,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
         snapshots=snapshots,
         snapshot_updated_at=snapshot_updated_at,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if ring_history:
+        entry.async_create_background_task(
+            hass,
+            ring_history.async_warm_provider(),
+            f"Vistoda Ring history warmup {entry.entry_id}",
+        )
     if ring_events:
         ring_events.start()
     return True

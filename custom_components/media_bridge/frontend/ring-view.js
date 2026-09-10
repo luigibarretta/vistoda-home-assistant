@@ -2,6 +2,7 @@ import { RingAudioSession } from "./ring-audio-session.js";
 import { chooseRingEntry, saveRingEntry, storedRingEntry } from "./ring-entry-selection.js";
 import "./ring-controls.js";
 import "./ring-recordings.js";
+import "./ring-history.js";
 import { BASE_STYLES } from "./panel-styles.js";
 
 class VistodaRingView extends HTMLElement {
@@ -54,7 +55,7 @@ class VistodaRingView extends HTMLElement {
         audio { width:100%; height:0; display:block; }
         @media (max-width:600px) { .call{padding:18px} }
       </style>
-      <section class="card call">
+      <div id="ring-main"><section class="card call">
         <div class="device"><div><div class="eyebrow">Ring Intercom</div>
           <h2 id="device-name">Citofono</h2><div class="muted">Ascolto e conversazione
           simultanei · massimo 2 minuti</div><select class="device-select" id="device-select"
@@ -65,17 +66,21 @@ class VistodaRingView extends HTMLElement {
           icon="mdi:phone"></ha-icon><span id="call-label">Avvia comunicazione</span></button>
           <button id="microphone" hidden disabled><ha-icon id="microphone-icon"
             icon="mdi:microphone-off"></ha-icon><span id="microphone-label">
-            Attiva microfono</span></button></div>
+            Attiva microfono</span></button><button id="history-open">
+            <ha-icon icon="mdi:history"></ha-icon><span>Cronologia eventi</span></button></div>
         <p class="privacy">La sessione parte in solo ascolto. Il browser richiede il microfono
           soltanto quando lo attivi e lo rilascia tornando al solo ascolto. Dopo “Termina” un
           breve conto alla rovescia protegge Ring da chiamate ripetute.</p>
         <audio id="remote" autoplay></audio>
       </section>
       <vistoda-ring-controls id="controls"></vistoda-ring-controls>
-      <vistoda-ring-recordings id="recordings"></vistoda-ring-recordings>`;
+      <vistoda-ring-recordings id="recordings"></vistoda-ring-recordings></div>
+      <vistoda-ring-history id="history" hidden></vistoda-ring-history>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("call").addEventListener("click", () => this._toggleCall());
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
+    this.$("history-open").addEventListener("click", () => this._showHistory(true));
+    this.$("history").addEventListener("history-close", () => this._showHistory(false));
     this.$("device-select").addEventListener("change", (event) => {
       this._selectEntry(event.target.value);
     });
@@ -106,7 +111,8 @@ class VistodaRingView extends HTMLElement {
   }
 
   _configureEntry() {
-    this.$("device-name").textContent = this._entry.name.replace(/^Vistoda · /, "");
+    this.$("device-name").textContent = this._entry.device_name
+      || this._entry.name.replace(/^Vistoda · /, "");
     this._audio = new RingAudioSession(
       this._hass, this._entry, this.$("remote"), (state) => this._renderState(state),
       (remote, local, mode) => this.$("recordings")?.setMedia(remote, local, mode),
@@ -139,7 +145,7 @@ class VistodaRingView extends HTMLElement {
     select.replaceChildren(...this._entries.map((entry) => {
       const option = document.createElement("option");
       option.value = entry.entry_id;
-      option.textContent = entry.name.replace(/^Vistoda · /, "")
+      option.textContent = (entry.device_name || entry.name.replace(/^Vistoda · /, ""))
         + (entry.available ? "" : " · non disponibile");
       return option;
     }));
@@ -192,7 +198,15 @@ class VistodaRingView extends HTMLElement {
     this.$("microphone").classList.toggle("primary", talk);
     this.$("microphone-icon").setAttribute("icon", talk ? "mdi:microphone" : "mdi:microphone-off");
     this.$("microphone-label").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
+    this.$("history-open").disabled = !this._entry || ongoing || locked;
     this.$("recordings")?.setCallState(ongoing);
+  }
+
+  _showHistory(open) {
+    if ((open && this._audio?.pc) || !this._entry) return;
+    this.$("ring-main").hidden = open;
+    this.$("history").hidden = !open;
+    if (open) this.$("history").configure(this._hass, this._entry);
   }
 
   _toggleCall() {

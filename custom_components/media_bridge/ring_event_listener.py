@@ -18,11 +18,12 @@ _LOGGER = logging.getLogger(__name__)
 class RingEventListener:
     """Own one cancel-safe event cursor per config entry."""
 
-    def __init__(self, hass, entry, client, alias: str) -> None:
+    def __init__(self, hass, entry, client, alias: str, history) -> None:
         self.hass = hass
         self.entry = entry
         self.client = client
         self.alias = alias
+        self.history = history
         self.cursor = RingEventCursor()
         self.task = None
         self._remove_stop_listener = None
@@ -78,4 +79,10 @@ class RingEventListener:
                 if failures >= 6:
                     update_ring_push_issue(self.hass, self.entry, available=False)
             for event in self.cursor.consume(batch):
+                event_type = "unlock" if event.event_type == "intercom_unlock" else "ding"
+                await self.history.async_record(
+                    event_type,
+                    event.occurred_at,
+                    f"observed:native:{event.sequence}",
+                )
                 async_dispatcher_send(self.hass, ring_event_signal(self.entry.entry_id), event)

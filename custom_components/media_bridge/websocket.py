@@ -18,6 +18,7 @@ from .provider_recording_list_websocket import (
 from .provider_recording_websocket import async_register as async_register_provider_recordings
 from .recording_backup import async_register as async_register_recording_backup
 from .ring_call_websocket import async_register as async_register_ring_calls
+from .ring_history_websocket import async_register as async_register_ring_history
 from .ring_recording_list_websocket import async_register as async_register_recording_lists
 from .ring_recording_websocket import async_register as async_register_recordings
 from .ring_session_log import async_ended, async_started
@@ -42,6 +43,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_ring_start)
     websocket_api.async_register_command(hass, ws_ring_stop)
     async_register_ring_calls(hass)
+    async_register_ring_history(hass)
     async_register_recordings(hass)
     async_register_recording_lists(hass)
     async_register_provider_recordings(hass)
@@ -79,6 +81,15 @@ def ws_ring_info(
                 "alias": entry.data[CONF_ALIAS],
                 "available": bool(runtime and runtime.coordinator.last_update_success),
                 "controls": controls,
+                "device_name": runtime.ring_history.identity["device_name"]
+                if runtime and runtime.ring_history
+                else entry.data[CONF_ALIAS],
+                "location_name": runtime.ring_history.identity["location_name"]
+                if runtime and runtime.ring_history
+                else "Ring",
+                "city": runtime.ring_history.identity["city"]
+                if runtime and runtime.ring_history
+                else "",
             }
         )
     entries.sort(key=lambda item: (item["name"].casefold(), item["alias"], item["entry_id"]))
@@ -120,6 +131,8 @@ async def ws_ring_start(
         connection.send_error(msg["id"], "unavailable", "Ring audio is unavailable")
         return
     async_started(hass, alias, result.session_id, msg["mode"], msg["ice_gathering_ms"])
+    if runtime.ring_history is not None:
+        await runtime.ring_history.async_record("live_view", None, "command:vistoda_live")
     connection.send_result(
         msg["id"],
         {
