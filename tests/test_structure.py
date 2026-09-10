@@ -1,4 +1,3 @@
-"""HACS packaging, translation and maintenance gates."""
 import json
 from pathlib import Path
 
