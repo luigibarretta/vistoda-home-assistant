@@ -3,6 +3,7 @@ import { chooseRingEntry, saveRingEntry, storedRingEntry } from "./ring-entry-se
 import "./ring-controls.js";
 import "./ring-recordings.js";
 import "./ring-history.js";
+import "./ring-device-identity.js";
 import { BASE_STYLES } from "./panel-styles.js";
 
 class VistodaRingView extends HTMLElement {
@@ -37,7 +38,7 @@ class VistodaRingView extends HTMLElement {
       <style>${BASE_STYLES}
         .call { padding:22px; }
         .device { display:flex; justify-content:space-between; gap:16px; align-items:start; }
-        h2 { margin:4px 0 7px; font-size:22px; }
+        .device-copy { min-width:0;flex:1; }
         .status { display:flex; align-items:center; gap:9px; min-height:24px; margin:22px 0 14px; }
         .dot { width:10px; height:10px; border-radius:50%; background:var(--secondary-text-color); }
         .dot.live { background:var(--success-color,#43a047); box-shadow:0 0 0 5px #43a04725; }
@@ -56,9 +57,9 @@ class VistodaRingView extends HTMLElement {
         @media (max-width:600px) { .call{padding:18px} }
       </style>
       <div id="ring-main"><section class="card call">
-        <div class="device"><div><div class="eyebrow">Ring Intercom</div>
-          <h2 id="device-name">Citofono</h2><div class="muted">Ascolto e conversazione
-          simultanei · massimo 2 minuti</div><select class="device-select" id="device-select"
+        <div class="device"><div class="device-copy">
+          <vistoda-ring-device-identity id="identity"></vistoda-ring-device-identity>
+          <select class="device-select" id="device-select"
           aria-label="Seleziona Ring Intercom" hidden></select></div>
           <span class="badge off" id="availability">Verifica…</span></div>
         <div class="status"><span class="dot" id="dot"></span><span id="status">Pronto</span></div>
@@ -79,6 +80,7 @@ class VistodaRingView extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("call").addEventListener("click", () => this._toggleCall());
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
+    this.$("identity").addEventListener("identity-updated", () => this._renderEntrySelector());
     this.$("history-open").addEventListener("click", () => this._showHistory(true));
     this.$("history").addEventListener("history-close", () => this._showHistory(false));
     this.$("device-select").addEventListener("change", (event) => {
@@ -111,8 +113,7 @@ class VistodaRingView extends HTMLElement {
   }
 
   _configureEntry() {
-    this.$("device-name").textContent = this._entry.device_name
-      || this._entry.name.replace(/^Vistoda · /, "");
+    this.$("identity").configure(this._hass, this._entry);
     this._audio = new RingAudioSession(
       this._hass, this._entry, this.$("remote"), (state) => this._renderState(state),
       (remote, local, mode) => this.$("recordings")?.setMedia(remote, local, mode),
@@ -199,6 +200,7 @@ class VistodaRingView extends HTMLElement {
     this.$("microphone-icon").setAttribute("icon", talk ? "mdi:microphone" : "mdi:microphone-off");
     this.$("microphone-label").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
     this.$("history-open").disabled = !this._entry || ongoing || locked;
+    this.$("identity").setBusy(ongoing || locked);
     this.$("recordings")?.setCallState(ongoing);
   }
 

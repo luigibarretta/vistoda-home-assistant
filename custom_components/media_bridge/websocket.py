@@ -90,6 +90,9 @@ def ws_ring_info(
                 "city": runtime.ring_history.identity["city"]
                 if runtime and runtime.ring_history
                 else "",
+                "identity_configuration": runtime.ring_history.identity_configuration
+                if runtime and runtime.ring_history
+                else None,
             }
         )
     entries.sort(key=lambda item: (item["name"].casefold(), item["alias"], item["entry_id"]))

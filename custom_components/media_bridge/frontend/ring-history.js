@@ -1,5 +1,4 @@
 import { BASE_STYLES } from "./panel-styles.js";
-import "./ring-identity-dialog.js";
 
 const PAGE_SIZE = 20;
 const META = {
@@ -73,9 +72,6 @@ export class RingHistory extends HTMLElement {
       <section class="card history"><header class="head"><button id="back"
         aria-label="Torna a Ring Intercom" title="Torna a Ring Intercom">
         <ha-icon icon="mdi:arrow-left"></ha-icon></button><h2>Cronologia eventi</h2>
-        <button id="edit" disabled aria-label="Modifica identità Ring" title="Modifica identità Ring"
-          data-tooltip="Scegli i nomi usati in cronologia e notifiche">
-          <ha-icon icon="mdi:pencil-outline"></ha-icon></button>
         <button id="refresh" aria-label="Aggiorna cronologia" title="Aggiorna cronologia"
           data-tooltip="Rilegge gli eventi più recenti da Ring">
           <ha-icon icon="mdi:refresh"></ha-icon></button></header>
@@ -90,22 +86,12 @@ export class RingHistory extends HTMLElement {
           </select><ha-icon icon="mdi:chevron-down"></ha-icon></label></div>
         <p class="notice" id="notice" hidden></p><div class="body" id="body"></div>
         <div class="footer"><button id="more" hidden><ha-icon icon="mdi:chevron-down"></ha-icon>
-          Carica eventi precedenti</button></div></section>
-        <vistoda-ring-identity-dialog id="identity-dialog"></vistoda-ring-identity-dialog>`;
+          Carica eventi precedenti</button></div></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("back").addEventListener("click", () => this.dispatchEvent(new CustomEvent(
       "history-close", { bubbles: true, composed: true },
     )));
     this.$("refresh").addEventListener("click", () => this._load(true));
-    this.$("edit").addEventListener("click", () => this.$("identity-dialog").show());
-    this.$("identity-dialog").addEventListener("identity-updated", (event) => {
-      const result = event.detail;
-      this._identityConfiguration = result.identity_configuration;
-      this.$("device-filter").textContent = result.identity.device_name;
-      this.$("location").textContent = this._location(result.identity);
-      this.$("identity-dialog").configure(this._hass, this._entry, this._identityConfiguration);
-      this._render();
-    });
     this.$("more").addEventListener("click", () => this._load(false));
     this.$("event-filter").addEventListener("change", (event) => {
       this._filter = event.target.value; this._render();
@@ -127,10 +113,6 @@ export class RingHistory extends HTMLElement {
       if (generation !== this._generation) return;
       this.$("device-filter").textContent = page.identity.device_name;
       this.$("location").textContent = this._location(page.identity);
-      this._identityConfiguration = page.identity_configuration;
-      this.$("identity-dialog").configure(this._hass, this._entry,
-        this._identityConfiguration);
-      this.$("edit").disabled = false;
       const known = new Set(this._events.map((item) => item.event_id));
       this._events.push(...page.events.filter((item) => !known.has(item.event_id)));
       this._events.sort((left, right) => right.occurred_at - left.occurred_at);

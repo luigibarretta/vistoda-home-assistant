@@ -93,6 +93,11 @@ answering, full-duplex audio, battery, native controls and private recordings.
 Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
 
+The selected Ring device card owns its display identity: device name, Location
+and city can be sourced independently from Ring, Home Assistant or a custom
+value. Event history is intentionally read-only and uses that effective
+identity for its rows and household unlock notifications.
+
 The Blink view groups cameras into one navigable gallery and exposes arming,
 motion, cached snapshots and native live opening. Snapshot
 refresh is explicit so merely opening the panel does not wake battery cameras.
