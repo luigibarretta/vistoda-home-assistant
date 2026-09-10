@@ -7,6 +7,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   .detail-head button { flex:0 0 auto; }
   #live-video { width:100%; height:100%; position:absolute; inset:0; object-fit:contain;
     background:#000; }
+  #legacy-live { position:absolute; inset:0; width:100%; height:100%; background:#000; }
+  #legacy-live .blink-legacy-card { display:block; width:100%; height:100%; }
 </style>
 <section class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2>Telecamere Blink</h2><div class="muted">Gli snapshot esistenti non risvegliano
@@ -20,7 +22,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
 <section class="card media-card" id="gallery">
   <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon
     icon="mdi:cctv"></ha-icon>Snapshot non disponibile</div><img id="snapshot" alt="">
-    <video id="live-video" autoplay playsinline muted hidden></video></div>
+    <video id="live-video" autoplay playsinline muted hidden></video>
+    <div id="legacy-live" hidden></div></div>
   <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Telecamera</h3>
     <div class="muted" id="camera-position"></div><div class="muted" id="snapshot-time"></div>
     </div><span class="badge off" id="camera-state">Non disponibile</span></div>

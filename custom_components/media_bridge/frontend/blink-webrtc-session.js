@@ -64,7 +64,11 @@ export class BlinkWebRtcSession {
     } catch (error) {
       if (generation !== this.generation) return;
       await this.stop(false);
-      this.onState({ phase: "error", message: error?.message || "Live Blink non disponibile" });
+      const fallback = error?.code === "legacy_required";
+      this.onState({ phase: fallback ? "fallback" : "error",
+        reason: fallback ? "no_ring_device_id" : undefined,
+        message: fallback ? "Passaggio al live Blink compatibile" :
+          error?.message || "Live Blink non disponibile" });
     }
   }
 
@@ -143,9 +147,12 @@ export class BlinkWebRtcSession {
       this.micCooldownUntil = performance.now() + Math.max(0, event.cooldown_ms || 0);
       const seconds = Math.ceil((event.cooldown_ms || 0) / 1000);
       this._state("active", `Microfono disattivato da un’altra sessione${seconds ? ` per ${seconds}s` : ""}`);
+    } else if (event.type === "fallback") {
+      await this.stop(false); this.onState({ phase: "fallback", reason: event.reason,
+        message: event.message || "Passaggio al live Blink compatibile" });
     } else if (event.type === "error" || event.type === "closed") {
       const message = event.message || "Sessione Blink terminata";
-      await this.stop(false); this.onState({ phase: "error", message });
+      await this.stop(false); this.onState({ phase: "error", message, providerCode: event.code });
     }
   }
 
