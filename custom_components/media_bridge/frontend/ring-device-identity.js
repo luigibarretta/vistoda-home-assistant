@@ -28,7 +28,7 @@ class RingDeviceIdentity extends HTMLElement {
       <style>${BASE_STYLES}
         :host{display:block;min-width:0}.title{display:flex;align-items:start;gap:10px}
         .copy{min-width:0;flex:1}h2{margin:4px 0 7px;font-size:22px;overflow-wrap:anywhere}
-        .edit{min-width:44px;padding:8px}.summary{display:flex;align-items:center;gap:7px;
+        .edit{min-width:44px;min-height:44px;padding:8px}.summary{display:flex;align-items:center;gap:7px;
           margin-top:9px;color:var(--secondary-text-color);font-size:13px}.summary ha-icon{
           --mdc-icon-size:18px;color:var(--primary-color)}
       </style><div class="title"><div class="copy"><div class="eyebrow">Ring Intercom</div>

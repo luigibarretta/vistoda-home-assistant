@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.24.6"
+INTEGRATION_VERSION = "0.24.7"
 PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor", "switch"]
 
 CONF_PROVIDER = "provider"
