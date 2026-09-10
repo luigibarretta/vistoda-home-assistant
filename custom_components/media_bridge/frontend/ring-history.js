@@ -202,7 +202,10 @@ export class RingHistory extends HTMLElement {
   _timeZone() { return this._hass?.config?.time_zone || "Europe/Rome"; }
 
   _location(identity) {
-    return [identity.location_name || "Location Ring", identity.city].filter(Boolean).join(" · ");
+    const location = identity.location_name || "Location Ring";
+    const city = identity.city || "";
+    return city && !location.toLocaleLowerCase("it-IT").endsWith(` in ${city}`
+      .toLocaleLowerCase("it-IT")) ? `${location} · ${city}` : location;
   }
 }
 

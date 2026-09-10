@@ -18,6 +18,21 @@ def test_unlock_notification_matches_requested_dynamic_sentence() -> None:
     )
 
 
+def test_unlock_notification_does_not_repeat_city_in_ring_location_label() -> None:
+    message = unlock_message(
+        {
+            "device_name": "Front Entrance",
+            "location_name": "Home in Casoria",
+            "city": "Casoria",
+        },
+        datetime(2026, 9, 10, 19, 30, tzinfo=ZoneInfo("Europe/Rome")),
+    )
+    assert message == (
+        "Your Front Entrance in Home in Casoria was used to unlock the entrance "
+        "on 10/09/2026 at 19:30"
+    )
+
+
 def test_observation_deduplicates_a_command_but_not_two_native_unlocks() -> None:
     assert sources_overlap("command:native_button", "observed:native:12")
     assert sources_overlap("observed:native:12", "observed:official")
