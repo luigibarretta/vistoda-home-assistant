@@ -3,7 +3,7 @@
 final result: passed
 
 - Date: 2026-09-10
-- Current implementation: deployed Vistoda Home Assistant `0.24.4`.
+- Current implementation: deployed Vistoda Home Assistant `0.24.5`.
 - Blink evidence browser: Google Chrome, mobile viewport `390 × 794` CSS pixels.
 - Deployed capture:
   `/home/ansible/audits/vistoda-0.22.1/blink-mobile.png` (`390 × 2720`).
@@ -54,8 +54,8 @@ add-on namespace, and the cards/table selector communicates its active state.
 
 ## Ring event history
 
-- Implementation: deployed Vistoda Home Assistant `0.24.4` and Vistoda Ring
-  app `0.12.0`, served by Home Assistant from `/vistoda_static/0.24.4`.
+- Implementation: deployed Vistoda Home Assistant `0.24.5` and Vistoda Ring
+  app `0.12.0`, served by Home Assistant from `/vistoda_static/0.24.5`.
 - Browser: Google Chrome, `393 × 800` CSS pixels at device scale `1.6`, producing
   the same `629 × 1280` raster dimensions as the supplied Ring reference.
 - Reference: `artifacts/qa/ring-reference.jpg`.

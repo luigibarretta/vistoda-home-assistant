@@ -25,5 +25,5 @@ def test_ring_history_is_persisted_paginated_and_has_a_mobile_subpage() -> None:
 
 def test_ring_identity_uses_the_supported_device_registry_lookup() -> None:
     identity = (COMPONENT / "ring_identity.py").read_text(encoding="utf-8")
-    assert "async_get_device_by_identifier" in identity
+    assert 'async_get_device_by_identifier((DOMAIN, f"ring:{alias}"), entry.entry_id)' in identity
     assert "async_get_device(" not in identity
