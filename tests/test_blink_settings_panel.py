@@ -108,23 +108,27 @@ def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     assert 'button.setAttribute("aria-current", "true")' in view
 
 
-def test_blink_usb_archive_is_read_only_and_uses_signed_downloads() -> None:
-    storage = (FRONTEND / "blink-storage.js").read_text(encoding="utf-8")
+def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
+    storage = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in (
+            "blink-storage.js",
+            "blink-storage-actions.js",
+            "blink-storage-template.js",
+        )
+    )
     template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
     assert 'type: "blink_live_bridge/local_storage/list"' in storage
     assert 'type: "auth/sign_path"' in storage
     assert "/api/blink_live_bridge/v1/local-storage/" in storage
-    assert "Riproduci" in storage and "Backup archivio NFS" in storage
+    assert "Riproduci" in storage and "Backup archivio Blink" in storage
     assert "media_bridge/blink/usb/backup" in storage
     assert "page_size" in storage and "Pagina" in storage
     assert "vistoda-blink-storage" in template
-    for mutation in (
-        "local_storage/delete",
-        "local_storage/eject",
-        "local_storage/format",
-        "local_storage/mount",
-    ):
-        assert mutation not in storage
+    assert "local_storage/delete" in storage and "local_storage/format" in storage
+    assert "FORMATTA ${storage.network_id}/${storage.sync_module_id}" in storage
+    assert "Spazio disponibile:" in storage and "Spazio occupato:" not in storage
+    assert "local_storage/eject" not in storage and "local_storage/mount" not in storage
 
 
 def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:

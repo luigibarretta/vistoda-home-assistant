@@ -55,9 +55,17 @@ async def test_ezviz_recording_inventory_is_server_paginated() -> None:
         "has_previous": True,
         "has_next": False,
     }
-    session = FakeSession({"recordings": [manifest], "pagination": pagination})
+    storage = {
+        "directory": "/data/recordings",
+        "scope": "addon_private",
+        "used_bytes": 4096,
+        "quota_bytes": 1024 * 1024,
+        "available_bytes": 1024 * 1024 - 4096,
+    }
+    session = FakeSession({"recordings": [manifest], "pagination": pagination, "storage": storage})
     client = BridgeClient(session, "http://bridge.local:8765", "x" * 32)
     result = await client.provider_recordings(2, 10, "front")
     assert result["recordings"][0]["recording_id"] == manifest["recording_id"]
     assert result["pagination"] == pagination
+    assert result["storage"] == storage
     assert session.last_request[2]["params"] == {"page": 2, "page_size": 10, "camera": "front"}

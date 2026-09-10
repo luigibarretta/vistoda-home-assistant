@@ -1,6 +1,6 @@
 """Vistoda integration setup."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -52,6 +52,8 @@ class BridgeRuntime:
     ring_status: RingStatusCoordinator | None = None
     ring_events: RingEventListener | None = None
     panel_url: str | None = None
+    snapshots: dict[str, bytes] = field(default_factory=dict)
+    snapshot_updated_at: dict[str, str] = field(default_factory=dict)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -101,12 +103,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await ring_status.async_config_entry_first_refresh()
         ring_events = RingEventListener(hass, entry, client, entry.data[CONF_ALIAS])
     base_url = hass.config.external_url or hass.config.internal_url
+    snapshots = {}
+    snapshot_updated_at = {}
+    if provider == PROVIDER_EZVIZ:
+        from .ezviz_snapshot_cache import async_load
+
+        image, updated_at = await async_load(hass, entry.entry_id)
+        if image is not None:
+            snapshots[entry.data[CONF_ALIAS]] = image
+        if updated_at is not None:
+            snapshot_updated_at[entry.data[CONF_ALIAS]] = updated_at
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BridgeRuntime(
         client=client,
         coordinator=coordinator,
         ring_status=ring_status,
         ring_events=ring_events,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
+        snapshots=snapshots,
+        snapshot_updated_at=snapshot_updated_at,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if ring_events:

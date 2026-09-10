@@ -21,6 +21,35 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_list_recordings)
     websocket_api.async_register_command(hass, ws_create_recording)
     websocket_api.async_register_command(hass, ws_delete_recording)
+    websocket_api.async_register_command(hass, ws_refresh_snapshot)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ezviz/snapshot/refresh",
+        vol.Required("entry_id"): ENTRY_ID,
+    }
+)
+@websocket_api.async_response
+async def ws_refresh_snapshot(hass, connection, msg: dict[str, Any]) -> None:
+    """Fetch and persist one snapshot only after an explicit UI action."""
+    resolved = _resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        from .ezviz_snapshot_cache import async_save
+
+        image = await runtime.client.snapshot(alias)
+        updated_at = await async_save(hass, msg["entry_id"], image)
+    except (BridgeError, OSError, ValueError):
+        connection.send_error(msg["id"], "unavailable", "EZVIZ snapshot is unavailable")
+        return
+    runtime.snapshots[alias] = image
+    runtime.snapshot_updated_at[alias] = updated_at
+    runtime.coordinator.async_set_updated_data(runtime.coordinator.data)
+    connection.send_result(msg["id"], {"updated_at": updated_at})
 
 
 @websocket_api.websocket_command(

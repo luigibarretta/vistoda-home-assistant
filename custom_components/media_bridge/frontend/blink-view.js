@@ -74,7 +74,10 @@ class VistodaBlinkView extends HTMLElement {
     this.$("pager").hidden = this._detailOpen || cameras.length === 0;
     this.$("details-page").hidden = !this._detailOpen || cameras.length === 0;
     this.$("storage").hidden = this._detailOpen;
-    this.$("storage").hass = this._hass;
+    const entry = provider?.entries?.[0] || null;
+    this.$("storage").configure(this._hass, entry ? {
+      provider: "blink", entryId: entry.entry_id,
+    } : null);
     if (this._detailOpen) this.$("system").hidden = true;
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
@@ -103,6 +106,7 @@ class VistodaBlinkView extends HTMLElement {
   }
 
   _renderCamera(device, count) {
+    const entry = this._info?.providers?.blink?.entries?.[0] || null;
     const camera = firstEntity(device, "camera");
     const cameraState = entityState(this._hass, camera);
     const battery = firstEntity(device, "binary_sensor", (item) => item.device_class === "battery");
@@ -134,7 +138,7 @@ class VistodaBlinkView extends HTMLElement {
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
     this.$("recordings").configure(this._hass, {
-      provider: "blink", alias: cameraState?.attributes?.alias,
+      provider: "blink", entryId: entry?.entry_id, alias: cameraState?.attributes?.alias,
     });
     this.$("zones").hass = this._hass;
     if (url && this.$("snapshot").src !== url) {

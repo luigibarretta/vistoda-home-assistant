@@ -8,7 +8,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
-from .errors import BridgeError
 
 
 async def async_setup_entry(
@@ -26,7 +25,7 @@ async def async_setup_entry(
 
 
 class EzvizBridgeCamera(CoordinatorEntity, Camera):
-    """Fresh snapshot plus shared copy-remuxed MPEG-TS live view."""
+    """Manually refreshed snapshot plus shared copy-remuxed MPEG-TS live view."""
 
     _attr_has_entity_name = True
     _attr_name = "Live"
@@ -37,6 +36,7 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
         Camera.__init__(self)
         assert runtime.client is not None
         self._client = runtime.client
+        self._runtime = runtime
         self._alias = alias
         self._attr_unique_id = f"ezviz-{alias}-bridge-camera"
         self._attr_device_info = {
@@ -49,11 +49,14 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
     ) -> bytes | None:
-        """Fetch a bounded fresh snapshot."""
-        try:
-            return await self._client.snapshot(self._alias)
-        except BridgeError:
-            return None
+        """Return only the last snapshot explicitly requested by the user."""
+        return self._runtime.snapshots.get(self._alias)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Expose the manual snapshot timestamp without leaking storage details."""
+        updated_at = self._runtime.snapshot_updated_at.get(self._alias)
+        return {"snapshot_updated_at": updated_at} if updated_at else {}
 
     async def stream_source(self) -> str:
         """Give HA Stream the authenticated private MPEG-TS source."""

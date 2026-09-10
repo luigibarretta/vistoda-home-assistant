@@ -6,7 +6,7 @@ the cameras and intercoms that remain inside the trusted network.
 
 - Vistoda Blink connector: connects the standalone Rust Blink app and exposes
   its camera, control and media surface as native Home Assistant entities;
-- Vistoda EZVIZ connector: fresh snapshot and shared MPEG-TS live camera;
+- Vistoda EZVIZ connector: manually refreshed cached snapshot and shared MPEG-TS live camera;
 - Vistoda Ring connector: secure password/SMS enrollment, one listen-first
   full-duplex session, private local call recording and a native
   facade with native or delegated controls, battery, sensors and events;
@@ -108,16 +108,19 @@ official integer scale 1–8. Unknown and unproven features stay hidden. Camera
 settings follow the official app's five task-oriented sections, with one
 accordion open at a time. On mobile, the header back button exits Vistoda to the
 previous Home Assistant page, with the Casa dashboard as a safe fallback. The
-EZVIZ view opens the protected HA camera and refreshes its snapshot.
+EZVIZ view opens the protected HA camera and refreshes its snapshot only after
+the explicit action. Landing reads the private cache without a provider request.
 
 Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
 30 or 60 seconds from the current shared stream; the provider writes a bounded
 file and immutable SHA-256 manifest without generating a cloud motion event.
 The per-camera UI consumes server-side ten-item pages and lists status,
-timestamp, duration and size, then offers signed download, explicit-close EZVIZ
-playback, confirmed deletion, one-file NFS backup or checksum-verified batch
-backup across every backend page. EZVIZ remains independent from SceneTrove:
-neither archive deletes or adopts the other's media.
+timestamp, duration and size. Compact Material Design icon actions provide
+playback, signed download, confirmed single or selected deletion and NFS backup.
+The actual private add-on spool path is visible and copyable. Blink and EZVIZ
+recordings can belong to multiple centrally stored custom lists; users can
+create, rename and delete lists without deleting media. EZVIZ remains
+independent from SceneTrove: neither archive deletes or adopts the other's media.
 
 Production mounts `/media/vistoda_archives` through the Home Assistant
 Supervisor network-storage API. Vistoda refuses backup unless the path is an
@@ -128,10 +131,13 @@ hard quota, compression and an export restricted to iot-01; Vistoda never falls
 back to the HAOS disk.
 
 Blink Sync Module USB contents remain vendor-owned but are available through a
-read-only, server-paginated inventory with signed playback/download and
-checksum-verified NFS copy for one clip or the complete archive. Vistoda exposes
-no provider deletion, eject, format or mount action. The current EZVIZ CP4 microSD
-contract remains unavailable to the HAOS bridge. Blink WebRTC 4.1 signaling and
+server-paginated inventory with signed playback/download and checksum-verified
+NFS copy for one clip or the complete archive. The panel reports only the
+provider-derived percentage of available space. Administrators may select and
+delete one or more exact clips after confirmation. Compatible supports expose
+formatting behind a destructive warning and an exact typed target phrase;
+mount and eject remain absent. The current EZVIZ CP4 microSD contract remains
+unavailable to the HAOS bridge. Blink WebRTC 4.1 signaling and
 camera capability discovery are independently implemented, but media/session
 negotiation is still gated; EZVIZ currently proves downstream H.264/AAC only.
 Full-duplex buttons will appear only after real uplink and recovery canaries pass.

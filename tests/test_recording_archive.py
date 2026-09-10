@@ -129,9 +129,22 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
 
     component = Path("custom_components/media_bridge")
     frontend = component / "frontend"
-    recordings = (frontend / "provider-recordings.js").read_text()
+    recordings = "\n".join(
+        (frontend / name).read_text()
+        for name in (
+            "provider-recordings.js",
+            "provider-recordings-actions.js",
+            "provider-recordings-template.js",
+        )
+    )
     recording_backup_ui = (frontend / "provider-recording-backup.js").read_text()
     player = (frontend / "provider-recording-player.js").read_text()
+    provider_lists = (frontend / "provider-recording-list-manager.js").read_text()
+    provider_item = (frontend / "provider-recording-item.js").read_text()
+    blink_storage = "\n".join(
+        (frontend / name).read_text()
+        for name in ("blink-storage.js", "blink-storage-actions.js", "blink-storage-template.js")
+    )
     model = (frontend / "provider-recording-model.js").read_text()
     websocket = (component / "provider_recording_websocket.py").read_text()
     backup = (component / "recording_backup.py").read_text()
@@ -146,6 +159,15 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "recordingMediaPath" in model and "cameraRecordings" in model
     assert "duration_seconds" in recordings and "15 secondi" in recordings
     assert "Backup archivio" in recordings and "backup-all" in recordings
+    assert "Percorso interno add-on" in recordings and "content-copy" in recordings
+    assert "mdi:delete-outline" in provider_item and "mdi:playlist-plus" in provider_item
+    assert "media_bridge/provider/recording_lists/${action}" in provider_lists
+    assert 'this._message("set_membership")' in provider_lists
+    assert all(
+        value in provider_lists for value in ("Nuova lista", "Modifica lista", "Elimina lista")
+    )
+    assert "local_storage/delete" in blink_storage and "local_storage/format" in blink_storage
+    assert "delete-sweep-outline" in blink_storage and 'type = "checkbox"' in blink_storage
     assert "media_bridge/provider/recordings/backup" in backup + recording_backup_ui
     assert "Pagina" in recordings and "page_size" in recordings
     assert "playback.mp4" in model + proxy and "Chiudi riproduzione" in player

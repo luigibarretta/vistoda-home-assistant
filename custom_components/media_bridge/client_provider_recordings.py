@@ -27,11 +27,18 @@ class ProviderRecordingClientMixin:
         )
         raw = payload.get("recordings")
         pagination = payload.get("pagination")
-        if not isinstance(raw, list) or len(raw) > 50 or not self._pagination(pagination):
+        storage = payload.get("storage")
+        if (
+            not isinstance(raw, list)
+            or len(raw) > 50
+            or not self._pagination(pagination)
+            or not self._storage(storage)
+        ):
             raise CannotConnectError
         return {
             "recordings": [self._recording(item) for item in raw],
             "pagination": pagination,
+            "storage": storage,
         }
 
     async def provider_recording(self, recording_id: str) -> dict[str, Any]:
@@ -109,3 +116,20 @@ class ProviderRecordingClientMixin:
             raise CannotConnectError
         optional = ("started_at", "completed_at", "actual_duration_seconds", "bytes", "sha256")
         return {**{key: item[key] for key in required}, **{key: item.get(key) for key in optional}}
+
+    @staticmethod
+    def _storage(value: object) -> bool:
+        if not isinstance(value, dict):
+            return False
+        directory = value.get("directory")
+        integers = ("used_bytes", "quota_bytes", "available_bytes")
+        return (
+            isinstance(directory, str)
+            and directory.startswith("/")
+            and len(directory) <= 1024
+            and ".." not in directory.split("/")
+            and value.get("scope") == "addon_private"
+            and all(isinstance(value.get(key), int) and value[key] >= 0 for key in integers)
+            and value["used_bytes"] <= value["quota_bytes"]
+            and value["available_bytes"] <= value["quota_bytes"]
+        )

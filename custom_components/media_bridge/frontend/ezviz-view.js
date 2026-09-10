@@ -16,7 +16,7 @@ class VistodaEzvizView extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._mounted = false;
     this._info = null;
-    this._nonce = Date.now();
+    this._nonce = 0;
     this._imageUrl = "";
     this._imageState = "empty";
     this._snapshotObservedAt = null;
@@ -131,10 +131,20 @@ class VistodaEzvizView extends HTMLElement {
     openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")?.entity_id);
   }
 
-  _refresh() {
-    this._nonce = Date.now();
+  async _refresh() {
+    const provider = this._info?.providers?.ezviz;
+    const entry = provider?.entries?.[0];
+    if (!entry || !this._hass) return;
     setText(this.shadowRoot, "message", "Richiesta di un nuovo snapshot…");
-    this._render();
+    this.$("refresh").disabled = true;
+    try {
+      const result = await this._hass.callWS({ type: "media_bridge/ezviz/snapshot/refresh",
+        entry_id: entry.entry_id });
+      this._snapshotObservedAt = Date.parse(result.updated_at) || Date.now();
+      this._nonce = Date.now(); this._render();
+    } catch (_error) {
+      setText(this.shadowRoot, "message", "Nuovo snapshot non disponibile.");
+    } finally { this.$("refresh").disabled = false; }
   }
 
   _renderImage() {

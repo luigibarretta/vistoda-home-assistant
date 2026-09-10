@@ -14,13 +14,23 @@ export const PROVIDER_RECORDING_STYLES = `
   summary::before { content:"›"; font-size:22px; transition:transform .15s ease; }
   details[open] summary::before { transform:rotate(90deg); }
   .list { display:grid; gap:10px; margin-top:8px; }
-  .item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px;
+  .item { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px;
     align-items:center; padding:12px; border-radius:14px;
     background:var(--secondary-background-color); }
   .meta { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:4px;
     color:var(--secondary-text-color); font-size:12px; }
   .item-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
-  .item-actions button { min-height:40px; padding:7px 10px; }
+  .select-item { display:grid; place-items:center; width:40px; min-height:40px; }
+  .select-item input { width:20px; height:20px; }
+  .icon-action { width:42px; height:42px; min-width:42px; padding:0; display:grid;
+    place-items:center; border-radius:11px; }
+  .icon-action ha-icon { --mdc-icon-size:22px; }
+  .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin:10px 0; padding:9px 11px; border-radius:12px; background:var(--secondary-background-color); }
+  .bulk-actions[hidden] { display:none !important; }
+  .archive-path { display:flex; align-items:center; gap:8px; margin:8px 0 2px; min-width:0; }
+  .archive-path code { overflow-wrap:anywhere; color:var(--primary-text-color); }
+  .archive-path button { flex:0 0 auto; }
   .status { font-size:12px; font-weight:750; color:var(--primary-color); }
   .message { min-height:20px; margin-top:8px; }
   .destination-note { margin-top:-5px; font-size:12px; }
@@ -28,12 +38,12 @@ export const PROVIDER_RECORDING_STYLES = `
     gap:10px; margin-top:12px; }
   .archive-pager span { text-align:center; color:var(--secondary-text-color); font-size:13px; }
   @media (max-width:600px) {
-    .head, .item { grid-template-columns:1fr; align-items:stretch; }
+    .head { grid-template-columns:1fr; align-items:stretch; }
     .head { display:grid; } .capture > * { flex:1 1 100%; }
     .head-actions { justify-content:stretch; }
     .head-actions button { flex:1 1 auto; }
-    .item-actions { justify-content:stretch; }
-    .item-actions button { flex:1 1 auto; }
+    .item { grid-template-columns:auto minmax(0,1fr); align-items:start; }
+    .item-actions { grid-column:2; justify-content:flex-start; }
     .archive-pager { grid-template-columns:1fr 1fr; }
     .archive-pager span { grid-column:1 / -1; grid-row:1; }
   }
