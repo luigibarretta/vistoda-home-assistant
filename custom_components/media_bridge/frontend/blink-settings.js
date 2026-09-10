@@ -44,14 +44,17 @@ class VistodaBlinkSettings extends HTMLElement {
         dalla camera, senza esporre credenziali.</div></div><button id="reload"
         aria-label="Rileggi le impostazioni dal cloud Blink"
         title="Rileggi le impostazioni dal cloud Blink"
-        data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate">↻</button></header>
+        data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate">
+        <ha-icon icon="mdi:refresh"></ha-icon></button></header>
         <div class="accordion" id="fields">${sections}</div><div class="draft-actions" id="draft-actions"
-          hidden><span class="muted" id="draft-count"></span><button id="discard">Annulla</button>
-          <button class="primary" id="save">Salva modifiche</button></div>
+          hidden><span class="muted" id="draft-count"></span><button id="discard">
+          <ha-icon icon="mdi:undo-variant"></ha-icon><span>Annulla</span></button>
+          <button class="primary" id="save"><ha-icon icon="mdi:content-save-outline"></ha-icon>
+          <span>Salva modifiche</span></button></div>
         <div class="muted" id="status" role="status"></div>
         <div class="notice muted">Vistoda mostra soltanto funzioni riconosciute per questo
-        modello. Audio bidirezionale Blink e rimozione rimangono nascosti finché
-        i relativi contratti non superano le verifiche di sicurezza.</div></section>`;
+        modello. Il live WebRTC gestisce speaker e microfono separatamente e blocca
+        l’uso contemporaneo del microfono da più sessioni Vistoda.</div></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this._load());
     this.$("discard").addEventListener("click", () => this._discard());

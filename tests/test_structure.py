@@ -1,5 +1,4 @@
 """HACS packaging, translation and maintenance gates."""
-
 import json
 from pathlib import Path
 
@@ -20,7 +19,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.21.2"
+    assert manifest["version"] == "0.22.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -63,11 +62,7 @@ def test_config_flow_guidance_is_complete_in_every_language() -> None:
             assert fields == step["data"].keys()
             assert fields == step["data_description"].keys()
         assert document["config"]["step"]["blink"]["description"].strip()
-        assert set(document["selector"]["provider"]["options"]) == {
-            "blink",
-            "ezviz",
-            "ring",
-        }
+        assert set(document["selector"]["provider"]["options"]) == {"blink", "ezviz", "ring"}
 
 
 def test_every_maintained_file_stays_within_250_lines() -> None:
@@ -119,6 +114,7 @@ def test_unified_panel_has_private_authenticated_boundaries() -> None:
     panel = (COMPONENT / "frontend" / "vistoda-panel.js").read_text(encoding="utf-8")
     ring_view = (COMPONENT / "frontend" / "ring-view.js").read_text(encoding="utf-8")
     session = (COMPONENT / "frontend" / "ring-audio-session.js").read_text(encoding="utf-8")
+    media = (COMPONENT / "frontend" / "ring-audio-media.js").read_text()
     controls = (COMPONENT / "frontend" / "ring-controls.js").read_text(encoding="utf-8")
     recordings = (COMPONENT / "frontend" / "ring-recordings.js").read_text(encoding="utf-8")
     recorder = (COMPONENT / "frontend" / "ring-local-recorder.js").read_text(encoding="utf-8")
@@ -148,7 +144,7 @@ def test_unified_panel_has_private_authenticated_boundaries() -> None:
     assert "window.confirm" in controls
     assert 'callService("button", "press"' in controls
     assert 'callService("number", "set_value"' in controls
-    assert "getUserMedia" in session
+    assert "getUserMedia" in media
     assert "replaceTrack" in session
     assert 'direction: "sendrecv"' in session
     assert "media_bridge/ring/session/delete" in session
@@ -198,9 +194,13 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
     blink_template = (COMPONENT / "frontend" / "blink-view-template.js").read_text(encoding="utf-8")
     ezviz = (COMPONENT / "frontend" / "ezviz-view.js").read_text(encoding="utf-8")
-    assert 'callService("blink_live_bridge", "trigger_camera"' in blink
-    assert '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
-    assert 'openMoreInfo(this, this._current("camera")' in blink
+    assert 'callService("blink_live_bridge", "trigger_camera"' in blink and (
+        '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
+    )
+    live = (COMPONENT / "frontend" / "blink-webrtc-session.js").read_text(encoding="utf-8")
+    assert "blink_live_bridge/webrtc/subscribe" in live and (
+        'pc.addTransceiver("audio", { direction: "sendrecv" })' in live
+    )
     assert "Aggiorna snapshot" in blink_template
     assert "SceneTrove" in ezviz and "standalone e separato" in ezviz
     assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz

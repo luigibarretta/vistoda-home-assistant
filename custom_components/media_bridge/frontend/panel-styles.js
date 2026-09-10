@@ -5,8 +5,10 @@ export const BASE_STYLES = `
   .card { border:1px solid var(--divider-color); border-radius:22px;
     background:var(--card-background-color); box-shadow:var(--ha-card-box-shadow); }
   button, .button { min-height:44px; border:0; border-radius:13px; padding:9px 14px;
-    cursor:pointer; font:inherit; font-weight:650; color:var(--primary-text-color);
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    cursor:pointer; font:inherit; font-weight:650; line-height:1.2; color:var(--primary-text-color);
     background:var(--secondary-background-color); text-decoration:none; }
+  button ha-icon, .button ha-icon { --mdc-icon-size:20px; flex:0 0 auto; }
   button.primary, .button.primary { color:#fff;
     background:linear-gradient(135deg,#6246ea,#4967e9); }
   button.danger { color:#fff; background:linear-gradient(135deg,#d84d75,#f47740); }
@@ -49,7 +51,9 @@ export const MEDIA_STYLES = `
   #snapshot-time { margin-top:3px; font-size:13px; }
   .facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;
     margin:16px 0; }
-  .fact { padding:12px; border-radius:13px; background:var(--secondary-background-color); }
+  .fact { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:10px;
+    padding:12px; border-radius:13px; background:var(--secondary-background-color); }
+  .fact > ha-icon { --mdc-icon-size:23px; color:var(--primary-color); }
   .fact span { display:block; color:var(--secondary-text-color); font-size:12px; margin-bottom:4px; }
   .fact strong { font-size:14px; }
   .pager { display:flex; justify-content:center; align-items:center; gap:9px; margin-top:14px; }

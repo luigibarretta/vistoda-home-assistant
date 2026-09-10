@@ -109,7 +109,9 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     assert "media_bridge/ring/call/answer" in view
     assert "Caricamento snapshot" in ezviz and "mdi:loading" in ezviz
     assert ".loader[hidden] { display:none !important; }" in ezviz
-    assert ">Arma</button>" in (blink + (frontend / "blink-view-template.js").read_text())
+    blink_template = (frontend / "blink-view-template.js").read_text()
+    assert "<span>Arma</span>" in blink_template and "mdi:shield-lock-outline" in blink_template
+    assert "motion-icon" in blink_template and "mdi:motion-sensor-off" in blink
     assert "Arma fuori casa</button>" not in blink
     recordings = (frontend / "ring-recordings.js").read_text()
     recorder = (frontend / "ring-local-recorder.js").read_text()

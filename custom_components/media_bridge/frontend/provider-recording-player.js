@@ -11,11 +11,14 @@ class VistodaProviderRecordingPlayer extends HTMLElement {
         margin-bottom:10px; }
       video { display:block; width:100%; max-height:62vh; border-radius:12px; background:#000; }
       button { min-height:40px; padding:7px 12px; border:1px solid var(--divider-color);
+        display:inline-flex; align-items:center; justify-content:center; gap:6px;
         border-radius:10px; color:var(--primary-text-color); background:var(--card-background-color);
         cursor:pointer; }
+      button ha-icon { --mdc-icon-size:19px; }
       .message { margin-top:8px; color:var(--secondary-text-color); font-size:12px; }
     </style><section><header><strong id="title">Riproduzione registrazione</strong>
-      <button id="close">Chiudi riproduzione</button></header>
+      <button id="close"><ha-icon icon="mdi:close"></ha-icon>
+      <span>Chiudi riproduzione</span></button></header>
       <video id="video" controls playsinline preload="metadata"></video>
       <div class="message" id="message" role="status"></div></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);

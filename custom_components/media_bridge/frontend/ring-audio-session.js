@@ -1,3 +1,4 @@
+import { createRingAudioMedia } from "./ring-audio-media.js";
 const STUN = "stun:stun.kinesisvideo.us-east-1.amazonaws.com:443";
 const COOLDOWN_MS = 10_500;
 
@@ -19,6 +20,7 @@ export class RingAudioSession {
     this.cooldownUntil = 0;
     this.busy = false;
     this.stopping = null;
+    this.generation = 0;
   }
 
   async start(mode) {
@@ -26,13 +28,18 @@ export class RingAudioSession {
     if (this.pc) return this.switchMode(mode);
     if (Date.now() < this.cooldownUntil) return;
     this.busy = true;
+    const generation = ++this.generation;
     this.onState({ phase: "starting", mode });
     try {
-      this.localMedia = await this.createMedia(mode);
+      const media = await createRingAudioMedia(mode, this);
+      if (generation !== this.generation) { await media.release(); return; }
+      this.localMedia = media;
       const pc = new RTCPeerConnection({ iceServers: [{ urls: STUN }] });
       this.pc = pc;
-      pc.ontrack = (event) => this.play(event);
-      pc.onconnectionstatechange = () => this.connectionChanged();
+      pc.ontrack = (event) => {
+        if (generation === this.generation && this.pc === pc) this.play(event, generation);
+      };
+      pc.onconnectionstatechange = () => this.connectionChanged(pc, generation);
       const transceiver = pc.addTransceiver(this.localMedia.stream.getAudioTracks()[0], {
         direction: "sendrecv",
         streams: [this.localMedia.stream],
@@ -44,8 +51,10 @@ export class RingAudioSession {
       if (!pcmu?.length) throw new Error("PCMU non supportato dal browser");
       transceiver.setCodecPreferences(pcmu);
       await pc.setLocalDescription(await pc.createOffer());
+      if (generation !== this.generation) return;
       const iceStarted = performance.now();
       await this.waitForIce(pc);
+      if (generation !== this.generation) return;
       const iceGatheringMs = Math.min(60_000, Math.max(0, Math.round(performance.now() - iceStarted)));
       this.onState({ phase: "connecting", mode });
       const result = await this.hass.callWS({
@@ -56,19 +65,25 @@ export class RingAudioSession {
         ice_gathering_ms: iceGatheringMs,
       });
       this.remoteId = result.session_id;
+      if (generation !== this.generation) {
+        await this.deleteRemote("start_cancelled"); await this.disposePeer(); return;
+      }
       this.mode = mode;
       await pc.setRemoteDescription({ type: "answer", sdp: result.answer_sdp });
+      if (generation !== this.generation) return;
       for (const ice of result.ice_candidates) {
         await pc.addIceCandidate({
           candidate: ice.candidate,
           sdpMLineIndex: ice.sdp_mline_index,
         });
+        if (generation !== this.generation) return;
       }
       this.expiry = setTimeout(
         () => this.stop("Sessione scaduta", "client_expired"), result.expires_in * 1000,
       );
       this.onState({ phase: "active", mode });
     } catch (error) {
+      if (generation !== this.generation) return;
       await this.deleteRemote("start_failed");
       await this.disposePeer();
       if (error?.code === "cooldown") {
@@ -86,10 +101,13 @@ export class RingAudioSession {
     if (this.busy || !this.sender || mode === this.mode) return;
     this.busy = true;
     this.onState({ phase: "switching", mode });
+    const generation = this.generation;
     let next;
     try {
-      next = await this.createMedia(mode);
+      next = await createRingAudioMedia(mode, this);
+      if (generation !== this.generation) { await next.release(); return; }
       await this.sender.replaceTrack(next.stream.getAudioTracks()[0]);
+      if (generation !== this.generation) { await next.release(); return; }
       const previous = this.localMedia;
       this.localMedia = next;
       this.mode = mode;
@@ -98,6 +116,7 @@ export class RingAudioSession {
       this.onState({ phase: "active", mode });
     } catch (error) {
       await next?.release();
+      if (generation !== this.generation) return;
       this.onState({
         phase: "active",
         mode: this.mode,
@@ -106,31 +125,6 @@ export class RingAudioSession {
     } finally {
       this.busy = false;
     }
-  }
-
-  async createMedia(mode) {
-    if (mode === "talk") {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-      return { stream, release: async () => stream.getTracks().forEach((track) => track.stop()) };
-    }
-    const context = new AudioContext();
-    const destination = context.createMediaStreamDestination();
-    const gain = context.createGain();
-    gain.gain.value = 0;
-    const source = context.createConstantSource();
-    source.connect(gain).connect(destination);
-    source.start();
-    return {
-      stream: destination.stream,
-      release: async () => {
-        try { source.stop(); } catch (_error) {}
-        destination.stream.getTracks().forEach((track) => track.stop());
-        await context.close();
-      },
-    };
   }
 
   waitForIce(pc, timeoutMs = 8000) {
@@ -161,16 +155,18 @@ export class RingAudioSession {
     });
   }
 
-  async play(event) {
+  async play(event, generation) {
     this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
     this.onMedia(this.audio.srcObject, this.localMedia?.stream, this.mode || "listen");
     try { await this.audio.play(); } catch (_error) {
+      if (generation !== this.generation) return;
       this.onState({ phase: "active", mode: this.mode, message: "Tocca un controllo per l’audio" });
     }
   }
 
-  connectionChanged() {
-    const state = this.pc?.connectionState;
+  connectionChanged(pc, generation) {
+    if (generation !== this.generation || this.pc !== pc) return;
+    const state = pc.connectionState;
     if (state === "connected") this.onState({ phase: "active", mode: this.mode });
     if (["failed", "closed"].includes(state)) {
       this.stop("Connessione terminata", "connection_ended");
@@ -179,15 +175,17 @@ export class RingAudioSession {
 
   stop(message = "Sessione terminata", reason = "user_stop") {
     if (this.stopping) return this.stopping;
+    ++this.generation;
     this.stopping = this.performStop(message, reason).finally(() => { this.stopping = null; });
     return this.stopping;
   }
 
   async performStop(message, reason) {
     const hadSession = Boolean(this.remoteId);
-    await this.beforeStop();
+    const finishing = this.beforeStop();
+    const disposing = this.disposePeer();
+    await Promise.allSettled([finishing, disposing]);
     await this.deleteRemote(reason);
-    await this.disposePeer();
     if (!hadSession) return this.onState({ phase: "idle", message });
     this.cooldownUntil = Date.now() + COOLDOWN_MS;
     this.startCooldown(message);

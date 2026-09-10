@@ -2,12 +2,12 @@ import "./blink-settings.js";
 import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
+import { blinkViewLive } from "./blink-view-live.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import {
   devicesWithDomain,
   entityState,
   firstEntity,
-  openMoreInfo,
   pictureUrl,
   providerDevices,
   setText,
@@ -28,6 +28,8 @@ class VistodaBlinkView extends HTMLElement {
     this._snapshotTimes = new Map();
     this._swipeStart = null;
     this._detailOpen = false;
+    this._liveState = { phase: "idle", microphone: false, speaker: false, message: "" };
+    this._liveSession = null;
     this._mounted = false;
   }
 
@@ -40,10 +42,14 @@ class VistodaBlinkView extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
-    this.$("live").addEventListener("click", () => this._openLive());
+    this.$("live").addEventListener("click", () => this._toggleLive());
+    this.$("speaker").addEventListener("click", () => this._liveSession?.toggleSpeaker());
+    this.$("microphone").addEventListener("click", () => this._liveSession?.toggleMicrophone());
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
-    this.$("details").addEventListener("click", () => { this._detailOpen = true; this._render(); });
+    this.$("details").addEventListener("click", () => {
+      this._liveSession?.stop(); this._detailOpen = true; this._render();
+    });
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
     this.$("arm").addEventListener("click", () => this._setAlarm(true));
     this.$("disarm").addEventListener("click", () => this._setAlarm(false));
@@ -88,6 +94,7 @@ class VistodaBlinkView extends HTMLElement {
       this.$("recordings").configure(this._hass, null);
     }
     this._renderDots(cameras.length);
+    this._renderLive();
   }
 
   _cameras() { return devicesWithDomain(this._info, "blink", "camera"); }
@@ -127,13 +134,19 @@ class VistodaBlinkView extends HTMLElement {
     const batteryState = entityState(this._hass, battery);
     setText(this.shadowRoot, "battery", batteryState?.state === "on" ? "Scarica"
       : batteryState?.state === "off" ? "OK" : "Non rilevata");
+    this.$("battery-icon").setAttribute("icon", batteryState?.state === "on"
+      ? "mdi:battery-alert-variant-outline" : "mdi:battery");
     setText(this.shadowRoot, "temperature", stateText(this._hass, temperature, "Non rilevata"));
     setText(this.shadowRoot, "clips", String(clips.length));
     const motionState = entityState(this._hass, motion);
-    this.$("motion").textContent = motionState?.state === "on"
-      ? "Disattiva movimento" : "Attiva movimento";
+    const motionEnabled = motionState?.state === "on";
+    setText(this.shadowRoot, "motion-label", motionEnabled
+      ? "Disattiva movimento" : "Attiva movimento");
+    this.$("motion-icon").setAttribute("icon", motionEnabled
+      ? "mdi:motion-sensor-off" : "mdi:motion-sensor");
     this.$("motion").disabled = !motionState || motionState.state === "unavailable";
     const url = pictureUrl(this._hass, camera, this._nonce);
+    if (this._liveSession) this._liveSession.hass = this._hass;
     this.$("snapshot").alt = `Snapshot ${device.name}`;
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
@@ -156,7 +169,9 @@ class VistodaBlinkView extends HTMLElement {
       button.setAttribute("aria-label", `Apri telecamera ${index + 1}`);
       button.title = `Apri telecamera ${index + 1}`;
       if (index === this._index) button.setAttribute("aria-current", "true");
-      button.addEventListener("click", () => { this._index = index; this._render(); });
+      button.addEventListener("click", () => {
+        this._liveSession?.stop(); this._index = index; this._render();
+      });
       return button;
     });
     this.$("dots").replaceChildren(...dots);
@@ -165,6 +180,7 @@ class VistodaBlinkView extends HTMLElement {
   _move(step) {
     const count = this._cameras().length;
     if (!count) return;
+    this._liveSession?.stop();
     this._index = wrappedIndex(this._index, step, count);
     this._render();
   }
@@ -183,7 +199,6 @@ class VistodaBlinkView extends HTMLElement {
   }
 
   _current(domain) { return firstEntity(this._cameras()[this._index], domain); }
-  _openLive() { openMoreInfo(this, this._current("camera")?.entity_id); }
 
   async _refreshSnapshot() {
     const camera = this._current("camera");
@@ -224,11 +239,9 @@ class VistodaBlinkView extends HTMLElement {
     finally { this._render(); }
   }
 
-  _showImage(show) {
-    this.$("snapshot").hidden = !show;
-    this.$("placeholder").hidden = show;
-  }
 }
+
+Object.assign(VistodaBlinkView.prototype, blinkViewLive);
 
 if (!customElements.get("vistoda-blink-view")) {
   customElements.define("vistoda-blink-view", VistodaBlinkView);

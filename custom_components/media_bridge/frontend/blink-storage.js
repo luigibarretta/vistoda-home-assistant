@@ -81,12 +81,15 @@ class VistodaBlinkStorage extends HTMLElement {
     summary.append(title, count);
     const body = document.createElement("div"); body.className = "module-body";
     const facts = document.createElement("div"); facts.className = "module-facts";
-    facts.append(this._fact(`USB: ${storage.status?.usb_state || "stato sconosciuto"}`));
+    facts.append(this._fact("mdi:usb-flash-drive",
+      `USB: ${storage.status?.usb_state || "stato sconosciuto"}`));
     if (Number.isFinite(storage.status?.usb_storage_available_percentage)) {
-      facts.append(this._fact(`Spazio disponibile: ${storage.status.usb_storage_available_percentage}%`));
+      facts.append(this._fact("mdi:harddisk",
+        `Spazio disponibile: ${storage.status.usb_storage_available_percentage}%`));
     }
     if (storage.status?.last_backup_completed) {
-      facts.append(this._fact(`Ultimo backup Blink: ${this._date(storage.status.last_backup_completed)}`));
+      facts.append(this._fact("mdi:cloud-check-outline",
+        `Ultimo backup Blink: ${this._date(storage.status.last_backup_completed)}`));
     }
     if (storage.status?.can_format_usb) {
       const format = this._icon("mdi:format-page-break", "Formatta chiavetta",
@@ -137,10 +140,12 @@ class VistodaBlinkStorage extends HTMLElement {
   _pager(pagination = {}) {
     const pager = document.createElement("nav"); pager.className = "archive-pager";
     pager.setAttribute("aria-label", "Pagine archivio Blink");
-    const previous = this._button("Precedente", () => this._go(pagination.page - 1), !pagination.has_previous);
+    const previous = this._button("mdi:chevron-left", "Precedente",
+      () => this._go(pagination.page - 1), !pagination.has_previous);
     const label = document.createElement("span");
     label.textContent = `Pagina ${pagination.page || 1} di ${pagination.total_pages || 1}`;
-    const next = this._button("Successiva", () => this._go(pagination.page + 1), !pagination.has_next);
+    const next = this._button("mdi:chevron-right", "Successiva",
+      () => this._go(pagination.page + 1), !pagination.has_next);
     pager.append(previous, label, next); return pager;
   }
 
@@ -153,8 +158,9 @@ class VistodaBlinkStorage extends HTMLElement {
   _mediaId(storage, clip) { return `usb:${this._selectionKey(storage, clip)}`; }
   _listsChanged(resetPage) { if (resetPage) this._page = 1; this._render(); }
   _setMessage(value) { if (this.$) this.$("status").textContent = value; }
-  _button(label, action, disabled = false) {
-    const button = document.createElement("button"); button.textContent = label;
+  _button(icon, label, action, disabled = false) {
+    const button = document.createElement("button");
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`;
     button.disabled = disabled || this._busy; button.addEventListener("click", action); return button;
   }
   _icon(icon, label, action, disabled = false, danger = false) {
@@ -165,7 +171,12 @@ class VistodaBlinkStorage extends HTMLElement {
     button.addEventListener("click", action); return button;
   }
   _safeCamera(value) { return String(value || "Telecamera_Blink").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64) || "Telecamera_Blink"; }
-  _fact(text) { const node = document.createElement("span"); node.textContent = text; return node; }
+  _fact(icon, text) {
+    const node = document.createElement("span"); node.className = "storage-fact";
+    const glyph = document.createElement("ha-icon"); glyph.setAttribute("icon", icon);
+    const label = document.createElement("span"); label.textContent = text;
+    node.append(glyph, label); return node;
+  }
   _date(value) {
     const numeric = typeof value === "string" && /^\d{11,}$/.test(value) ? Number(value) : value;
     const date = new Date(numeric); return Number.isNaN(date.valueOf())

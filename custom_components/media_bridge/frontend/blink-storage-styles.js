@@ -10,9 +10,12 @@ export const BLINK_STORAGE_STYLES = `
   .module summary { display:flex; align-items:center; justify-content:space-between; gap:12px;
     min-height:58px; padding:12px 14px; cursor:pointer; }
   .module-body { padding:0 14px 14px; }
-  .module-facts { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .module-facts span { padding:6px 9px; border-radius:999px; font-size:12px;
+  .module-facts { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .module-facts .storage-fact { display:inline-flex; align-items:center; gap:6px; min-height:32px;
+    padding:6px 9px; border-radius:999px; font-size:12px; line-height:1.2;
     background:var(--secondary-background-color); }
+  .storage-fact ha-icon { --mdc-icon-size:17px; flex:0 0 auto; color:var(--primary-color); }
+  .storage-fact span { display:inline-flex; align-items:center; min-height:18px; padding:0; }
   .clip { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px;
     min-height:62px; padding:10px 0; border-top:1px solid var(--divider-color); }
   .clip strong, .clip small { display:block; }

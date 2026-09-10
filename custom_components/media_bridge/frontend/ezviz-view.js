@@ -51,13 +51,16 @@ class VistodaEzvizView extends HTMLElement {
           <div class="muted">VTM cloud privato con remux MPEG-TS condiviso</div>
           <div class="muted" id="snapshot-time"></div></div>
           <span class="badge off" id="camera-state">Non disponibile</span></div>
-          <div class="facts"><div class="fact"><span>Connessione</span>
-            <strong id="connection">—</strong></div><div class="fact"><span>Live</span>
-            <strong>Su richiesta</strong></div><div class="fact"><span>Snapshot</span>
-            <strong id="snapshot-state">Verifica…</strong></div></div>
+          <div class="facts"><div class="fact"><ha-icon icon="mdi:lan-connect"></ha-icon>
+            <div><span>Connessione</span><strong id="connection">—</strong></div></div>
+            <div class="fact"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
+            <div><span>Live</span><strong>Su richiesta</strong></div></div>
+            <div class="fact"><ha-icon icon="mdi:camera-outline"></ha-icon>
+            <div><span>Snapshot</span><strong id="snapshot-state">Verifica…</strong></div></div></div>
           <div class="actions"><button class="primary" id="live"
-            title="Apri il live in Home Assistant">Apri live</button>
-            <button id="refresh" title="Ricarica lo snapshot EZVIZ">Aggiorna snapshot</button></div>
+            title="Apri il live in Home Assistant"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
+            <span>Apri live</span></button><button id="refresh" title="Ricarica lo snapshot EZVIZ">
+            <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span>Aggiorna snapshot</span></button></div>
           <div class="muted" id="message" role="status"></div>
           <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings>
           <div class="notice muted">Questo archivio è standalone e separato da SceneTrove:
