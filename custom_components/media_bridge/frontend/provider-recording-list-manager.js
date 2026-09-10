@@ -12,7 +12,10 @@ export const PROVIDER_LIST_TEMPLATE = `
 
 export const PROVIDER_LIST_STYLES = `
   .list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
-  .list-controls select { flex:1 1 190px; }
+  .list-controls select { flex:1 1 190px; min-height:44px; box-sizing:border-box;
+    padding:9px 38px 9px 12px; border:1px solid var(--divider-color); border-radius:13px;
+    color:var(--primary-text-color); background-color:var(--secondary-background-color);
+    font:inherit; color-scheme:dark; }
   .list-controls button { display:inline-flex; align-items:center; gap:7px; }
   .list-controls .count { display:grid; place-items:center; min-width:20px; min-height:20px;
     padding:0 5px; border-radius:999px; background:var(--secondary-background-color); font-size:11px; }
