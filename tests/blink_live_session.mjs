@@ -25,7 +25,7 @@ function harness() {
 
 test("official fallback stops Cayuga before starting Walnut", async () => {
   const item = harness();
-  await item.session.start("kitchen", "camera.kitchen");
+  await item.session.start("kitchen", "camera.kitchen", "cayuga");
   item.emit({ phase: "fallback", reason: "blink_legacy_device" });
   await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -36,7 +36,7 @@ test("official fallback stops Cayuga before starting Walnut", async () => {
 
 test("ordinary WebRTC failure is fail-closed until manual compatible live", async () => {
   const item = harness();
-  await item.session.start("kitchen", "camera.kitchen");
+  await item.session.start("kitchen", "camera.kitchen", "cayuga");
   item.emit({ phase: "error", providerCode: 2, message: "setup failed" });
   await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -48,12 +48,21 @@ test("ordinary WebRTC failure is fail-closed until manual compatible live", asyn
 
 test("automatic fallback is one-way per start", async () => {
   const item = harness();
-  await item.session.start("kitchen", "camera.kitchen");
+  await item.session.start("kitchen", "camera.kitchen", "cayuga");
   item.emit({ phase: "fallback", reason: "no_ring_device_id" });
   item.emit({ phase: "fallback", reason: "blink_legacy_device" });
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   assert.equal(item.order.filter((entry) => entry.startsWith("legacy:start")).length, 1);
+});
+
+test("official policy selects Walnut without constructing Cayuga", async () => {
+  const item = harness();
+  await item.session.start("kitchen", "camera.kitchen");
+
+  assert.deepEqual(item.order, ["legacy:start:camera.kitchen"]);
+  assert.equal(item.session.mode, "legacy");
+  assert.equal(item.states.at(-1).transport, "walnut");
 });
 
 test("Walnut fallback mounts the Home Assistant live camera player", async () => {
