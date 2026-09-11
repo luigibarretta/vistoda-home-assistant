@@ -80,11 +80,43 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     await settings.locator('details[data-section="privacy"] summary').click();
     const zones = page.locator("vistoda-blink-zones");
     assert.match(await zones.locator(".cell").first().getAttribute("aria-label"), en ? /^Row 1, column 1/ : /^Riga 1, colonna 1/);
+    const mobile = await page.evaluate(() => matchMedia("(max-width:650px)").matches);
+    if (mobile) {
+      assert.equal(await zones.locator("#mobile-preview").isVisible(), true);
+      assert.equal(await zones.locator("#editor-shell").isVisible(), false);
+      const preview = await zones.locator("#mobile-preview").evaluate((element) => {
+        const box = element.getBoundingClientRect(); return { width: box.width, height: box.height };
+      });
+      assert.ok(Math.abs(preview.height - preview.width * 9 / 16) < 1, "mobile preview must show the complete 16:9 grid");
+      if (!en && await page.evaluate(() => innerWidth === 393) && process.env.VISTODA_AUDIT_PREVIEW_SCREENSHOT) {
+        await zones.screenshot({ path: process.env.VISTODA_AUDIT_PREVIEW_SCREENSHOT });
+      }
+      await zones.locator("#open-editor").click();
+      assert.equal(await zones.locator("#editor-shell").isVisible(), true);
+      assert.equal(await zones.locator("#pan").getAttribute("aria-pressed"), "true");
+      const scrolling = await zones.locator("#editor-viewport").evaluate((element) => {
+        element.scrollLeft = 120; element.scrollTop = 90;
+        return { left: element.scrollLeft, top: element.scrollTop,
+          scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
+      });
+      assert.ok(scrolling.scrollWidth > scrolling.clientWidth && scrolling.left > 0,
+        "mobile pan mode must expose the enlarged editor horizontally");
+      await zones.locator("#paint").click();
+      assert.equal(await zones.locator("#paint").getAttribute("aria-pressed"), "true");
+      if (!en && await page.evaluate(() => innerWidth === 393) && process.env.VISTODA_AUDIT_SCREENSHOT) {
+        await page.screenshot({ path: process.env.VISTODA_AUDIT_SCREENSHOT });
+      }
+    }
     await checkAuthoredCopy(page, language); await check(`zones-${language}`);
     assert.equal(await zones.locator("#grid").evaluate(grid => grid.scrollWidth === grid.clientWidth && grid.scrollHeight === grid.clientHeight), true,
       "all zone cells must fit the image coordinate grid, not overflow and get clipped");
     await zones.locator(".cell").first().focus(); await page.keyboard.press("Space");
     assert.equal(await zones.locator(".cell").first().getAttribute("aria-pressed"), "false");
+    if (mobile) {
+      await zones.locator("#close-editor").click();
+      assert.equal(await zones.locator("#editor-shell").isVisible(), false);
+      assert.equal(await zones.locator("#open-editor").evaluate((element) => element === element.getRootNode().activeElement), true);
+    }
     await page.locator("vistoda-blink-view #details-back").click();
   }
 }

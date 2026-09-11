@@ -9,14 +9,16 @@ import { BLINK_ZONE_STYLES } from "./blink-zone-styles.js";
 class VistodaBlinkZones extends HTMLElement {
   constructor() {
     super(); this.attachShadow({ mode: "open" }); this._request = 0; this._tab = "activity";
-    this._zones = null; this._masks = []; this._privacy = []; this._drag = null; this._mount();
+    this._zones = null; this._masks = []; this._privacy = []; this._drag = null;
+    this._mobileMode = "pan"; this._mount();
   }
 
   set hass(value) { this._hass = value; this._render(); }
   set camera(value) {
     if (value?.alias === this._camera?.alias && value?.snapshot === this._camera?.snapshot) return;
     const changed = value?.alias !== this._camera?.alias; this._camera = value;
-    if (changed) { this._request += 1; this._zones = null; this._masks = []; this._privacy = []; this._load(); }
+    if (changed) { this._closeEditor(false); this._request += 1; this._zones = null;
+      this._masks = []; this._privacy = []; this._load(); }
     else this._render();
   }
 
@@ -29,10 +31,23 @@ class VistodaBlinkZones extends HTMLElement {
           data-tooltip="Rilegge dal cloud Blink le zone di questa telecamera" data-copy-data-tooltip="Rilegge dal cloud Blink le zone di questa telecamera">↻</button></header>
         <div class="tabs" role="tablist"><button id="activity" role="tab"><span data-copy="Zone attività">Zone attività</span></button>
           <button id="privacy" role="tab"><span data-copy="Zone privacy">Zone privacy</span></button></div>
-        <div class="editor-viewport" id="editor-viewport" tabindex="0" role="region" data-copy-aria-label="Scorri la griglia delle zone">
-        <div class="editor" id="editor"><img id="photo" alt=""><div class="grid" id="grid"></div>
-          <div id="overlays"></div></div></div><div class="legend" id="legend"></div>
-        <p class="muted" data-copy="Scorri la griglia per raggiungere tutte le zone. Usa Tab e Spazio per modificarle da tastiera."></p>
+        <div class="mobile-preview" id="mobile-preview" aria-hidden="true"><img id="preview-photo" alt="">
+          <div class="preview-grid" id="preview-grid"></div><div id="preview-overlays"></div></div>
+        <button class="mobile-open" id="open-editor"><ha-icon icon="mdi:fullscreen"></ha-icon>
+          <span data-copy="Modifica zone">Modifica zone</span></button>
+        <div class="editor-shell" id="editor-shell">
+          <div class="editor-toolbar"><div><strong data-copy="Editor zone Blink">Editor zone Blink</strong>
+            <small id="mode-help"></small></div><div class="editor-controls" role="group" data-copy-aria-label="Modalità editor zone">
+            <button id="pan" aria-pressed="true"><ha-icon icon="mdi:hand-back-right-outline"></ha-icon><span data-copy="Sposta">Sposta</span></button>
+            <button id="paint" aria-pressed="false"><ha-icon icon="mdi:gesture-tap"></ha-icon><span data-copy="Modifica">Modifica</span></button>
+            <button class="close-editor" id="close-editor" aria-label="Chiudi editor zone" title="Chiudi editor zone"
+              data-copy-aria-label="Chiudi editor zone" data-copy-title="Chiudi editor zone">
+              <ha-icon icon="mdi:close"></ha-icon></button></div></div>
+          <div class="editor-viewport" id="editor-viewport" tabindex="0" role="region" data-copy-aria-label="Scorri la griglia delle zone">
+            <div class="editor" id="editor"><img id="photo" alt=""><div class="grid" id="grid"></div>
+              <div id="overlays"></div></div></div></div><div class="legend" id="legend"></div>
+        <p class="muted desktop-help" data-copy="Scorri la griglia per raggiungere tutte le zone. Usa Tab e Spazio per modificarle da tastiera."></p>
+        <p class="muted mobile-help" data-copy="L’anteprima mostra l’intera griglia. Apri l’editor per spostarti e modificare con precisione."></p>
         <div class="zone-actions"><button id="add"><span data-copy="+ Area privacy">+ Area privacy</span></button><button id="reset"><span data-copy="Ripristina">Ripristina</span></button>
           <button class="primary save" id="save"><span data-copy="Salva e verifica">Salva e verifica</span></button></div>
         <div class="muted" id="status" role="status"></div></section>`; localizeCopy(this.shadowRoot, this);
@@ -40,6 +55,14 @@ class VistodaBlinkZones extends HTMLElement {
     this.$("reload").addEventListener("click", () => this._load());
     this.$("activity").addEventListener("click", () => this._selectTab("activity"));
     this.$("privacy").addEventListener("click", () => this._selectTab("privacy"));
+    this.$("open-editor").addEventListener("click", () => this._openEditor());
+    this.$("close-editor").addEventListener("click", () => this._closeEditor());
+    this.$("pan").addEventListener("click", () => this._setMobileMode("pan"));
+    this.$("paint").addEventListener("click", () => this._setMobileMode("paint"));
+    for (const id of ["photo", "preview-photo"]) {
+      this.$(id).addEventListener("load", () => this.$(id).classList.remove("failed"));
+      this.$(id).addEventListener("error", () => this.$(id).classList.add("failed"));
+    }
     this.$("add").addEventListener("click", () => { this._addingPrivacy = true; this._status(copy(this, "Trascina sull’immagine per creare l’area.")); });
     this.$("reset").addEventListener("click", () => this._reset());
     this.$("save").addEventListener("click", () => this._save());
@@ -47,6 +70,11 @@ class VistodaBlinkZones extends HTMLElement {
     this.$("editor").addEventListener("pointermove", (event) => this._pointerMove(event));
     this.$("editor").addEventListener("pointerup", (event) => this._pointerUp(event));
     this.$("editor").addEventListener("pointercancel", () => { this._drag = null; this._render(); });
+    this.shadowRoot.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && this.$("editor-shell").classList.contains("mobile-expanded")) {
+        event.preventDefault(); this._closeEditor();
+      }
+    });
   }
 
   async _load() {
@@ -67,8 +95,12 @@ class VistodaBlinkZones extends HTMLElement {
   _render() {
     localizeCopy(this.shadowRoot, this);
     this.hidden = !this._camera?.alias; if (this.hidden) return;
-    this.$("photo").src = this._camera.snapshot || ""; this.$("photo").alt = copy(this, "Snapshot {p0}", { p0: this._camera.name || "Blink" });
+    const snapshot = this._camera.snapshot || ""; this.$("photo").src = snapshot;
+    this.$("photo").classList.toggle("failed", !snapshot);
+    this.$("photo").alt = copy(this, "Snapshot {p0}", { p0: this._camera.name || "Blink" });
+    this.$("preview-photo").src = snapshot; this.$("preview-photo").classList.toggle("failed", !snapshot);
     const ready = Boolean(this._zones); this.$("editor-viewport").hidden = !ready;
+    this.$("mobile-preview").hidden = !ready; this.$("open-editor").hidden = !ready;
     for (const tab of ["activity", "privacy"]) { const button = this.$(tab);
       button.classList.toggle("active", this._tab === tab); button.setAttribute("aria-selected", String(this._tab === tab)); }
     this.$("privacy").disabled = !this._zones?.privacy_supported;
@@ -81,10 +113,11 @@ class VistodaBlinkZones extends HTMLElement {
   }
 
   _renderGrid() {
-    const cells = [];
+    const cells = []; const previewCells = [];
     for (let y = 0; y < GRID_ROWS; y += 1) for (let x = 0; x < GRID_COLUMNS; x += 1) {
       const cell = document.createElement("button"); const active = activityEnabled(this._masks, x, y);
       const privateCell = privacyContains(this._privacy, x, y); cell.className = `cell${active ? " active" : ""}${privateCell ? " private" : ""}`;
+      const preview = document.createElement("div"); preview.className = `preview-cell${active ? " active" : ""}${privateCell ? " private" : ""}`;
       cell.dataset.x = x; cell.dataset.y = y; cell.tabIndex = this._tab === "activity" ? 0 : -1;
       cell.setAttribute("aria-label", copy(this, "Riga {p0}, colonna {p1}: {p2}", { p0: y + 1, p1: x + 1, p2: privateCell ? "privacy" : copy(this, active ? "attiva" : "inattiva") }));
       cell.setAttribute("aria-pressed", String(active));
@@ -94,19 +127,21 @@ class VistodaBlinkZones extends HTMLElement {
         this._masks = setActivity(this._masks, x, y, !active); this._render();
         this.$("grid").children[y * GRID_COLUMNS + x]?.focus();
       });
-      cells.push(cell);
+      cells.push(cell); previewCells.push(preview);
     }
     this.$("grid").replaceChildren(...cells);
+    this.$("preview-grid").replaceChildren(...previewCells);
   }
 
   _renderPrivacy() {
     const overlays = this._privacy.map((zone, index) => this._overlay(zone, index));
     if (this._drag?.kind === "privacy") overlays.push(this._overlay(rectangleFromCells(this._drag.start, this._drag.end), -1));
     this.$("overlays").replaceChildren(...overlays);
+    this.$("preview-overlays").replaceChildren(...this._privacy.map((zone) => this._overlay(zone, -2)));
   }
 
   _overlay(zone, index) {
-    const item = document.createElement("div"); item.className = `privacy-overlay${index < 0 ? " preview" : ""}`;
+    const item = document.createElement("div"); item.className = `privacy-overlay${index === -1 ? " preview" : ""}`;
     Object.assign(item.style, { left: `${zone.x / GRID_COLUMNS * 100}%`, top: `${zone.y / GRID_ROWS * 100}%`,
       width: `${zone.w / GRID_COLUMNS * 100}%`, height: `${zone.h / GRID_ROWS * 100}%` });
     if (index >= 0 && this._tab === "privacy" && this._editable()) { const remove = document.createElement("button");
@@ -117,6 +152,7 @@ class VistodaBlinkZones extends HTMLElement {
   }
 
   _pointerDown(event) {
+    if (this.$("editor-shell").classList.contains("pan")) return;
     if (!this._editable() || !this._zones) return; const point = this._point(event);
     if (this._tab === "privacy") { if (!this._addingPrivacy || this._privacy.length >= 2) return;
       this._drag = { kind: "privacy", start: point, end: point }; }
@@ -141,6 +177,28 @@ class VistodaBlinkZones extends HTMLElement {
   _point(event) { const box = this.$("editor").getBoundingClientRect();
     return { x: Math.max(0, Math.min(19, Math.floor((event.clientX - box.left) / box.width * 20))),
       y: Math.max(0, Math.min(14, Math.floor((event.clientY - box.top) / box.height * 15))) }; }
+
+  _openEditor() {
+    const shell = this.$("editor-shell"); this._mobileMode = "pan";
+    shell.classList.add("mobile-expanded"); shell.setAttribute("role", "dialog");
+    shell.setAttribute("aria-modal", "true"); this._setMobileMode("pan"); this.$("pan").focus();
+  }
+
+  _closeEditor(restoreFocus = true) {
+    const shell = this.$?.("editor-shell"); if (!shell) return;
+    shell.classList.remove("mobile-expanded", "pan", "paint"); shell.removeAttribute("role");
+    shell.removeAttribute("aria-modal"); this._drag = null;
+    if (restoreFocus) this.$("open-editor").focus();
+  }
+
+  _setMobileMode(mode) {
+    this._mobileMode = mode; const shell = this.$("editor-shell");
+    shell.classList.toggle("pan", mode === "pan"); shell.classList.toggle("paint", mode === "paint");
+    this.$("pan").setAttribute("aria-pressed", String(mode === "pan"));
+    this.$("paint").setAttribute("aria-pressed", String(mode === "paint"));
+    this.$("mode-help").textContent = copy(this, mode === "pan"
+      ? "Trascina per spostarti nella griglia." : "Tocca o trascina per modificare le celle.");
+  }
 
   _reset() { const privacy = this._tab === "privacy";
     if (!globalThis.confirm(privacy ? copy(this, "Eliminare tutte le zone privacy?") : copy(this, "Riattivare tutte le zone di movimento?"))) return;

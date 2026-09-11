@@ -155,6 +155,10 @@ def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:
     assert "activity_masks: this._masks, privacy_zones: this._privacy" in zones
     assert "GRID_COLUMNS = 20" in model and "GRID_ROWS = 15" in model
     assert "aspect-ratio:16/9" in styles
+    assert 'id="mobile-preview"' in zones and 'id="open-editor"' in zones
+    assert 'id="pan"' in zones and 'id="paint"' in zones
+    assert "mobile-expanded .editor" in styles and "width:880px" in styles
+    assert "mobile-expanded.pan .editor" in styles
     assert "vistoda-blink-zones" in template
     assert 'id="details-page"' in template
     assert "Dettagli e impostazioni" in template
