@@ -38,6 +38,7 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
         assert runtime.client is not None
         self._client = runtime.client
         self._runtime = runtime
+        self._entry = entry
         self._alias = entry.data[CONF_ALIAS]
         self._entry_id = entry.entry_id
         self._attr_unique_id = f"{entity_prefix(entry)}bridge-camera"
@@ -60,4 +61,8 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
 
     async def stream_source(self) -> str:
         """Give HA Stream the authenticated private MPEG-TS source."""
-        return self._client.stream_url(self._alias)
+        from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, async_verify_native, source_binding
+
+        await async_verify_native(self._entry, self._client)
+        expected = source_binding(self._entry.data[CONF_EZVIZ_SOURCE_ID])
+        return self._client.stream_url(self._alias, expected)

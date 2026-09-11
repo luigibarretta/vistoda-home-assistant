@@ -144,7 +144,10 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     )
     recording_backup_ui = (frontend / "provider-recording-backup.js").read_text()
     player = (frontend / "provider-recording-player.js").read_text()
-    provider_lists = (frontend / "provider-recording-list-manager.js").read_text()
+    provider_lists = "\n".join(
+        (frontend / name).read_text()
+        for name in ("provider-recording-list-manager.js", "provider-recording-list-template.js")
+    )
     provider_bulk_lists = (frontend / "provider-recording-bulk-lists.js").read_text()
     provider_item = (frontend / "provider-recording-item.js").read_text()
     blink_storage = "\n".join(
@@ -161,6 +164,10 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "connection.user.is_admin" in websocket
     assert "provider_recordings(" in websocket and 'vol.Optional("page"' in websocket
     assert "requires_auth = True" in proxy
+    assert 'manifest.get("camera") != alias' in websocket
+    assert "await async_verify_native" in websocket + proxy + backup
+    assert "await _owned_runtime(request, entry_id, recording_id)" in proxy
+    assert 'manifest.get("camera") != entry.data.get(CONF_ALIAS)' in proxy
     assert 'type: "auth/sign_path"' in recordings + player
     assert "recordingMediaPath" in model and "cameraRecordings" in model
     assert "duration_seconds" in recordings and "15 secondi" in recordings
@@ -197,3 +204,7 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert '"entries": []' in inventory and '"entry_id": entry.entry_id' in inventory
     assert "api_token" not in recordings + model + websocket + proxy + player
     assert "api_token" not in provider_bulk_lists
+    assert "this._requestContext()" in recordings
+    assert "this._isCurrent(context)" in recordings
+    assert "generation !== this.generation" in provider_lists
+    assert "reset()" in provider_bulk_lists

@@ -1,8 +1,9 @@
 """Bounded async client for provider-specific Rust bridges."""
 
 import json
+import re
 from typing import Any
-from urllib.parse import quote, urlsplit, urlunsplit
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
@@ -138,11 +139,27 @@ class BridgeClient(
                 raise CannotConnectError
             return body
 
-    def stream_url(self, alias: str) -> str:
+    async def ezviz_camera_identity(self, alias: str) -> str:
+        """Read the authenticated immutable serial/channel binding for an alias."""
+        payload = await self._json("GET", f"/v1/cameras/{quote(alias, safe='')}/identity")
+        source_id = payload.get("source_id")
+        if (
+            payload.get("camera") != alias
+            or not isinstance(source_id, str)
+            or not re.fullmatch(
+                r"[A-Za-z0-9_-]{1,64}:(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-6])",
+                source_id,
+            )
+        ):
+            raise CannotConnectError
+        return source_id
+
+    def stream_url(self, alias: str, expected_binding: str) -> str:
         parts = urlsplit(self.base_url)
         auth = f"homeassistant:{quote(self._token, safe='')}@{parts.netloc}"
         path = f"/v1/cameras/{quote(alias, safe='')}/live.ts"
-        return urlunsplit((parts.scheme, auth, path, "", ""))
+        query = urlencode({"expected_binding": expected_binding})
+        return urlunsplit((parts.scheme, auth, path, query, ""))
 
     async def _json(
         self, method: str, path: str, *, authenticated: bool = True, **kwargs: Any

@@ -93,16 +93,18 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
         entry_providers[entry.entry_id] = provider
         providers[provider]["configured"] = True
         providers[provider]["title"] = entry.title
+        runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        coordinator = getattr(runtime, "coordinator", None)
+        entry_available = bool(coordinator and coordinator.last_update_success)
         providers[provider]["entries"].append(
             {
                 "entry_id": entry.entry_id,
                 "alias": entry.data.get(CONF_ALIAS),
                 "name": entry.title,
+                "available": entry_available,
             }
         )
-        runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-        coordinator = getattr(runtime, "coordinator", None)
-        providers[provider]["available"] = bool(coordinator and coordinator.last_update_success)
+        providers[provider]["available"] = providers[provider]["available"] or entry_available
     for entry in hass.config_entries.async_entries(BLINK_BRIDGE_DOMAIN):
         entry_providers[entry.entry_id] = "blink"
         providers["blink"]["configured"] = True
@@ -135,6 +137,7 @@ def _entity_info(hass: HomeAssistant, entity) -> dict[str, Any]:
     )
     return {
         "entity_id": entity.entity_id,
+        "config_entry_id": entity.config_entry_id,
         "name": name or entity.entity_id,
         "device_class": attributes.get("device_class")
         or getattr(entity, "original_device_class", None),

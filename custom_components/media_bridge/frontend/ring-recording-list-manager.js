@@ -6,6 +6,7 @@ export class RingRecordingListManager {
   }
 
   reset() {
+    this.generation = (this.generation || 0) + 1;
     this.lists = [];
     this.filterId = "";
     this.openRecordingId = null;
@@ -149,14 +150,18 @@ export class RingRecordingListManager {
   }
 
   async _mutate(payload, success, after = () => {}) {
+    const generation = this.generation;
+    const entryId = this.host.entry.entry_id; const hass = this.host.hass;
     try {
-      const result = await this.host.hass.callWS({
-        ...payload, entry_id: this.host.entry.entry_id,
+      const result = await hass.callWS({
+        ...payload, entry_id: entryId,
       });
+      if (generation !== this.generation || this.host.entry?.entry_id !== entryId) return;
       after();
       this.update(result.lists);
       this.host.status(success);
     } catch (error) {
+      if (generation !== this.generation || this.host.entry?.entry_id !== entryId) return;
       const messages = {
         duplicate_name: copy(this, "Esiste già una lista con questo nome."),
         invalid_name: copy(this, "Il nome della lista non è valido."),
@@ -166,7 +171,9 @@ export class RingRecordingListManager {
       };
       this.host.status(messages[error?.code] || copy(this, "Impossibile aggiornare le liste."));
     }
-    this.host.changed(false);
+    if (generation === this.generation && this.host.entry?.entry_id === entryId) {
+      this.host.changed(false);
+    }
   }
 
   _showForm() {

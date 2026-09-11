@@ -4,6 +4,7 @@ import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
 import { blinkViewLive } from "./blink-view-live.js";
+import { blinkViewNavigation } from "./blink-view-navigation.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import {
@@ -11,12 +12,9 @@ import {
   entityState,
   firstEntity,
   pictureUrl,
-  providerDevices,
   setText,
   snapshotTimeText,
   stateText,
-  swipeStep,
-  wrappedIndex,
 } from "./panel-helpers.js";
 
 class VistodaBlinkView extends HTMLElement {
@@ -25,6 +23,7 @@ class VistodaBlinkView extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._info = null;
     this._index = 0;
+    this._selectedCameraId = "";
     this._nonce = 0;
     this._failedImage = "";
     this._snapshotTimes = new Map();
@@ -74,7 +73,19 @@ class VistodaBlinkView extends HTMLElement {
     const provider = this._info?.providers?.blink;
     const cameras = this._cameras();
     this.$("empty").hidden = Boolean(cameras.length);
+    if (this._selectedCameraId) {
+      const selectedIndex = cameras.findIndex((device) =>
+        firstEntity(device, "camera")?.entity_id === this._selectedCameraId);
+      if (selectedIndex >= 0) this._index = selectedIndex;
+      else {
+        this._stopLiveForCameraChange();
+        this._selectedCameraId = "";
+      }
+    }
     this._index = Math.min(this._index, Math.max(cameras.length - 1, 0));
+    if (cameras.length && !this._selectedCameraId) {
+      this._selectedCameraId = firstEntity(cameras[this._index], "camera")?.entity_id || "";
+    }
     if (!cameras.length) this._detailOpen = false;
     this.$("availability").textContent = localize(this._hass, provider?.available ? "ready" : "unavailable");
     this.$("availability").classList.toggle("off", !provider?.available);
@@ -102,22 +113,11 @@ class VistodaBlinkView extends HTMLElement {
   }
 
   _cameras() { return devicesWithDomain(this._info, "blink", "camera"); }
-  _renderAlarm() {
-    const device = providerDevices(this._info, "blink")
-      .find((item) => item.entities?.alarm_control_panel?.length);
-    const alarm = firstEntity(device, "alarm_control_panel");
-    const state = entityState(this._hass, alarm);
-    setText(this.shadowRoot, "system-name", device?.name || copy(this, "Sistema Blink"));
-    setText(this.shadowRoot, "system-state", state?.state === "armed_away"
-      ? copy(this, "Armato fuori casa") : state?.state === "disarmed" ? copy(this, "Disarmato") : copy(this, "Non disponibile"));
-    this.$("system").hidden = !alarm;
-    this.$("arm").disabled = !state || state.state === "armed_away";
-    this.$("disarm").disabled = !state || state.state === "disarmed";
-  }
 
   _renderCamera(device, count) {
     const entry = this._info?.providers?.blink?.entries?.[0] || null;
     const camera = firstEntity(device, "camera");
+    this._selectedCameraId = camera?.entity_id || "";
     const cameraState = entityState(this._hass, camera);
     const battery = firstEntity(device, "binary_sensor", (item) => item.device_class === "battery");
     const temperature = firstEntity(device, "sensor", (item) => item.device_class === "temperature");
@@ -165,42 +165,6 @@ class VistodaBlinkView extends HTMLElement {
     this._showImage(Boolean(url) && this._failedImage !== url);
   }
 
-  _renderDots(count) {
-    const dots = Array.from({ length: count }, (_, index) => {
-      const button = document.createElement("button");
-      button.className = `dot${index === this._index ? " active" : ""}`;
-      button.setAttribute("aria-label", copy(this, "Apri telecamera {p0}", { p0: index + 1 }));
-      button.title = copy(this, "Apri telecamera {p0}", { p0: index + 1 });
-      if (index === this._index) button.setAttribute("aria-current", "true");
-      button.addEventListener("click", () => {
-        this._liveSession?.stop(); this._index = index; this._render();
-      });
-      return button;
-    });
-    this.$("dots").replaceChildren(...dots);
-  }
-
-  _move(step) {
-    const count = this._cameras().length;
-    if (!count) return;
-    this._liveSession?.stop();
-    this._index = wrappedIndex(this._index, step, count);
-    this._render();
-  }
-
-  _startSwipe(event) {
-    if (event.isPrimary === false || this._cameras().length < 2) return;
-    this._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
-  }
-
-  _finishSwipe(event) {
-    const start = this._swipeStart;
-    this._swipeStart = null;
-    if (!start || start.id !== event.pointerId) return;
-    const step = swipeStep(start, { x: event.clientX, y: event.clientY });
-    if (step) this._move(step);
-  }
-
   _current(domain) { return firstEntity(this._cameras()[this._index], domain); }
 
   async _refreshSnapshot() {
@@ -223,9 +187,9 @@ class VistodaBlinkView extends HTMLElement {
   }
 
   async _setAlarm(armed) {
-    const device = providerDevices(this._info, "blink")
-      .find((item) => item.entities?.alarm_control_panel?.length);
+    const device = this._alarmDevice();
     const alarm = firstEntity(device, "alarm_control_panel");
+    if (!alarm) return;
     await this._action(armed ? "arm" : "disarm", () => this._hass.callService(
       "alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm",
       { entity_id: alarm.entity_id },
@@ -243,7 +207,7 @@ class VistodaBlinkView extends HTMLElement {
   }
 }
 
-Object.assign(VistodaBlinkView.prototype, blinkViewLive);
+Object.assign(VistodaBlinkView.prototype, blinkViewLive, blinkViewNavigation);
 
 if (!customElements.get("vistoda-blink-view")) {
   customElements.define("vistoda-blink-view", VistodaBlinkView);

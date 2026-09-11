@@ -24,6 +24,7 @@ from .backup_storage import (
     storage_mount,
 )
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
+from .ezviz_binding import async_verify_native
 
 BACKUP_MOUNT = storage_mount()
 BACKUP_ROOT = BACKUP_MOUNT
@@ -86,6 +87,7 @@ async def _source(hass: HomeAssistant, msg: dict[str, Any]):
         or runtime.client is None
     ):
         raise ValueError("EZVIZ runtime unavailable")
+    await async_verify_native(entry, runtime.client)
     manifest = _validate(
         await runtime.client.provider_recording(recording_id), recording_id, MEDIA_EXTENSIONS
     )

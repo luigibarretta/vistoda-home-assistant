@@ -49,6 +49,7 @@ export class ProviderRecordingBulkLists {
     this.selectedIds = selectedIds;
     this.recordingIds = [];
     this.busy = false;
+    this.context = null;
   }
 
   mount(root) {
@@ -65,6 +66,8 @@ export class ProviderRecordingBulkLists {
   open() {
     this.recordingIds = [...new Set(this.selectedIds())];
     if (!this.recordingIds.length || this.busy) return;
+    this.context = { generation: this.listManager.generation,
+      config: { ...this.listManager.config }, hass: this.host._hass };
     this._render();
     this.$("bulk-list-dialog").showModal();
   }
@@ -100,10 +103,13 @@ export class ProviderRecordingBulkLists {
   async _apply() {
     const listIds = this._selectedLists();
     if (!listIds.length || this.busy) return;
+    const context = this.context;
+    if (!context || context.generation !== this.listManager.generation) return;
     this.busy = true; this._render();
     try {
-      const result = await this.host._hass.callWS(bulkMembershipCommand(
-        this.listManager.config, listIds, this.recordingIds));
+      const result = await context.hass.callWS(bulkMembershipCommand(
+        context.config, listIds, this.recordingIds));
+      if (context.generation !== this.listManager.generation) return;
       this.listManager.update(result.lists);
       this.host._setMessage?.(copy(this, "{p0} associazioni aggiunte alle liste.", { p0: result.added_memberships }));
       this.host._bulkListsApplied?.();
@@ -112,7 +118,18 @@ export class ProviderRecordingBulkLists {
       const message = error?.code === "membership_limit"
         ? copy(this, "Una delle liste ha raggiunto il limite di video. Nessuna associazione è stata modificata.")
         : copy(this, "Impossibile aggiungere le clip alle liste. Nessuna associazione è stata modificata.");
-      this.host._setMessage?.(message);
-    } finally { this.busy = false; this._render(); }
+      if (context.generation === this.listManager.generation) this.host._setMessage?.(message);
+    } finally {
+      if (context.generation === this.listManager.generation) {
+        this.busy = false; this._render();
+      }
+    }
+  }
+
+  reset() {
+    this.recordingIds = [];
+    this.context = null;
+    this.busy = false;
+    if (this.$?.("bulk-list-dialog")?.open) this.$("bulk-list-dialog").close();
   }
 }

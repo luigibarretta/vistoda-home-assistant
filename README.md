@@ -113,8 +113,9 @@ answering, full-duplex audio, battery, native controls and private recordings.
 Microphone capture requires a browser gesture and cannot be modeled as a
 background Home Assistant button safely.
 
-The selected Ring device card owns its display identity: device name, Location
-and city can be sourced independently from Ring, Home Assistant or a custom
+With multiple intercoms, Ring shows explicit named device cards, so every unlock
+and history action stays tied to the chosen entrance. The selected card owns its
+display identity: device name, Location and city come from Ring, HA or a custom
 value. Event history is intentionally read-only and uses that effective
 identity for its rows and household unlock notifications.
 
@@ -132,10 +133,11 @@ when the provider rejects their schema. The Mini speaker control uses the
 official integer scale 1–8. Unknown and unproven features stay hidden. Camera
 settings follow the official app's five task-oriented sections, with one
 accordion open at a time. On mobile, the header back button exits Vistoda to the
-previous Home Assistant page, with the Casa dashboard as a safe fallback. The
-EZVIZ view opens the protected HA camera and refreshes its snapshot only after
-the explicit action. Landing reads the private cache without a provider request
-and keeps the saved capture timestamp instead of replacing it with page-load time.
+previous Home Assistant page, with the Casa dashboard as a safe fallback.
+Blink and EZVIZ use stable-identity page views with round indicators, infinite
+swipe and previous/next controls; inventory reorder does not change selection.
+EZVIZ refreshes the protected HA camera snapshot only after the explicit action.
+Landing reads the private cache without a request and preserves its capture timestamp.
 
 Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
 30 or 60 seconds from the current shared stream; the provider writes a bounded
@@ -191,6 +193,13 @@ validated on physical Apple hardware.
    and/or **Vistoda EZVIZ**.
 4. Complete the automatically discovered integration under Settings → Devices
    & services.
+
+For upgrades to this release, update the Vistoda EZVIZ app to 0.7.0 before
+Vistoda 0.26.0. The integration pins every EZVIZ alias to its serial/channel and
+rechecks that binding before live media, snapshots, recordings, playback and
+backup. Cached Home Assistant stream URLs carry only an opaque binding hash and
+are rejected after alias retarget. With an older app, Home Assistant Repairs
+explains the required order while the camera stays safely unavailable.
 
 The managed setup never asks for a bridge URL, port or workload token. Ring asks
 for the account credentials and, when needed, the newest SMS code. EZVIZ asks

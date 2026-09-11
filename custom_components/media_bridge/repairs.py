@@ -39,3 +39,19 @@ def update_ring_push_issue(hass: HomeAssistant, entry: ConfigEntry, available: b
         severity=ir.IssueSeverity.WARNING,
         translation_key="ring_push_unavailable",
     )
+
+
+def update_ezviz_binding_issue(hass: HomeAssistant, entry: ConfigEntry, available: bool) -> None:
+    """Explain an unavailable or changed physical EZVIZ camera binding."""
+    issue_id = f"ezviz_binding_unavailable_{entry.entry_id}"
+    if available:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.ERROR,
+        translation_key="ezviz_binding_unavailable",
+    )

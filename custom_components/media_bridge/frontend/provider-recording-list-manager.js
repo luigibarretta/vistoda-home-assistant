@@ -1,49 +1,4 @@
 import { copy, localizeCopy } from "./panel-copy.js";
-export const PROVIDER_LIST_TEMPLATE = `
-  <div class="list-controls"><select id="list-filter" aria-label="Filtra per lista" data-copy-aria-label="Filtra per lista">
-    <option value="" data-copy="Tutte le registrazioni">Tutte le registrazioni</option></select>
-    <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon><span><span data-copy="Nuova lista">Nuova lista</span></span></button>
-    <button id="manage-lists" aria-expanded="false"><ha-icon icon="mdi:playlist-edit"></ha-icon>
-      <span><span data-copy="Gestisci liste">Gestisci liste</span></span><span class="count" id="manage-count">0</span></button></div>
-  <form class="list-form" id="list-form" hidden><input id="list-name" maxlength="64"
-    autocomplete="off" placeholder="Nome della lista" data-copy-placeholder="Nome della lista" aria-label="Nome della nuova lista" data-copy-aria-label="Nome della nuova lista">
-    <button type="submit"><span data-copy="Crea">Crea</span></button><button type="button" id="cancel-list"><span data-copy="Annulla">Annulla</span></button></form>
-  <section class="list-manager" id="list-manager" hidden><div class="muted" id="list-empty">
-    <span data-copy="Non hai ancora creato liste.">Non hai ancora creato liste.</span></div><div id="list-items"></div></section>`;
-
-export const PROVIDER_LIST_STYLES = `
-  .list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
-  .list-controls select { flex:1 1 190px; min-height:44px; box-sizing:border-box;
-    padding:9px 38px 9px 12px; border:1px solid var(--divider-color); border-radius:13px;
-    color:var(--primary-text-color); background-color:var(--secondary-background-color);
-    font:inherit; color-scheme:dark; }
-  .list-controls button { display:inline-flex; align-items:center; gap:7px; }
-  .list-controls .count { display:grid; place-items:center; min-width:20px; min-height:20px;
-    padding:0 5px; border-radius:999px; background:var(--secondary-background-color); font-size:11px; }
-  .list-form, .list-edit { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
-  .list-form input, .list-edit input { flex:1 1 180px; min-height:44px; box-sizing:border-box;
-    padding:9px 12px; border:1px solid var(--divider-color); border-radius:11px;
-    color:var(--primary-text-color); background:var(--card-background-color); }
-  .list-manager { margin:10px 0 14px; padding:10px 12px; border:1px solid var(--divider-color);
-    border-radius:14px; }
-  .list-item { display:flex; align-items:center; justify-content:space-between; gap:10px;
-    min-height:52px; border-top:1px solid var(--divider-color); }
-  .list-item:first-child { border-top:0; }
-  .list-item > div:first-child { display:grid; gap:2px; min-width:0; }
-  .list-item-actions { display:flex; gap:6px; }
-  .list-icon { width:42px; height:42px; min-width:42px; padding:0; display:grid; place-items:center; }
-  .list-icon ha-icon { --mdc-icon-size:21px; }
-  .list-picker { grid-column:1 / -1; display:grid; gap:8px; width:100%; margin-top:8px;
-    padding:11px; box-sizing:border-box; border-radius:12px; background:var(--card-background-color); }
-  .list-picker label { display:flex; align-items:center; gap:9px; min-height:44px; }
-  .list-picker input { width:20px; height:20px; }
-  .list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
-  .list-tag { padding:3px 7px; border-radius:999px; font-size:11px;
-    background:color-mix(in srgb,var(--primary-color) 13%,transparent); }
-  @media (max-width:600px) {
-    .list-controls > button { flex:1 1 auto; }
-    .list-item { align-items:flex-start; padding:8px 0; }
-  }`;
 
 export class ProviderRecordingListManager {
   constructor(host) {
@@ -53,6 +8,7 @@ export class ProviderRecordingListManager {
     this.openRecordingId = null;
     this.editingId = null;
     this.managing = false;
+    this.generation = 0;
   }
   mount(root) {
     this.$ = (id) => root.getElementById(id);
@@ -76,13 +32,20 @@ export class ProviderRecordingListManager {
   async configure(config) {
     const key = `${config?.provider || ""}:${config?.entryId || ""}`;
     if (key === this._key) return;
-    this._key = key; this.config = config; this.filterId = ""; this.openRecordingId = null;
+    this.generation += 1;
+    const generation = this.generation;
+    this._key = key; this.config = config ? { ...config } : null; this.filterId = ""; this.openRecordingId = null;
     this.lists = []; this.update([]);
     if (!config?.entryId || !this.host._hass) return;
     try {
-      const result = await this.host._hass.callWS(this._message("list"));
+      const result = await this.host._hass.callWS(this._message("list", this.config));
+      if (generation !== this.generation) return;
       this.update(result.lists);
-    } catch (_error) { this.host._setMessage?.(copy(this, "Liste temporaneamente non disponibili.")); }
+    } catch (_error) {
+      if (generation === this.generation) {
+        this.host._setMessage?.(copy(this, "Liste temporaneamente non disponibili."));
+      }
+    }
   }
 
   update(lists) {
@@ -112,10 +75,13 @@ export class ProviderRecordingListManager {
       .map((item) => item.name);
   }
 
-  async forget(recordingId) {
+  async forget(recordingId, hostContext = null) {
+    const generation = this.generation;
+    const config = { ...this.config };
     for (const item of this.lists.filter((value) => value.recording_ids.includes(recordingId))) {
-      const result = await this.host._hass.callWS({ ...this._message("set_membership"),
+      const result = await this.host._hass.callWS({ ...this._message("set_membership", config),
         list_id: item.list_id, recording_id: recordingId, included: false });
+      if (generation !== this.generation || (hostContext && !this.host._isCurrent(hostContext))) return;
       this.update(result.lists);
     }
   }
@@ -155,9 +121,9 @@ export class ProviderRecordingListManager {
     return tags;
   }
 
-  _message(action) {
+  _message(action, config = this.config) {
     return { type: `media_bridge/provider/recording_lists/${action}`,
-      provider: this.config.provider, entry_id: this.config.entryId };
+      provider: config.provider, entry_id: config.entryId };
   }
 
   async _create() {
@@ -188,17 +154,22 @@ export class ProviderRecordingListManager {
   }
 
   async _mutate(payload, success, after = () => {}) {
+    const generation = this.generation;
     try {
-      const result = await this.host._hass.callWS(payload); after(); this.update(result.lists);
+      const result = await this.host._hass.callWS(payload);
+      if (generation !== this.generation) return;
+      after(); this.update(result.lists);
       this.host._setMessage?.(success);
     } catch (error) {
       const messages = { duplicate_name: copy(this, "Esiste già una lista con questo nome."),
         invalid_name: copy(this, "Il nome della lista non è valido."), list_limit: copy(this, "Numero massimo di liste raggiunto."),
         membership_limit: copy(this, "Questa lista ha raggiunto il limite di video."),
         list_not_found: copy(this, "La lista non esiste più.") };
-      this.host._setMessage?.(messages[error?.code] || copy(this, "Impossibile aggiornare le liste."));
+      if (generation === this.generation) {
+        this.host._setMessage?.(messages[error?.code] || copy(this, "Impossibile aggiornare le liste."));
+      }
     }
-    this.host._listsChanged?.(false);
+    if (generation === this.generation) this.host._listsChanged?.(false);
   }
 
   _showForm() { this.$("list-form").hidden = false; this.$("list-name").focus(); }

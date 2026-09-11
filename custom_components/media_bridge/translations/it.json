@@ -165,6 +165,10 @@
       "title": "Vistoda {provider} non è disponibile",
       "description": "Home Assistant non riesce a raggiungere il bridge privato Vistoda {provider}. Controlla lo stato e i log dell'app corrispondente, quindi ricarica l'integrazione. Credenziali e indirizzi privati sono intenzionalmente esclusi dal problema."
     },
+    "ezviz_binding_unavailable": {
+      "title": "Vistoda non può verificare la telecamera EZVIZ selezionata",
+      "description": "L'app è raggiungibile, ma l'identità della telecamera non è disponibile o non corrisponde più a questa voce di Home Assistant. Aggiorna prima Vistoda EZVIZ, ripristina seriale e canale assegnati a questo alias, quindi ricarica l'integrazione. Vistoda blocca live e operazioni finché l'associazione non coincide."
+    },
     "ring_push_unavailable": {
       "title": "Gli eventi push di Vistoda Ring non sono disponibili",
       "description": "Il bridge Ring è raggiungibile, ma il suo canale eventi nativo è rimasto disconnesso. Le notifiche del citofono continuano a usare l'integrazione Ring ufficiale quando disponibile. Controlla l'accesso di rete e i log dell'app Vistoda Ring."

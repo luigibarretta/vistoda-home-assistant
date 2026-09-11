@@ -1,12 +1,6 @@
 import { copy, localizeCopy } from "./panel-copy.js";
-import {
-  preferredRecordingView,
-  recordingDate,
-  recordingDuration,
-  recordingPage,
-  recordingSize,
-  saveRecordingView,
-} from "./recording-table.js";
+import { preferredRecordingView, recordingDate, recordingDuration, recordingPage,
+  recordingSize, saveRecordingView } from "./recording-table.js";
 import { copyRecordingPath, recordingInfoContent, recordingStorageSummary } from "./recording-storage.js";
 import { recordingCard, recordingTableNodes } from "./ring-recording-item.js";
 import { RingRecordingListManager } from "./ring-recording-list-manager.js";
@@ -17,11 +11,9 @@ class RingRecordingArchive extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this._recordings = [];
-    this._page = 1;
-    this._busy = false;
-    this._infoId = null;
-    this._storage = null;
+    this._recordings = []; this._page = 1; this._busy = false;
+    this._infoId = null; this._storage = null;
+    this._generation = 0;
     this._browserStorage = this._storageAccess();
     this._view = preferredRecordingView(
       this._browserStorage, globalThis.matchMedia?.("(max-width: 620px)").matches,
@@ -36,11 +28,11 @@ class RingRecordingArchive extends HTMLElement {
     this._entry = entry;
     if (!this.shadowRoot.hasChildNodes()) this._mount();
     if (changedEntry) {
+      this._generation += 1;
+      this._busy = false;
       this._player.release();
-      this._recordings = [];
-      this._page = 1;
-      this._infoId = null;
-      this._storage = null;
+      this._recordings = []; this._page = 1;
+      this._infoId = null; this._storage = null;
       this._lists.reset();
       this._lists.update([]);
     }
@@ -67,12 +59,17 @@ class RingRecordingArchive extends HTMLElement {
   }
 
   async load() {
+    if (!this._entry || !this._hass) return;
+    const generation = this._generation;
+    const entryId = this._entry.entry_id;
+    const hass = this._hass;
     this._setBusy(true, copy(this, "Aggiornamento archivio…"));
     try {
-      const result = await this._hass.callWS({
+      const result = await hass.callWS({
         type: "media_bridge/ring/recordings/list",
-        entry_id: this._entry.entry_id,
+        entry_id: entryId,
       });
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this._storage = result.storage || null;
       this._recordings = (result.recordings || []).sort((a, b) => b.ended_at - a.ended_at);
       this._lists.update(result.lists);
@@ -85,8 +82,10 @@ class RingRecordingArchive extends HTMLElement {
       }));
       this.status("");
     } catch (_error) {
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this.status(copy(this, "Impossibile caricare le registrazioni."));
     } finally {
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this._setBusy(false);
       this._render();
     }
@@ -198,17 +197,25 @@ class RingRecordingArchive extends HTMLElement {
   }
 
   async _delete(type, payload, success) {
+    if (!this._entry || !this._hass) return;
+    const generation = this._generation;
+    const entryId = this._entry.entry_id;
+    const hass = this._hass;
     this._setBusy(true, copy(this, "Eliminazione in corso…"));
     try {
-      const result = await this._hass.callWS({
-        type, entry_id: this._entry.entry_id, ...payload,
+      const result = await hass.callWS({
+        type, entry_id: entryId, ...payload,
       });
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       await this.load();
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this.status(result.failed
         ? copy(this, "{p0} eliminate, {p1} non eliminate.", { p0: result.deleted, p1: result.failed }) : success);
     } catch (_error) {
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this.status(copy(this, "Eliminazione non riuscita."));
     } finally {
+      if (generation !== this._generation || this._entry?.entry_id !== entryId) return;
       this._setBusy(false);
       this._render();
     }

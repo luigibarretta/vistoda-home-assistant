@@ -93,8 +93,9 @@ async def test_snapshot_is_bounded_and_requires_jpeg() -> None:
 
 def test_stream_url_uses_basic_auth_without_mutating_base_url() -> None:
     client = BridgeClient(FakeSession([]), "http://[fd00::1]:8765", "token/value")
-    assert client.stream_url("front-door") == (
+    assert client.stream_url("front-door", "a" * 64) == (
         "http://homeassistant:token%2Fvalue@[fd00::1]:8765/v1/cameras/front-door/live.ts"
+        f"?expected_binding={'a' * 64}"
     )
     assert client.base_url == "http://[fd00::1]:8765"
 

@@ -5,8 +5,9 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
-from .const import CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
 from .errors import BridgeError
+from .ezviz_binding import async_verify_native
 
 
 class ProviderRecordingView(HomeAssistantView):
@@ -22,16 +23,7 @@ class ProviderRecordingView(HomeAssistantView):
         entry_id: str,
         recording_id: str,
     ) -> web.StreamResponse:
-        hass: HomeAssistant = request.app["hass"]
-        entry = hass.config_entries.async_get_entry(entry_id)
-        runtime = hass.data.get(DOMAIN, {}).get(entry_id)
-        if (
-            entry is None
-            or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ
-            or not isinstance(runtime, BridgeRuntime)
-            or runtime.client is None
-        ):
-            raise web.HTTPNotFound
+        runtime = await _owned_runtime(request, entry_id, recording_id)
         try:
             upstream = await runtime.client.open_provider_recording(recording_id)
         except BridgeError as error:
@@ -66,7 +58,7 @@ class ProviderPlaybackView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request, entry_id: str, recording_id: str) -> web.StreamResponse:
-        runtime = _runtime(request, entry_id)
+        runtime = await _owned_runtime(request, entry_id, recording_id)
         try:
             upstream = await runtime.client.open_provider_playback(recording_id)
         except BridgeError as error:
@@ -87,6 +79,25 @@ def _runtime(request: web.Request, entry_id: str) -> BridgeRuntime:
         or not isinstance(runtime, BridgeRuntime)
         or runtime.client is None
     ):
+        raise web.HTTPNotFound
+    return runtime
+
+
+async def _owned_runtime(
+    request: web.Request,
+    entry_id: str,
+    recording_id: str,
+) -> BridgeRuntime:
+    """Resolve a recording only when it belongs to the selected camera entry."""
+    hass: HomeAssistant = request.app["hass"]
+    entry = hass.config_entries.async_get_entry(entry_id)
+    runtime = _runtime(request, entry_id)
+    try:
+        await async_verify_native(entry, runtime.client)
+        manifest = await runtime.client.provider_recording(recording_id)
+    except BridgeError as error:
+        raise web.HTTPNotFound from error
+    if entry is None or manifest.get("camera") != entry.data.get(CONF_ALIAS):
         raise web.HTTPNotFound
     return runtime
 

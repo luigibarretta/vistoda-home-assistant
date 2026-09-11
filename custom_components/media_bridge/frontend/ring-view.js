@@ -8,6 +8,8 @@ import "./ring-history.js";
 import "./ring-device-identity.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { localizeElements } from "./panel-localize.js";
+import { mountRingDeviceSelector, renderRingDeviceSelector, RING_DEVICE_SELECTOR_STYLES,
+  RING_DEVICE_SELECTOR_TEMPLATE, setRingDeviceSelectorDisabled } from "./ring-device-selector.js";
 
 class VistodaRingView extends HTMLElement {
   constructor() {
@@ -26,6 +28,7 @@ class VistodaRingView extends HTMLElement {
     this._acknowledged = false;
     this._ackPending = false;
     this._ackAttempts = 0;
+    this._entryGeneration = 0;
   }
 
   set hass(value) {
@@ -55,6 +58,7 @@ class VistodaRingView extends HTMLElement {
         .device-select { min-height:40px;max-width:100%;margin-top:11px;border:1px solid
           var(--divider-color);border-radius:11px;padding:7px 11px;color:var(--primary-text-color);
           background:var(--secondary-background-color);font:inherit; }
+        ${RING_DEVICE_SELECTOR_STYLES}
         .spin { animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         .privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid var(--divider-color);
@@ -69,8 +73,7 @@ class VistodaRingView extends HTMLElement {
       <div id="ring-main"><section class="card call">
         <div class="device"><div class="device-copy">
           <vistoda-ring-device-identity id="identity"></vistoda-ring-device-identity>
-          <select class="device-select" id="device-select"
-          aria-label="Seleziona Ring Intercom" data-copy-aria-label="Seleziona Ring Intercom" hidden></select></div>
+          ${RING_DEVICE_SELECTOR_TEMPLATE}</div>
           <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></div>
         <div class="status"><span class="dot" id="dot"></span><span id="status"><span data-copy="Pronto">Pronto</span></span></div>
         <div class="actions"><button class="primary" id="call"><ha-icon id="call-icon"
@@ -95,9 +98,7 @@ class VistodaRingView extends HTMLElement {
     this.$("identity").addEventListener("identity-updated", () => this._renderEntrySelector());
     this.$("history-open").addEventListener("click", () => this._showHistory(true));
     this.$("history").addEventListener("history-close", () => this._showHistory(false));
-    this.$("device-select").addEventListener("change", (event) => {
-      this._selectEntry(event.target.value);
-    });
+    mountRingDeviceSelector(this);
     await this._loadEntry();
   }
 
@@ -120,6 +121,13 @@ class VistodaRingView extends HTMLElement {
     if (!entry || entry === this._entry) return;
     const select = this.$("device-select");
     select.disabled = true;
+    setRingDeviceSelectorDisabled(this, true);
+    this._entryGeneration += 1;
+    this._ackPending = false;
+    if (entry.entry_id !== this._requestedEntryId) {
+      this._answerMode = false;
+      this._callId = "";
+    }
     await this._audio?.destroy();
     this._entry = entry;
     this._available = Boolean(entry.available);
@@ -128,25 +136,14 @@ class VistodaRingView extends HTMLElement {
     this._ackAttempts = 0;
     this._renderAvailability();
     this._configureEntry();
+    this._renderEntrySelector();
     this._renderState({ phase: "idle" });
     select.disabled = false;
+    setRingDeviceSelectorDisabled(this, false);
   }
 
   _renderEntrySelector() {
-    const select = this.$("device-select");
-    select.replaceChildren(...this._entries.map((entry) => {
-      const option = document.createElement("option");
-      option.value = entry.entry_id;
-      option.textContent = (entry.device_name || entry.name.replace(/^Vistoda · /, ""))
-        + (entry.location_name ? ` · ${entry.location_name}` : "")
-        + (entry.available ? "" : copy(this, "· non disponibile"));
-      return option;
-    }));
-    select.hidden = this._entries.length < 2;
-    if (this._entry) {
-      select.value = this._entry.entry_id;
-      saveRingEntry(this._storage, this._entry.entry_id);
-    }
+    renderRingDeviceSelector(this);
   }
 
   _renderAvailability() {
@@ -215,17 +212,26 @@ class VistodaRingView extends HTMLElement {
 
   async _acknowledgeCall() {
     if (this._acknowledged || this._ackPending || !this._entry) return;
+    const entry = this._entry;
+    const callId = this._callId;
+    const generation = this._entryGeneration;
     this._ackPending = true;
     this._ackAttempts += 1;
     try {
       await this._hass.callWS({
         type: "media_bridge/ring/call/answer",
-        entry_id: this._entry.entry_id,
-        call_id: this._callId,
+        entry_id: entry.entry_id,
+        call_id: callId,
       });
-      this._acknowledged = true;
+      if (generation === this._entryGeneration && entry === this._entry && callId === this._callId) {
+        this._acknowledged = true;
+      }
     } catch (_error) {
-      if (this._ackAttempts < 3) setTimeout(() => this._acknowledgeCall(), 1000);
+      if (this._ackAttempts < 3) setTimeout(() => {
+        if (generation === this._entryGeneration && entry === this._entry && callId === this._callId) {
+          this._acknowledgeCall();
+        }
+      }, 1000);
     } finally {
       this._ackPending = false;
     }

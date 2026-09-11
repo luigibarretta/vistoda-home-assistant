@@ -1,8 +1,8 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { BLINK_STORAGE_STYLES } from "./blink-storage-styles.js";
-import { ProviderRecordingListManager, PROVIDER_LIST_STYLES,
-  PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-manager.js";
+import { ProviderRecordingListManager } from "./provider-recording-list-manager.js";
+import { PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-template.js";
 import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { blinkStorageActions } from "./blink-storage-actions.js";

@@ -2,8 +2,8 @@ import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { PROVIDER_RECORDING_STYLES } from "./provider-recording-styles.js";
 import { recordingItem } from "./provider-recording-item.js";
-import { ProviderRecordingListManager, PROVIDER_LIST_STYLES,
-  PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-manager.js";
+import { ProviderRecordingListManager } from "./provider-recording-list-manager.js";
+import { PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-template.js";
 import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { providerRecordingActions } from "./provider-recordings-actions.js";
@@ -30,6 +30,7 @@ class VistodaProviderRecordings extends HTMLElement {
       () => [...this._selected].map((id) => `local:${id}`));
     this._timer = null;
     this._mounted = false;
+    this._generation = 0;
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -44,12 +45,17 @@ class VistodaProviderRecordings extends HTMLElement {
     this._hass = hass;
     const key = `${config?.provider}:${config?.entryId || ""}:${config?.alias || ""}`;
     if (key === this._key) { this._render(); return; }
+    this._generation += 1;
     this._key = key;
-    this._config = config;
+    this._config = config ? { ...config } : null;
+    this._busy = false;
+    this._clearTimer();
     this._items = [];
     this._selected.clear();
+    this._storage = null;
     this._pagination.page = 1;
     this.$?.("player")?.close();
+    this._bulkListManager.reset();
     if (!this._mounted) this._mount();
     this._render();
     this._listManager.configure(config);
@@ -76,25 +82,30 @@ class VistodaProviderRecordings extends HTMLElement {
 
   async reload() {
     if (!this._config || !this._hass || this._busy) return;
+    const context = this._requestContext();
     this._busy = true;
     this._render();
     try {
-      const result = await this._fetch(this._pagination.page, this._pagination.page_size);
-      this._items = cameraRecordings(result.recordings || [], this._config.alias);
+      const result = await this._fetch(this._pagination.page, this._pagination.page_size, context.config, context.hass);
+      if (!this._isCurrent(context)) return;
+      this._items = cameraRecordings(result.recordings || [], context.config.alias);
       this._pagination = result.pagination || this._pagination;
       this._storage = result.storage || null;
       this._setMessage("");
     } catch (_error) {
-      this._setMessage(copy(this, "Archivio temporaneamente non disponibile."));
+      if (this._isCurrent(context)) {
+        this._setMessage(copy(this, "Archivio temporaneamente non disponibile."));
+      }
     } finally {
+      if (!this._isCurrent(context)) return;
       this._busy = false;
       this._render();
       this._schedule(this._items.some((item) => ["pending", "recording"].includes(item.status)));
     }
   }
 
-  _fetch(page, pageSize) {
-    return this._hass.callWS({ ...this._message("list"), page, page_size: pageSize });
+  _fetch(page, pageSize, config = this._config, hass = this._hass) {
+    return hass.callWS({ ...this._message("list", config), page, page_size: pageSize });
   }
 
   async _go(page) {
@@ -102,7 +113,16 @@ class VistodaProviderRecordings extends HTMLElement {
     this._pagination.page = page; this.$("player").close(); await this.reload();
   }
 
-  _message(action) { return recordingCommand(this._config, action); }
+  _message(action, config = this._config) { return recordingCommand(config, action); }
+
+  _requestContext() {
+    return { generation: this._generation, key: this._key,
+      config: { ...this._config }, hass: this._hass };
+  }
+
+  _isCurrent(context) {
+    return context.generation === this._generation && context.key === this._key;
+  }
 
   _render() {
     if (!this._mounted) return;

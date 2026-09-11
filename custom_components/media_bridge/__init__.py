@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -98,6 +99,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         coordinator = BridgeCoordinator(hass, client, entry, f"Vistoda {provider} bridge")
     await coordinator.async_config_entry_first_refresh()
+    if provider == PROVIDER_EZVIZ:
+        from .errors import BridgeError
+        from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, async_bind_native
+        from .repairs import update_bridge_issue, update_ezviz_binding_issue
+
+        try:
+            if CONF_EZVIZ_SOURCE_ID not in entry.data:
+                await async_bind_native(hass, entry, client)
+        except BridgeError as error:
+            update_bridge_issue(hass, entry, available=True)
+            update_ezviz_binding_issue(hass, entry, available=False)
+            raise ConfigEntryNotReady("EZVIZ physical camera identity is unavailable") from error
+        update_ezviz_binding_issue(hass, entry, available=True)
     ring_status = None
     ring_events = None
     ring_history = None

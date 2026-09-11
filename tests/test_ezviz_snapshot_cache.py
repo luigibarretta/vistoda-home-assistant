@@ -41,5 +41,5 @@ def test_ezviz_provider_fetch_happens_only_after_explicit_websocket_action() -> 
     assert 'type: "media_bridge/ezviz/snapshot/refresh"' in view
     assert "this._nonce = 0" in view
     assert "this._snapshotObservedAt = Date.now()" not in view
-    assert "this._snapshotRequestedAt = Date.parse(result.updated_at)" in view
+    assert "this._snapshotTimes.set(cameraId, Date.parse(result.updated_at)" in view
     assert "Ultimo snapshot salvato disponibile" in view

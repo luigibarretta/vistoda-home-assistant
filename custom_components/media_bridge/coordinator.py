@@ -6,8 +6,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import BridgeClient
+from .const import CONF_PROVIDER, PROVIDER_EZVIZ
 from .errors import BridgeError
-from .repairs import update_bridge_issue
+from .repairs import update_bridge_issue, update_ezviz_binding_issue
 
 
 class BridgeCoordinator(DataUpdateCoordinator[str]):
@@ -28,6 +29,18 @@ class BridgeCoordinator(DataUpdateCoordinator[str]):
             version = (await self.client.health()).version
         except BridgeError as error:
             update_bridge_issue(self.hass, self.entry, available=False)
+            if self.entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
+                update_ezviz_binding_issue(self.hass, self.entry, available=True)
             raise UpdateFailed("bridge health check failed") from error
         update_bridge_issue(self.hass, self.entry, available=True)
+        if self.entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
+            from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, async_verify_native
+
+            try:
+                if CONF_EZVIZ_SOURCE_ID in self.entry.data:
+                    await async_verify_native(self.entry, self.client)
+            except BridgeError as error:
+                update_ezviz_binding_issue(self.hass, self.entry, available=False)
+                raise UpdateFailed("EZVIZ physical camera identity changed") from error
+            update_ezviz_binding_issue(self.hass, self.entry, available=True)
         return version

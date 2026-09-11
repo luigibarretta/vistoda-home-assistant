@@ -83,6 +83,32 @@ async def test_aggregate_discovery_selects_device_and_continues_without_relogin(
     next_flow._client.start_ring_enrollment.assert_not_called()
 
 
+async def test_ezviz_discovery_preserves_source_binding_across_continuation(monkeypatch):
+    env = framework(monkeypatch)
+    flow = env.make_flow()
+    config = {
+        **entry("ezviz").data,
+        "devices": [
+            {"alias": "front", "source_id": "ABC123:1"},
+            {"alias": "garage", "source_id": "XYZ789:2"},
+        ],
+    }
+    result = await flow.async_step_hassio(SimpleNamespace(config=config))
+    assert result["step_id"] == "managed_device"
+    assert (await flow.async_step_managed_device({"alias": "garage"}))[
+        "step_id"
+    ] == "ezviz_credentials"
+    flow._client.start_ezviz_enrollment.return_value = SimpleNamespace(next_step="complete")
+    result = await flow.async_step_ezviz_credentials(
+        {"account": "a", "password": "secret", "api_region": "eu"}
+    )
+    assert result["data"]["ezviz_source_id"] == "XYZ789:2"
+    continuation = env.hass.config_entries.flow.async_init.call_args.kwargs["data"]
+    assert continuation["managed_continuation"]["devices"] == [
+        {"alias": "front", "source_id": "ABC123:1"}
+    ]
+
+
 async def test_discovery_preserves_existing_entries_and_refuses_physical_retarget(monkeypatch):
     env = framework(monkeypatch)
     existing = entry(ring_device_id="123", ring_official_binding={"device_id": "official"})

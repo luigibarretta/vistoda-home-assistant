@@ -16,7 +16,7 @@ class VistodaBlinkZones extends HTMLElement {
   set camera(value) {
     if (value?.alias === this._camera?.alias && value?.snapshot === this._camera?.snapshot) return;
     const changed = value?.alias !== this._camera?.alias; this._camera = value;
-    if (changed) { this._zones = null; this._masks = []; this._privacy = []; this._load(); }
+    if (changed) { this._request += 1; this._zones = null; this._masks = []; this._privacy = []; this._load(); }
     else this._render();
   }
 
@@ -150,11 +150,14 @@ class VistodaBlinkZones extends HTMLElement {
     if (allActivityDisabled(this._masks)) { this._status(copy(this, "Almeno una zona attività deve restare attiva.")); return; }
     if (!globalThis.confirm(copy(this, "Confermi il salvataggio delle zone Blink per questa telecamera?"))) return;
     this._status(copy(this, "Salvataggio, verifica e ripristino automatico in caso di errore…")); this.$("save").disabled = true;
-    try { const zones = await this._hass.callWS({ type: "blink_live_bridge/camera/zones/update",
-      alias: this._camera.alias, revision: this._zones.revision, activity_masks: this._masks, privacy_zones: this._privacy });
+    const request = ++this._request; const alias = this._camera.alias; const hass = this._hass;
+    try { const zones = await hass.callWS({ type: "blink_live_bridge/camera/zones/update",
+      alias, revision: this._zones.revision, activity_masks: this._masks, privacy_zones: this._privacy });
+      if (request !== this._request || this._camera?.alias !== alias) return;
       this._zones = zones; this._masks = [...zones.activity_masks]; this._privacy = zones.privacy_zones.map((zone) => ({ ...zone }));
       this._status(copy(this, "Zone verificate sulla telecamera.")); this._render();
-    } catch (_error) { this._status(copy(this, "Modifica non confermata: configurazione precedente ripristinata.")); await this._load(); }
+    } catch (_error) { if (request !== this._request || this._camera?.alias !== alias) return;
+      this._status(copy(this, "Modifica non confermata: configurazione precedente ripristinata.")); await this._load(); }
   }
 
   _editable() { return this._hass?.user?.is_admin === true; }

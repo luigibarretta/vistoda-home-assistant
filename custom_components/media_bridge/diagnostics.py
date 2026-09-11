@@ -19,8 +19,9 @@ from .const import (
     DOMAIN,
     INTEGRATION_VERSION,
 )
+from .ezviz_binding import CONF_EZVIZ_SOURCE_ID
 
-TO_REDACT = {CONF_ALIAS, CONF_API_TOKEN, CONF_URL}
+TO_REDACT = {CONF_ALIAS, CONF_API_TOKEN, CONF_URL, CONF_EZVIZ_SOURCE_ID}
 
 
 async def async_get_config_entry_diagnostics(

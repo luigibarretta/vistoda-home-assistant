@@ -8,14 +8,16 @@ import {
   BLINK_OPTION_LABELS, BLINK_SETTING_META, BLINK_SETTING_SECTIONS, settingSection,
 } from "./blink-setting-schema.js";
 import {
-  cameraDraft, commitDraft, reconcileDraft, stagedField, stageValue,
+  cameraDraft, stagedField, stageValue,
 } from "./blink-setting-draft.js";
+import { blinkSettingsIo } from "./blink-settings-io.js";
 
 class VistodaBlinkSettings extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this._request = 0; this._drafts = new Map();
+    this._generation = 0;
     this._mount();
   }
 
@@ -23,6 +25,8 @@ class VistodaBlinkSettings extends HTMLElement {
   set camera(value) {
     const alias = value?.alias || "";
     if (alias === this._camera?.alias) return;
+    this._generation += 1;
+    this._request += 1;
     this._camera = value;
     this._settings = null;
     this._render();
@@ -69,25 +73,6 @@ class VistodaBlinkSettings extends HTMLElement {
     if (!active.open) return;
     for (const section of this.shadowRoot.querySelectorAll("details")) {
       if (section !== active) section.open = false;
-    }
-  }
-
-  async _load() {
-    if (!this._hass || !this._camera?.alias) return;
-    const request = ++this._request;
-    this.$("status").textContent = copy(this, "Lettura impostazioni…");
-    this.$("reload").disabled = true;
-    try {
-      const result = await this._hass.callWS({
-        type: "blink_live_bridge/camera/settings", alias: this._camera.alias,
-      });
-      if (request === this._request) { this._settings = result;
-        reconcileDraft(result, this._draft()); this._render(); }
-    } catch (_error) {
-      if (request === this._request) this.$("status").textContent =
-        copy(this, "Impostazioni avanzate non disponibili per questo modello.");
-    } finally {
-      if (request === this._request) this.$("reload").disabled = false;
     }
   }
 
@@ -224,17 +209,9 @@ class VistodaBlinkSettings extends HTMLElement {
     this.$("save").textContent = copy(this, "Salva modifiche ({p0})", { p0: count }); }
   _discard() { this._draft().clear(); this._render();
     this.$("status").textContent = copy(this, "Modifiche locali annullate."); }
-  async _saveDraft() {
-    const draft = this._draft(); const count = draft.size; if (!count) return;
-    if (!globalThis.confirm(copy(this, "Confermi {p0} {p1} a questa telecamera?", { p0: count, p1: count === 1 ? copy(this, "modifica") : copy(this, "modifiche") }))) return;
-    this.$("status").textContent = copy(this, "Salvataggio e verifica…");
-    try { this._settings = await commitDraft(this._hass, this._camera.alias, this._settings, draft);
-      draft.clear(); this._render(); this.$("status").textContent = copy(this, "Modifiche verificate sulla camera.");
-    } catch (error) { await this._load(); this.$("status").textContent = error.rollbackFailed
-      ? copy(this, "Salvataggio fallito: rileggi lo stato prima di riprovare.")
-      : copy(this, "Salvataggio fallito: le modifiche già inviate sono state ripristinate."); }
-  }
 }
+
+Object.assign(VistodaBlinkSettings.prototype, blinkSettingsIo);
 
 if (!customElements.get("vistoda-blink-settings")) {
   customElements.define("vistoda-blink-settings", VistodaBlinkSettings);

@@ -14,7 +14,7 @@ def device_identifier(entry) -> tuple[str, str]:
 def device_info(entry) -> dict:
     return {
         "identifiers": {device_identifier(entry)},
-        "name": "Vistoda · EZVIZ",
+        "name": f"Vistoda · EZVIZ · {entry.data[CONF_ALIAS]}",
         "manufacturer": "EZVIZ",
         "model": "Vistoda camera bridge",
     }

@@ -48,13 +48,16 @@ try {
         }));
         const cameras = Array.from({ length: 5 }, (_, index) => ({
           name: `Camera ${index} with a very long descriptive name`,
-          entities: { camera: [{ entity_id: `camera.test${index}` }] },
+          entities: { camera: [{ entity_id: `camera.test${index}`,
+            config_entry_id: `ezviz-${index}` }] },
         }));
         window.requests = []; window.inventoryFailure = false;
         window.hassFixture = {
           locale: { language }, user: { is_admin: true }, config: { time_zone: "Europe/Rome" },
           states: Object.fromEntries(cameras.map((_, index) => [`camera.test${index}`, {
-            state: "idle", attributes: { alias: `camera${index}`, snapshot_updated_at: "2026-09-11T10:00:00Z" },
+            state: "idle", attributes: { alias: index < 2 ? "shared-alias" : `camera${index}`,
+              entry_id: `ezviz-${index}`, network_id: index < 3 ? 1 : 2,
+              snapshot_updated_at: "2026-09-11T10:00:00Z" },
           }])),
           hassUrl: (path) => path,
           callService: () => { throw new Error("No service calls are allowed in browser acceptance"); },
@@ -64,7 +67,11 @@ try {
               if (window.inventoryFailure) throw new Error("offline");
               return { providers: Object.fromEntries(["ring", "blink", "ezviz"].map((key) => [key, {
                 configured: true, available: true, devices: key === "ring" ? [] : cameras,
-                entries: [{ entry_id: key, alias: "camera0" }], counts: { camera: 5 },
+                entries: key === "ezviz" ? cameras.map((_, index) => ({
+                  entry_id: `ezviz-${index}`, alias: index < 2 ? "shared-alias" : `camera${index}`,
+                  available: index !== 4,
+                })) : [{ entry_id: key, alias: "camera0", available: true }],
+                counts: { camera: 5 },
               }])) };
             }
             if (request.type === "media_bridge/ring/info") return { entries };
@@ -78,6 +85,9 @@ try {
                 { key: "camera_name", kind: "text", value: "Elimina", writable: true }], revision: "fake" };
             if (request.type === "blink_live_bridge/camera/zones") return { activity_masks: Array(25).fill(4095),
               privacy_zones: [], privacy_supported: true, revision: "fake" };
+            if (request.type === "media_bridge/ezviz/snapshot/refresh") return {
+              updated_at: "2026-09-11T12:00:00Z",
+            };
             const lists = [{ list_id: "fixture", name: "Elimina", recording_ids: [] }];
             if (request.type === "media_bridge/ring/recordings/list") return { lists, recordings: [
               { recording_id: "r1", started_at: 1789120800, ended_at: 1789120860, bytes: 1024,
@@ -86,9 +96,14 @@ try {
               network_id: 1, sync_module_id: 2, manifest_id: 3, status: { can_format_usb: true, can_delete_clips: true },
               clips: [{ id: 4, device_name: "Elimina", created_at: 1789120800000, media_available: true }],
               pagination: { page: 1, total_pages: 1, total_items: 1 } }] };
-            if (/\/recordings\/list$/.test(request.type)) return { recordings: [{ recording_id: "p1", camera: "camera0",
+            if (/\/recordings\/list$/.test(request.type)) {
+              const index = Number(String(request.entry_id || "").replace("ezviz-", ""));
+              const cameraAlias = request.alias || (Number.isInteger(index)
+                ? (index < 2 ? "shared-alias" : `camera${index}`) : "camera0");
+              return { recordings: [{ recording_id: "p1", camera: cameraAlias,
               requested_at: "2026-09-11T10:00:00Z", status: "ready", requested_duration_seconds: 15 }],
               pagination: { page: 1, total_pages: 1, total_items: 1 }, storage: { directory: "/data/Elimina" } };
+            }
             if (/\/(list|storage)$/.test(request.type)) return { recordings: [], lists, storages: [] };
             throw new Error(`Unexpected WS action: ${request.type}`);
           },
@@ -122,7 +137,10 @@ try {
       await checkAdvancedPanel(page, provider, language, check);
       assert.equal(await page.locator(`vistoda-panel nav a[data-provider="${provider}"]`).getAttribute("aria-current"), "page");
       if (provider === "ring") {
-        await page.locator("vistoda-ring-view #device-select").selectOption("south");
+        const devices = page.locator("vistoda-ring-view .device-card");
+        assert.equal(await devices.count(), 2);
+        await devices.filter({ hasText: "south building" }).click();
+        assert.equal(await devices.filter({ hasText: "south building" }).getAttribute("aria-selected"), "true");
         await page.locator("vistoda-ring-view #history-open").click();
         await page.waitForFunction(() => window.requests.some((request) => request.type === "media_bridge/ring/history"));
         assert.equal(await page.locator("vistoda-ring-history #device-filter").textContent(), "Shared entrance name");
@@ -137,12 +155,34 @@ try {
         assert.deepEqual(dot, ["8px", "8px"]);
       }
       if (provider === "ezviz") {
-        await page.locator("vistoda-ezviz-view #camera-select").selectOption("1");
-        assert.equal(await page.locator("vistoda-ezviz-view #refresh").isDisabled(), true,
-          "unbound cameras must not refresh the first configured entry");
+        assert.equal(await page.locator("vistoda-ezviz-view .dot").count(), 5);
+        const cameraPrevious = page.locator("vistoda-ezviz-view nav.pager > #previous");
+        assert.equal(await cameraPrevious.getAttribute("title"), null);
+        await page.locator("vistoda-ezviz-view .dot").nth(1).click();
+        assert.match(await page.locator("vistoda-ezviz-view #camera-name").textContent(), /Camera 1/);
         const snapshotRequests = await page.evaluate(() => window.requests.filter(
           (request) => request.type.includes("snapshot/refresh")));
         assert.deepEqual(snapshotRequests, [], "opening and selecting cameras must remain passive");
+        await page.locator("vistoda-ezviz-view #refresh").click();
+        await page.waitForFunction(() => window.requests.some(
+          (request) => request.type === "media_bridge/ezviz/snapshot/refresh"));
+        const refreshEntry = await page.evaluate(() => window.requests.findLast(
+          (request) => request.type === "media_bridge/ezviz/snapshot/refresh").entry_id);
+        assert.equal(refreshEntry, "ezviz-1", "duplicate aliases must use the exact camera entry");
+        await page.locator("vistoda-ezviz-view .dot").first().click();
+        await cameraPrevious.click();
+        assert.match(await page.locator("vistoda-ezviz-view #camera-name").textContent(), /Camera 4/,
+          "previous from the first camera must wrap to the last camera");
+        await page.evaluate(() => {
+          const view = document.querySelector("vistoda-panel")._child;
+          view._cameraIndex = 0;
+          view._selectedCameraId = "camera.test0";
+          view._render();
+          view._startSwipe({ isPrimary: true, pointerId: 7, clientX: 100, clientY: 100 });
+          view._finishSwipe({ pointerId: 7, clientX: 102, clientY: 180 });
+        });
+        assert.match(await page.locator("vistoda-ezviz-view #camera-name").textContent(), /Camera 0/,
+          "vertical movement must not page cameras");
       }
       await page.evaluate(() => { window.inventoryFailure = true; });
       await page.getByRole("button", { name: language === "en" ? "Refresh devices and status" : "Aggiorna dispositivi e stato", exact: true }).click();

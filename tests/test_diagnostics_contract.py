@@ -17,11 +17,12 @@ def test_diagnostics_and_repairs_are_secret_free_and_native() -> None:
     coordinator = (COMPONENT / "coordinator.py").read_text(encoding="utf-8")
     assert "async_get_config_entry_diagnostics" in diagnostics
     assert "async_redact_data" in diagnostics
-    assert "TO_REDACT = {CONF_ALIAS, CONF_API_TOKEN, CONF_URL}" in diagnostics
+    assert all(name in diagnostics for name in ("CONF_ALIAS", "CONF_API_TOKEN", "CONF_URL"))
     assert "async_create_issue" in repairs
     assert "async_delete_issue" in repairs
     assert "translation_placeholders" in repairs
     assert "update_bridge_issue" in coordinator
+    assert "CONF_EZVIZ_SOURCE_ID" in diagnostics
     assert "update_ring_push_issue" in repairs
     assert 'payload["ring_events"]' in diagnostics
 

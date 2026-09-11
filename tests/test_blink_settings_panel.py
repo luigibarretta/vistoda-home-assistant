@@ -7,7 +7,10 @@ FRONTEND = ROOT / "custom_components/media_bridge/frontend"
 
 
 def test_blink_settings_use_the_authenticated_typed_websocket_boundary() -> None:
-    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    settings = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("blink-settings.js", "blink-settings-io.js")
+    )
     draft = (FRONTEND / "blink-setting-draft.js").read_text(encoding="utf-8")
     view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")
     template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
@@ -22,7 +25,10 @@ def test_blink_settings_use_the_authenticated_typed_websocket_boundary() -> None
 
 
 def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
-    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    settings = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("blink-settings.js", "blink-settings-io.js")
+    )
     model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
     assert 'button.setAttribute("aria-checked", String(field.value))' in settings
     assert "booleanStateText(field.value, this)" in settings
@@ -31,7 +37,10 @@ def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
 
 
 def test_blink_settings_stage_one_confirmed_batch_and_show_ha_temperature_unit() -> None:
-    settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
+    settings = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("blink-settings.js", "blink-settings-io.js")
+    )
     draft = (FRONTEND / "blink-setting-draft.js").read_text(encoding="utf-8")
     model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
     assert "Salva modifiche" in settings
@@ -102,7 +111,10 @@ def test_blink_pager_arrows_have_accessible_names_without_hover_tooltips() -> No
 
 def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     styles = (FRONTEND / "panel-styles.js").read_text(encoding="utf-8")
-    view = (FRONTEND / "blink-view.js").read_text(encoding="utf-8")
+    view = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("blink-view.js", "blink-view-navigation.js")
+    )
     assert ".pager button.dot" in styles
     assert '.dot::before { content:""; width:8px; height:8px; border-radius:50%' in styles
     assert 'button.setAttribute("aria-current", "true")' in view

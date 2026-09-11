@@ -4,7 +4,7 @@ import { BASE_STYLES } from "./panel-styles.js";
 
 class VistodaProviderRecordingPlayer extends HTMLElement {
   constructor() {
-    super(); this.attachShadow({ mode: "open" });
+    super(); this.attachShadow({ mode: "open" }); this._generation = 0;
     this.shadowRoot.innerHTML = `<style>${BASE_STYLES}
       :host { display:block; margin:12px 0; } :host([hidden]) { display:none !important; }
       section { padding:12px; border:1px solid var(--divider-color); border-radius:14px;
@@ -34,15 +34,19 @@ class VistodaProviderRecordingPlayer extends HTMLElement {
   async open(hass, config, item) {
     this._hass = hass; localizeCopy(this.shadowRoot, this);
     this.close();
+    const generation = this._generation;
     const path = recordingMediaPath(config, item.recording_id, true);
     const signed = await hass.callWS({ type: "auth/sign_path", path, expires: 900 });
+    if (generation !== this._generation) return false;
     this.$("title").textContent = new Date(item.started_at || item.requested_at)
       .toLocaleString(hass?.locale?.language || "en");
     this.$("video").src = hass.hassUrl(signed.path); this.hidden = false;
     this.$("video").load(); this.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return true;
   }
 
   close() {
+    this._generation += 1;
     const video = this.$("video"); video.pause(); video.removeAttribute("src"); video.load();
     this.$("message").textContent = ""; this.hidden = true;
   }

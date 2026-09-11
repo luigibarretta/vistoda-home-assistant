@@ -84,3 +84,13 @@ def test_ezviz_client_preserves_the_recording_container_type(media_type):
         "media_type": media_type,
     }
     assert BridgeClient._recording(manifest)["media_type"] == media_type
+
+
+async def test_ezviz_camera_identity_is_authenticated_and_exact() -> None:
+    session = FakeSession({"camera": "front", "source_id": "ABC123:2"})
+    client = BridgeClient(session, "http://bridge.local:8765", "x" * 32)
+
+    assert await client.ezviz_camera_identity("front") == "ABC123:2"
+    method, url, options = session.last_request
+    assert method == "GET" and url.endswith("/v1/cameras/front/identity")
+    assert options["headers"]["Authorization"] == f"Bearer {'x' * 32}"

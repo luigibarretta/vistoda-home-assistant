@@ -35,6 +35,7 @@ def make_entry():
             "alias": "fixture",
             "url": "http://127.0.0.1:9",
             "api_token": "fixture-token-never-sent",
+            "ezviz_source_id": "FIXTURE123:1",
         },
         source="user",
         state=ConfigEntryState.SETUP_IN_PROGRESS,
@@ -66,14 +67,17 @@ async def test_real_setup_registry_migration_camera_and_unload(hass):
         suggested_object_id="existing_fixture",
     )
     health = AsyncMock(return_value=SimpleNamespace(version="fixture-version"))
+    identity = AsyncMock(return_value="FIXTURE123:1")
     with (
         patch.object(media_bridge.BridgeClient, "health", health),
+        patch.object(media_bridge.BridgeClient, "ezviz_camera_identity", identity),
         patch.object(hass.config_entries, "async_forward_entry_setups", AsyncMock()) as forward,
         current_entry.set(entry),
     ):
         assert await media_bridge.async_setup_entry(hass, entry)
     forward.assert_awaited_once()
     assert health.await_count == 1
+    identity.assert_awaited_once_with("fixture")
     runtime = hass.data[DOMAIN][entry.entry_id]
     assert runtime.coordinator.last_update_success
     assert runtime.coordinator.data == "fixture-version"

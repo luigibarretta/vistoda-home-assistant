@@ -16,6 +16,7 @@ from .const import (
     PROVIDER_RING,
 )
 from .errors import CannotConnectError, InvalidBridgeAuthError
+from .ezviz_binding import CONF_EZVIZ_SOURCE_ID
 from .managed_devices import discovered_devices
 from .ring_binding import CONF_RING_DEVICE_ID
 
@@ -42,6 +43,14 @@ class ManagedAppDiscoveryMixin:
         try:
             self._bridge_data[CONF_URL] = normalize_url(self._bridge_data[CONF_URL])
             self._managed_devices = discovered_devices(config)
+            if self._provider == PROVIDER_RING and any(
+                CONF_EZVIZ_SOURCE_ID in device for device in self._managed_devices
+            ):
+                raise ValueError("EZVIZ identity used for Ring discovery")
+            if self._provider == PROVIDER_EZVIZ and any(
+                CONF_RING_DEVICE_ID in device for device in self._managed_devices
+            ):
+                raise ValueError("Ring identity used for EZVIZ discovery")
             self._client = await self._validated_client(
                 self._bridge_data[CONF_URL], self._bridge_data[CONF_API_TOKEN]
             )
@@ -69,6 +78,10 @@ class ManagedAppDiscoveryMixin:
             expected = existing.data.get(CONF_RING_DEVICE_ID)
             actual = device.get(CONF_RING_DEVICE_ID)
             if expected and actual and expected != actual:
+                return self.async_abort(reason="discovered_device_changed")
+            expected_source = existing.data.get(CONF_EZVIZ_SOURCE_ID)
+            actual_source = device.get(CONF_EZVIZ_SOURCE_ID)
+            if expected_source and actual_source and expected_source != actual_source:
                 return self.async_abort(reason="discovered_device_changed")
             updates = {**existing.data, **self._bridge_data, **device}
             changed = self.hass.config_entries.async_update_entry(existing, data=updates)
@@ -117,6 +130,11 @@ class ManagedAppDiscoveryMixin:
                     **(
                         {"device_id": device[CONF_RING_DEVICE_ID]}
                         if CONF_RING_DEVICE_ID in device
+                        else {}
+                    ),
+                    **(
+                        {"source_id": device[CONF_EZVIZ_SOURCE_ID]}
+                        if CONF_EZVIZ_SOURCE_ID in device
                         else {}
                     ),
                 }

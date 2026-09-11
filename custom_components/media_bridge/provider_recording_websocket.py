@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
+from .ezviz_binding import async_verify_native
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 RECORDING_ID = vol.All(str, vol.Match(r"^[0-9a-f-]{36}$"))
@@ -41,6 +42,9 @@ async def ws_refresh_snapshot(hass, connection, msg: dict[str, Any]) -> None:
     try:
         from .ezviz_snapshot_cache import async_save
 
+        await async_verify_native(
+            hass.config_entries.async_get_entry(msg["entry_id"]), runtime.client
+        )
         image = await runtime.client.snapshot(alias)
         updated_at = await async_save(hass, msg["entry_id"], image)
     except (BridgeError, OSError, ValueError):
@@ -69,6 +73,9 @@ async def ws_list_recordings(hass, connection, msg: dict[str, Any]) -> None:
         return
     runtime, _alias = resolved
     try:
+        await async_verify_native(
+            hass.config_entries.async_get_entry(msg["entry_id"]), runtime.client
+        )
         payload = await runtime.client.provider_recordings(msg["page"], msg["page_size"], _alias)
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "EZVIZ recordings are unavailable")
@@ -96,6 +103,9 @@ async def ws_create_recording(hass, connection, msg: dict[str, Any]) -> None:
         return
     runtime, alias = resolved
     try:
+        await async_verify_native(
+            hass.config_entries.async_get_entry(msg["entry_id"]), runtime.client
+        )
         manifest = await runtime.client.create_provider_recording(
             alias,
             msg["duration_seconds"],
@@ -127,8 +137,15 @@ async def ws_delete_recording(hass, connection, msg: dict[str, Any]) -> None:
     if resolved is None:
         connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
         return
-    runtime, _alias = resolved
+    runtime, alias = resolved
     try:
+        await async_verify_native(
+            hass.config_entries.async_get_entry(msg["entry_id"]), runtime.client
+        )
+        manifest = await runtime.client.provider_recording(msg["recording_id"])
+        if manifest.get("camera") != alias:
+            connection.send_error(msg["id"], "not_found", "EZVIZ recording was not found")
+            return
         await runtime.client.delete_provider_recording(msg["recording_id"])
     except EnrollmentBusyError:
         connection.send_error(msg["id"], "conflict", "EZVIZ recording is still active")
