@@ -20,7 +20,7 @@ export const PROVIDER_RECORDING_STYLES = `
   .meta { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:4px;
     color:var(--secondary-text-color); font-size:12px; }
   .item-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
-  .select-item { display:grid; place-items:center; width:40px; min-height:40px; }
+  .select-item { display:grid; place-items:center; width:44px; min-height:44px; }
   .select-item input { width:20px; height:20px; }
   .icon-action { width:42px; height:42px; min-width:42px; padding:0; display:grid;
     place-items:center; border-radius:11px; }

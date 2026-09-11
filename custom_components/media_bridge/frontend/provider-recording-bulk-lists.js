@@ -1,13 +1,14 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 export const PROVIDER_BULK_LIST_TEMPLATE = `
   <dialog class="bulk-list-dialog" id="bulk-list-dialog" aria-labelledby="bulk-list-title">
-    <form method="dialog"><h4 id="bulk-list-title">Aggiungi clip alle liste</h4>
+    <form method="dialog"><h4 id="bulk-list-title"><span data-copy="Aggiungi clip alle liste">Aggiungi clip alle liste</span></h4>
       <p class="muted" id="bulk-list-summary"></p><div class="bulk-list-options"
       id="bulk-list-options"></div><div class="muted" id="bulk-list-empty" hidden>
-      Non hai ancora creato liste personalizzate.</div><div class="dialog-actions">
-      <button value="cancel">Annulla</button><button type="button" id="bulk-new-list">
-      <ha-icon icon="mdi:playlist-plus"></ha-icon><span>Nuova lista</span></button>
+      <span data-copy="Non hai ancora creato liste personalizzate.">Non hai ancora creato liste personalizzate.</span></div><div class="dialog-actions">
+      <button value="cancel"><span data-copy="Annulla">Annulla</span></button><button type="button" id="bulk-new-list">
+      <ha-icon icon="mdi:playlist-plus"></ha-icon><span><span data-copy="Nuova lista">Nuova lista</span></span></button>
       <button type="button" class="primary" id="apply-bulk-lists" disabled>
-      Aggiungi</button></div></form></dialog>`;
+      <span data-copy="Aggiungi">Aggiungi</span></button></div></form></dialog>`;
 
 export const PROVIDER_BULK_LIST_STYLES = `
   .bulk-list-dialog { width:min(470px,calc(100vw - 28px)); box-sizing:border-box; padding:0;
@@ -70,7 +71,7 @@ export class ProviderRecordingBulkLists {
 
   _render() {
     const total = this.recordingIds.length;
-    this.$("bulk-list-summary").textContent = `${total} clip selezionate. Scegli una o più liste:`;
+    this.$("bulk-list-summary").textContent = copy(this, "{p0} clip selezionate. Scegli una o più liste:", { p0: total });
     this.$("bulk-list-empty").hidden = this.listManager.lists.length !== 0;
     this.$("bulk-list-options").replaceChildren(...this.listManager.lists.map((item) => {
       const label = document.createElement("label");
@@ -79,8 +80,8 @@ export class ProviderRecordingBulkLists {
       input.type = "checkbox"; input.value = item.list_id; input.disabled = this.busy || present === total;
       const text = document.createElement("span"); const name = document.createElement("strong");
       const detail = document.createElement("small"); name.textContent = item.name;
-      detail.textContent = present === total ? "Già presenti tutte"
-        : present ? `${present}/${total} già presenti` : "Nessuna già presente";
+      detail.textContent = present === total ? copy(this, "Già presenti tutte")
+        : present ? copy(this, "{p0}/{p1} già presenti", { p0: present, p1: total }) : copy(this, "Nessuna già presente");
       text.append(name, detail); label.append(input, text); return label;
     }));
     this.$("bulk-new-list").disabled = this.busy;
@@ -104,13 +105,13 @@ export class ProviderRecordingBulkLists {
       const result = await this.host._hass.callWS(bulkMembershipCommand(
         this.listManager.config, listIds, this.recordingIds));
       this.listManager.update(result.lists);
-      this.host._setMessage?.(`${result.added_memberships} associazioni aggiunte alle liste.`);
+      this.host._setMessage?.(copy(this, "{p0} associazioni aggiunte alle liste.", { p0: result.added_memberships }));
       this.host._bulkListsApplied?.();
       this.$("bulk-list-dialog").close();
     } catch (error) {
       const message = error?.code === "membership_limit"
-        ? "Una delle liste ha raggiunto il limite di video. Nessuna associazione è stata modificata."
-        : "Impossibile aggiungere le clip alle liste. Nessuna associazione è stata modificata.";
+        ? copy(this, "Una delle liste ha raggiunto il limite di video. Nessuna associazione è stata modificata.")
+        : copy(this, "Impossibile aggiungere le clip alle liste. Nessuna associazione è stata modificata.");
       this.host._setMessage?.(message);
     } finally { this.busy = false; this._render(); }
   }

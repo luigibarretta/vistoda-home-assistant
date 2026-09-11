@@ -12,7 +12,16 @@ from homeassistant.util import dt as dt_util
 from .client_ring_history import RingHistoryPage
 from .const import DOMAIN
 from .errors import BridgeError
-from .ring_history_model import sources_overlap, unlock_message
+from .ring_binding import CONF_RING_DEVICE_ID
+from .ring_history_model import (
+    DEDUPE_SECONDS,
+    HISTORY_TYPES,
+    event_is_valid,
+    safe_name,
+    same_activity,
+    sources_overlap,
+    unlock_message,
+)
 from .ring_identity import (
     configuration_payload,
     home_assistant_identity,
@@ -22,10 +31,8 @@ from .ring_identity import (
 )
 
 EVENT_RING_UNLOCKED = "vistoda_ring_entry_unlocked"
-HISTORY_TYPES = {"unlock", "live_view", "ding", "motion", "activity"}
 MAX_LOCAL_EVENTS = 64
 MAX_LOCAL_OVERLAY = 10
-DEDUPE_SECONDS = 12
 
 
 class RingHistoryManager:
@@ -52,9 +59,9 @@ class RingHistoryManager:
         data = self._data or {}
         raw = data.get("identity") if isinstance(data.get("identity"), dict) else {}
         provider = {
-            "device_name": _safe_name(raw.get("device_name"), self.alias),
-            "location_name": _safe_name(raw.get("location_name"), "Ring"),
-            "city": _safe_name(raw.get("city"), ""),
+            "device_name": safe_name(raw.get("device_name"), self.alias),
+            "location_name": safe_name(raw.get("location_name"), "Ring"),
+            "city": safe_name(raw.get("city"), ""),
         }
         return resolve_identity(
             provider,
@@ -68,9 +75,9 @@ class RingHistoryManager:
         data = self._data or {}
         raw = data.get("identity") if isinstance(data.get("identity"), dict) else {}
         provider = {
-            "device_name": _safe_name(raw.get("device_name"), self.alias),
-            "location_name": _safe_name(raw.get("location_name"), "Ring"),
-            "city": _safe_name(raw.get("city"), ""),
+            "device_name": safe_name(raw.get("device_name"), self.alias),
+            "location_name": safe_name(raw.get("location_name"), "Ring"),
+            "city": safe_name(raw.get("city"), ""),
         }
         return configuration_payload(
             provider,
@@ -91,7 +98,20 @@ class RingHistoryManager:
         await self._async_load()
         provider: RingHistoryPage | None = None
         try:
-            provider = await self.client.ring_history(self.alias, limit, cursor)
+            expected_device_id = self.entry.data.get(CONF_RING_DEVICE_ID)
+            if not isinstance(expected_device_id, str):
+                raise BridgeError("Ring physical device binding is missing")
+            provider = await self.client.ring_history(
+                self.alias,
+                limit,
+                cursor,
+                expected_device_id=expected_device_id,
+            )
+            if (
+                self.entry.data.get(CONF_RING_DEVICE_ID)
+                and provider.identity.device_id != self.entry.data[CONF_RING_DEVICE_ID]
+            ):
+                provider = None
         except BridgeError:
             if cursor is not None:
                 return self._result([], None, True)
@@ -108,11 +128,11 @@ class RingHistoryManager:
             cloud = [] if provider is None else [_event_dict(item) for item in provider.events]
             events = cloud
             if cursor is None:
-                local = [item for item in self._data["events"] if _valid_event(item)]
+                local = [item for item in self._data["events"] if event_is_valid(item)]
                 overlay = [
                     item
                     for item in local
-                    if not any(_same_activity(item, remote) for remote in cloud)
+                    if not any(same_activity(item, remote) for remote in cloud)
                 ][:MAX_LOCAL_OVERLAY]
                 events = sorted(
                     [*cloud, *overlay], key=lambda item: item["occurred_at"], reverse=True
@@ -131,7 +151,7 @@ class RingHistoryManager:
                 (
                     item
                     for item in self._data["events"]
-                    if _valid_event(item)
+                    if event_is_valid(item)
                     and item["event_type"] == event_type
                     and abs(item["occurred_at"] - timestamp) <= DEDUPE_SECONDS
                 ),
@@ -146,7 +166,7 @@ class RingHistoryManager:
                 "source": source,
             }
             self._data["events"] = sorted(
-                [item, *[entry for entry in self._data["events"] if _valid_event(entry)]],
+                [item, *[entry for entry in self._data["events"] if event_is_valid(entry)]],
                 key=lambda entry: entry["occurred_at"],
                 reverse=True,
             )[:MAX_LOCAL_EVENTS]
@@ -185,6 +205,7 @@ class RingHistoryManager:
 
     def _result(self, events, next_cursor, degraded: bool) -> dict[str, Any]:
         return {
+            "entry_id": self.entry.entry_id,
             "identity": self.identity,
             "identity_configuration": self.identity_configuration,
             "events": [
@@ -218,30 +239,3 @@ def _event_dict(item) -> dict[str, Any]:
         "event_type": item.event_type,
         "occurred_at": item.occurred_at,
     }
-
-
-def _safe_name(value, fallback: str) -> str:
-    return (
-        value
-        if isinstance(value, str) and value and len(value) <= 128 and value.isprintable()
-        else fallback
-    )
-
-
-def _valid_event(item) -> bool:
-    return (
-        isinstance(item, dict)
-        and isinstance(item.get("event_id"), str)
-        and 0 < len(item["event_id"]) <= 128
-        and item["event_id"].isprintable()
-        and item.get("event_type") in HISTORY_TYPES
-        and isinstance(item.get("occurred_at"), int)
-        and item["occurred_at"] >= 0
-    )
-
-
-def _same_activity(left, right) -> bool:
-    return (
-        left["event_type"] == right["event_type"]
-        and abs(left["occurred_at"] - right["occurred_at"]) <= DEDUPE_SECONDS
-    )

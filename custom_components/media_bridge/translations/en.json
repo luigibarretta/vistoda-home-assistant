@@ -87,6 +87,20 @@
           "code": "This is the temporary account MFA code, not the device verification code."
         }
       },
+      "reauth_confirm": {
+        "title": "Reconnect {provider}",
+        "description": "Sign in again to the same account through the existing Vistoda app. Your Home Assistant devices, history, automations and connection settings are preserved. Home Assistant never stores the account password."
+      },
+      "ring_device": {
+        "title": "Choose your Ring intercom",
+        "description": "These intercoms were verified with your Ring account. Choose the entrance to add; other available entrances will be offered next.",
+        "data": {"device_id": "Intercom and location"}
+      },
+      "managed_device": {
+        "title": "Choose an intercom",
+        "description": "Choose a discovered Ring intercom. Remaining devices will be offered in a follow-up setup. Existing entries retain their identity.",
+        "data": {"alias": "Intercom"}
+      },
       "reconfigure": {
         "title": "Reconfigure Vistoda",
         "description": "Update how Home Assistant reaches the private bridge. The vendor account session remains owned by the bridge and is not changed here.",
@@ -103,6 +117,9 @@
       }
     },
     "error": {
+      "no_intercoms": "No Ring intercom was found in this account. Check the Ring app and retry.",
+      "no_routable_intercoms": "No new intercom has a verified provider route. Existing devices are already configured; for additional devices, update the Vistoda Ring app and retry.",
+      "discovered_device_changed": "The selected physical intercom no longer matches discovery. Check the Vistoda Ring app.",
       "cannot_connect": "Cannot connect to the bridge. Check its private address, port, service status and firewall access from Home Assistant.",
       "cannot_connect_restart": "Verification could not complete. Check the bridge connection and start a fresh enrollment.",
       "invalid_url": "Enter a base HTTP or HTTPS bridge URL without credentials or API paths.",
@@ -116,6 +133,8 @@
       "rate_limited": "The bridge or Ring is rate limiting enrollment. Wait before trying again."
     },
     "abort": {
+      "reauth_successful": "The account was reconnected. Your existing devices and history were preserved.",
+      "discovered_device_changed": "A discovered alias conflicts with an existing physical device. Check the Vistoda app device mapping before trying again.",
       "managed_app_adopted": "The existing provider connection is now managed by its Vistoda App.",
       "already_configured": "This bridge device is already configured in Vistoda.",
       "blink_not_loaded": "Blink Live Bridge must be loaded before Vistoda can adopt it.",
@@ -124,6 +143,21 @@
       "cannot_connect": "The discovered Vistoda App is not reachable yet. Check that it is running.",
       "invalid_bridge_auth": "The discovered Vistoda App supplied an invalid private credential.",
       "unsupported_provider": "The discovered service is not a supported Vistoda provider."
+    }
+  },
+  "options": {
+    "step": {"init": {
+      "title": "Vistoda connection and backup",
+      "description": "For backups, first add network storage with Media usage in Home Assistant Settings → System → Storage. Enter only its name, not a server address or filesystem path. Vistoda verifies the exact NFS or SMB mount before writing. Reconnect starts a new sign-in without replacing devices.",
+      "data": {"backup_storage": "Network media storage name", "reconnect_account": "Reconnect account"},
+      "data_description": {"backup_storage": "Default: vistoda_archives. Backup remains unavailable until this network storage is mounted and writable.", "reconnect_account": "Use the same vendor account. Its password is forwarded once and is not saved in Home Assistant."}
+    }},
+    "error": {
+      "invalid_storage_name": "Use a storage name with letters, digits, underscores or hyphens; do not enter a path.",
+      "network_mount_missing": "This storage is not mounted as writable NFS or SMB media storage. Add or reconnect it in Home Assistant storage settings.",
+      "network_mount_not_writable": "Home Assistant cannot write to this network storage.",
+      "network_mount_unavailable": "Network storage is temporarily unavailable.",
+      "network_mount_low_space": "Network storage needs at least 512 MiB free."
     }
   },
   "issues": {

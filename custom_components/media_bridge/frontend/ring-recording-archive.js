@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import {
   preferredRecordingView,
   recordingDate,
@@ -46,7 +47,7 @@ class RingRecordingArchive extends HTMLElement {
     this.load();
   }
 
-  set hass(value) { this._hass = value; }
+  set hass(value) { this._hass = value; this._render(); }
   get hass() { return this._hass; }
   get entry() { return this._entry; }
   render() { this._render(); }
@@ -54,7 +55,7 @@ class RingRecordingArchive extends HTMLElement {
   changed(resetPage) { if (resetPage) this._page = 1; this._render(); }
 
   _mount() {
-    this.shadowRoot.innerHTML = recordingArchiveTemplate();
+    this.shadowRoot.innerHTML = recordingArchiveTemplate(); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.load());
     this.$("delete-all").addEventListener("click", () => this._deleteAll());
@@ -66,7 +67,7 @@ class RingRecordingArchive extends HTMLElement {
   }
 
   async load() {
-    this._setBusy(true, "Aggiornamento archivio…");
+    this._setBusy(true, copy(this, "Aggiornamento archivio…"));
     try {
       const result = await this._hass.callWS({
         type: "media_bridge/ring/recordings/list",
@@ -84,7 +85,7 @@ class RingRecordingArchive extends HTMLElement {
       }));
       this.status("");
     } catch (_error) {
-      this.status("Impossibile caricare le registrazioni.");
+      this.status(copy(this, "Impossibile caricare le registrazioni."));
     } finally {
       this._setBusy(false);
       this._render();
@@ -93,6 +94,7 @@ class RingRecordingArchive extends HTMLElement {
 
   _render() {
     if (!this.$) return;
+    if (localizeCopy(this.shadowRoot, this)) this._lists.update(this._lists.lists);
     const filtered = this._lists.filtered(this._recordings);
     const page = recordingPage(filtered, this._page);
     this._page = page.page;
@@ -111,13 +113,13 @@ class RingRecordingArchive extends HTMLElement {
     this.$("cards").hidden = this._view !== "cards" || !filtered.length;
     this.$("empty").hidden = filtered.length !== 0;
     this.$("empty").textContent = this._recordings.length
-      ? "Nessuna registrazione in questa lista." : "Nessuna registrazione locale.";
+      ? copy(this, "Nessuna registrazione in questa lista.") : copy(this, "Nessuna registrazione locale.");
     this.$("pager").hidden = filtered.length === 0;
-    this.$("page-label").textContent = `Pagina ${page.page} di ${page.pages}`;
+    this.$("page-label").textContent = copy(this, "Pagina {p0} di {p1}", { p0: page.page, p1: page.pages });
     this.$("previous").disabled = this._busy || page.page === 1;
     this.$("next").disabled = this._busy || page.page === page.pages;
     this.$("delete-all").disabled = this._busy || this._recordings.length === 0;
-    this.$("storage").textContent = recordingStorageSummary(this._storage);
+    this.$("storage").textContent = recordingStorageSummary(this._storage, this);
     for (const view of ["cards", "rows"]) {
       this.$(`view-${view}`).setAttribute("aria-pressed", String(this._view === view));
     }
@@ -131,6 +133,7 @@ class RingRecordingArchive extends HTMLElement {
 
   _context(recording) {
     return {
+      hass: this._hass,
       date: this._date(recording), duration: recordingDuration(recording),
       size: recordingSize(recording.bytes), busy: this._busy,
       loading: this._player.loadingId === recording.recording_id,
@@ -147,7 +150,7 @@ class RingRecordingArchive extends HTMLElement {
     const parts = [];
     if (this._player.isOpen(recording.recording_id)) parts.push(this._player.detail(recording));
     if (this._infoId === recording.recording_id) {
-      const info = recordingInfoContent(recording, this._storage);
+      const info = recordingInfoContent(recording, this._storage, this);
       info.addEventListener("copy-path", (event) => this._copyPath(event.detail.path));
       parts.push(info);
     }
@@ -178,33 +181,33 @@ class RingRecordingArchive extends HTMLElement {
   }
 
   async _deleteOne(recording) {
-    if (!window.confirm(`Eliminare la registrazione del ${this._date(recording)}?`)) return;
+    if (!window.confirm(copy(this, "Eliminare la registrazione del {p0}?", { p0: this._date(recording) }))) return;
     if (this._player.activeId === recording.recording_id) this._player.release();
     await this._delete("media_bridge/ring/recordings/delete", {
       recording_id: recording.recording_id,
-    }, "Registrazione eliminata.");
+    }, copy(this, "Registrazione eliminata."));
   }
 
   async _deleteAll() {
     const count = this._recordings.length;
-    if (!window.confirm(`Eliminare definitivamente tutte le ${count} registrazioni?`)) return;
+    if (!window.confirm(copy(this, "Eliminare definitivamente tutte le {p0} registrazioni?", { p0: count }))) return;
     this._player.release();
     await this._delete(
-      "media_bridge/ring/recordings/delete_all", {}, `${count} registrazioni eliminate.`,
+      "media_bridge/ring/recordings/delete_all", {}, copy(this, "{p0} registrazioni eliminate.", { p0: count }),
     );
   }
 
   async _delete(type, payload, success) {
-    this._setBusy(true, "Eliminazione in corso…");
+    this._setBusy(true, copy(this, "Eliminazione in corso…"));
     try {
       const result = await this._hass.callWS({
         type, entry_id: this._entry.entry_id, ...payload,
       });
       await this.load();
       this.status(result.failed
-        ? `${result.deleted} eliminate, ${result.failed} non eliminate.` : success);
+        ? copy(this, "{p0} eliminate, {p1} non eliminate.", { p0: result.deleted, p1: result.failed }) : success);
     } catch (_error) {
-      this.status("Eliminazione non riuscita.");
+      this.status(copy(this, "Eliminazione non riuscita."));
     } finally {
       this._setBusy(false);
       this._render();
@@ -222,7 +225,7 @@ class RingRecordingArchive extends HTMLElement {
   _changePage(step) { this._page += step; this._render(); }
   async _copyPath(path) {
     this.status(await copyRecordingPath(path)
-      ? "Percorso copiato." : "Impossibile copiare il percorso.");
+      ? copy(this, "Percorso copiato.") : copy(this, "Impossibile copiare il percorso."));
   }
   _date(recording) {
     return recordingDate(recording, this._hass?.locale?.language, this._hass?.config?.time_zone);

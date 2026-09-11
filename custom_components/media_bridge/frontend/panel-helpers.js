@@ -1,5 +1,14 @@
+import { localize } from "./panel-localize.js";
+
 export const PROVIDERS = ["ring", "blink", "ezviz"];
-export const CASA_PATH = "/casa-famiglia/casa";
+export const HOME_ASSISTANT_PATH = "/lovelace";
+
+export function homeAssistantPath(hass) {
+  const configured = hass?.defaultPanel;
+  if (typeof configured !== "string" || !/^[a-z0-9_-]+$/i.test(configured)
+      || isVistodaPath(`/${configured}`)) return HOME_ASSISTANT_PATH;
+  return `/${configured}`;
+}
 
 export const PROVIDER_META = {
   ring: {
@@ -93,12 +102,12 @@ export function snapshotTimestamp(state, observedAt = null) {
 
 export function snapshotTimeText(state, locale = "it-IT", observedAt = null) {
   const timestamp = snapshotTimestamp(state, observedAt);
-  if (timestamp === null) return "Ora snapshot non disponibile";
+  if (timestamp === null) return localize(locale, "snapshotMissing");
   const formatted = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "medium",
   }).format(new Date(timestamp));
-  return `Snapshot del ${formatted}`;
+  return localize(locale, "snapshotAt", { time: formatted });
 }
 
 export function wrappedIndex(index, step, count) {

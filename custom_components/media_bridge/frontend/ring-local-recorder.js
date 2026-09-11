@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 const MAX_BYTES = 8 * 1024 * 1024;
 const MIME_TYPES = [
   "audio/webm;codecs=opus",
@@ -30,9 +31,9 @@ export class RingLocalRecorder {
     if (this.active) return;
     const remoteTrack = remoteStream?.getAudioTracks?.()[0];
     const mimeType = this.supportedType();
-    if (!remoteTrack || mimeType === null) throw new Error("Registrazione non supportata");
+    if (!remoteTrack || mimeType === null) throw new Error(copy(this, "Registrazione non supportata"));
     const Context = this.environment.AudioContext || this.environment.webkitAudioContext;
-    if (!Context) throw new Error("Mix audio non supportato");
+    if (!Context) throw new Error(copy(this, "Mix audio non supportato"));
     this.context = new Context();
     await this.context.resume?.();
     this.destination = this.context.createMediaStreamDestination();
@@ -108,7 +109,7 @@ export class RingLocalRecorder {
 
   async upload(blob, startedAt) {
     const bytes = new Uint8Array(await blob.arrayBuffer());
-    if (bytes.length > MAX_BYTES) throw new Error("Registrazione troppo grande");
+    if (bytes.length > MAX_BYTES) throw new Error(copy(this, "Registrazione troppo grande"));
     return this.hass.callWS({
       type: "media_bridge/ring/recordings/upload",
       entry_id: this.entry.entry_id,

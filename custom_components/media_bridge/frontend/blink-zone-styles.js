@@ -9,7 +9,8 @@ export const BLINK_ZONE_STYLES = `
   .tabs { display:flex; gap:8px; margin:16px 0 12px; }
   .tabs button { flex:1; border:1px solid var(--divider-color); }
   .tabs button.active { color:#fff; background:var(--primary-color); border-color:var(--primary-color); }
-  .editor { position:relative; overflow:hidden; aspect-ratio:16/9; min-height:220px;
+  .editor-viewport { max-width:100%; max-height:65vh; overflow:auto; overscroll-behavior:contain; }
+  .editor { position:relative; overflow:hidden; aspect-ratio:16/9; min-width:1174px; min-height:660px;
     border-radius:15px; background:#111; touch-action:none; user-select:none; }
   .editor img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .grid { position:absolute; inset:0; display:grid; grid-template-columns:repeat(20,1fr);
@@ -32,7 +33,6 @@ export const BLINK_ZONE_STYLES = `
   #status { min-height:21px; margin-top:10px; }
   @media (max-width:650px) {
     .zones { padding:16px; }
-    .editor { min-height:190px; }
     .zone-actions > * { flex:1 1 calc(50% - 9px); }
     .zone-actions .save { margin-left:0; }
   }

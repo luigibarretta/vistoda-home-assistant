@@ -87,6 +87,20 @@
           "code": "È il codice MFA temporaneo dell'account, non il codice di verifica del dispositivo."
         }
       },
+      "reauth_confirm": {
+        "title": "Ricollega {provider}",
+        "description": "Accedi nuovamente allo stesso account attraverso l’app Vistoda esistente. Dispositivi, cronologia, automazioni e impostazioni di collegamento Home Assistant vengono mantenuti. Home Assistant non salva la password dell’account."
+      },
+      "ring_device": {
+        "title": "Scegli il citofono Ring",
+        "description": "Questi citofoni sono stati verificati con il tuo account Ring. Scegli l’ingresso da aggiungere; gli altri ingressi disponibili saranno proposti successivamente.",
+        "data": {"device_id": "Citofono e luogo"}
+      },
+      "managed_device": {
+        "title": "Scegli un citofono",
+        "description": "Scegli un citofono Ring rilevato. Gli altri dispositivi saranno proposti nella configurazione successiva. Le entry esistenti mantengono la propria identità.",
+        "data": {"alias": "Citofono"}
+      },
       "reconfigure": {
         "title": "Riconfigura Vistoda",
         "description": "Aggiorna il modo in cui Home Assistant raggiunge il bridge privato. La sessione dell'account del produttore resta gestita dal bridge e qui non viene modificata.",
@@ -103,6 +117,9 @@
       }
     },
     "error": {
+      "no_intercoms": "Nessun citofono Ring trovato in questo account. Controlla l’app Ring e riprova.",
+      "no_routable_intercoms": "Nessun nuovo citofono ha un percorso provider verificato. I dispositivi esistenti sono già configurati; per aggiungerne altri, aggiorna l’app Vistoda Ring e riprova.",
+      "discovered_device_changed": "Il citofono fisico selezionato non corrisponde più alla discovery. Controlla l’app Vistoda Ring.",
       "cannot_connect": "Impossibile connettersi al bridge. Controlla indirizzo privato, porta, stato del servizio e accesso firewall da Home Assistant.",
       "cannot_connect_restart": "Verifica non completata. Controlla la connessione al bridge e avvia una nuova registrazione.",
       "invalid_url": "Inserisci un URL HTTP o HTTPS di base senza credenziali né percorsi API.",
@@ -116,6 +133,8 @@
       "rate_limited": "Il bridge o Ring limita i tentativi. Attendi prima di riprovare."
     },
     "abort": {
+      "reauth_successful": "Account ricollegato. I dispositivi esistenti e la cronologia sono stati mantenuti.",
+      "discovered_device_changed": "Un alias rilevato è in conflitto con un dispositivo fisico esistente. Controlla la mappatura nell’app Vistoda prima di riprovare.",
       "managed_app_adopted": "La connessione del provider esistente è ora gestita dalla relativa app Vistoda.",
       "already_configured": "Questo dispositivo bridge è già configurato in Vistoda.",
       "blink_not_loaded": "Blink Live Bridge deve essere caricato prima che Vistoda possa adottarlo.",
@@ -124,6 +143,21 @@
       "cannot_connect": "L'app Vistoda rilevata non è ancora raggiungibile. Controlla che sia avviata.",
       "invalid_bridge_auth": "L'app Vistoda rilevata ha fornito una credenziale privata non valida.",
       "unsupported_provider": "Il servizio rilevato non è un provider supportato da Vistoda."
+    }
+  },
+  "options": {
+    "step": {"init": {
+      "title": "Collegamento e backup Vistoda",
+      "description": "Per i backup, aggiungi prima un archivio di rete con utilizzo Media in Impostazioni → Sistema → Archiviazione di Home Assistant. Inserisci solo il nome, non un indirizzo server o un percorso. Vistoda verifica il mount NFS o SMB esatto prima di scrivere. Ricollega avvia un nuovo accesso mantenendo i dispositivi.",
+      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account"},
+      "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant."}
+    }},
+    "error": {
+      "invalid_storage_name": "Usa un nome con lettere, cifre, trattini o underscore; non inserire un percorso.",
+      "network_mount_missing": "L’archivio non è montato come spazio Media NFS o SMB scrivibile. Aggiungilo o ricollegalo nelle impostazioni Archiviazione di Home Assistant.",
+      "network_mount_not_writable": "Home Assistant non può scrivere su questo archivio di rete.",
+      "network_mount_unavailable": "Archivio di rete temporaneamente indisponibile.",
+      "network_mount_low_space": "L’archivio di rete richiede almeno 512 MiB liberi."
     }
   },
   "issues": {

@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .errors import BridgeError
 from .recording_list_model import RecordingListError
+from .ring_access import require_ring_access
 from .ring_recording_lists import async_get_recording_lists
 
 
@@ -46,6 +47,7 @@ def _validation_error(connection, message_id: int, error: RecordingListError) ->
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_list_create(hass, connection, msg: dict[str, Any]) -> None:
     """Create a list shared by every authenticated Home Assistant client."""
     if _resolve(hass, msg["entry_id"]) is None:
@@ -70,6 +72,7 @@ async def ws_ring_recording_list_create(hass, connection, msg: dict[str, Any]) -
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_list_update(hass, connection, msg: dict[str, Any]) -> None:
     """Rename one list without changing its recording memberships."""
     if _resolve(hass, msg["entry_id"]) is None:
@@ -93,6 +96,7 @@ async def ws_ring_recording_list_update(hass, connection, msg: dict[str, Any]) -
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_list_delete(hass, connection, msg: dict[str, Any]) -> None:
     """Delete only a list; recordings remain untouched."""
     if _resolve(hass, msg["entry_id"]) is None:
@@ -114,6 +118,7 @@ async def ws_ring_recording_list_delete(hass, connection, msg: dict[str, Any]) -
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_list_membership(hass, connection, msg: dict[str, Any]) -> None:
     """Add or remove one extant recording from one list."""
     resolved = _resolve(hass, msg["entry_id"])

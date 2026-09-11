@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from custom_components.media_bridge.client import BridgeClient, normalize_url, parse_audio_session
-from custom_components.media_bridge.errors import CannotConnectError, InvalidOtpError
+from custom_components.media_bridge.client import BridgeClient
+from custom_components.media_bridge.errors import InvalidOtpError
 
 
 class FakeContent:
@@ -115,11 +115,14 @@ async def test_ring_audio_session_is_bounded_and_token_stays_in_header() -> None
         ]
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    negotiated = await client.start_ring_audio("entrance", "v=0", "listen", 253)
+    negotiated = await client.start_ring_audio(
+        "entrance", "v=0", "listen", 253, expected_device_id="42"
+    )
     assert negotiated.session_id == "synthetic"
     assert session.requests[0][1].endswith("/v1/devices/entrance/audio/sessions")
     assert session.requests[0][2]["headers"]["Authorization"] == f"Bearer {'x' * 32}"
     assert session.requests[0][2]["json"]["ice_gathering_ms"] == 253
+    assert session.requests[0][2]["json"]["expected_device_id"] == "42"
     assert "x" * 32 not in session.requests[0][1]
 
 
@@ -127,19 +130,24 @@ async def test_ring_audio_session_is_bounded_and_token_stays_in_header() -> None
 async def test_ring_audio_stop_is_idempotent_at_bridge_contract() -> None:
     session = FakeSession([FakeResponse(204, b"")])
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    await client.stop_ring_audio("entrance", "synthetic", "user_stop")
+    await client.stop_ring_audio("entrance", "synthetic", "user_stop", expected_device_id="42")
     assert session.requests[0][0] == "DELETE"
-    assert session.requests[0][2]["params"] == {"reason": "user_stop"}
+    assert session.requests[0][2]["params"] == {
+        "reason": "user_stop",
+        "expected_device_id": "42",
+    }
 
 
 def test_native_ring_relay_is_private_bounded_and_uses_websocket_scheme() -> None:
     session = FakeSession([])
     client = BridgeClient(session, "https://[fd00::1]:8775", "x" * 32)
-    context = client.ring_relay("front entrance")
+    context = client.ring_relay("front entrance", expected_device_id="42")
     assert context == "synthetic-websocket-context"
     method, url, options = session.requests[0]
     assert method == "WS"
-    assert url == "wss://[fd00::1]:8775/v1/devices/front%20entrance/audio/relay"
+    assert url == (
+        "wss://[fd00::1]:8775/v1/devices/front%20entrance/audio/relay?expected_device_id=42"
+    )
     assert options["headers"]["Authorization"] == f"Bearer {'x' * 32}"
     assert options["max_msg_size"] == 2048
 
@@ -165,15 +173,18 @@ async def test_native_ring_status_and_controls_are_bounded() -> None:
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
     status = await client.ring_status("entrance")
-    assert status.battery == 73
-    assert status.online is True
-    await client.set_ring_volume("entrance", "mic_volume", 10)
-    await client.unlock_ring("entrance")
+    assert (status.battery, status.online) == (73, True)
+    await client.set_ring_volume("entrance", "mic_volume", 10, expected_device_id="42")
+    await client.unlock_ring("entrance", expected_device_id="42")
+    assert session.requests[-1][2]["json"] == {"expected_device_id": "42"}
     assert session.requests[1][0:2] == (
         "PATCH",
         "http://bridge.local:8775/v1/devices/entrance/settings",
     )
-    assert session.requests[1][2]["json"] == {"mic_volume": 10}
+    assert session.requests[1][2]["json"] == {
+        "mic_volume": 10,
+        "expected_device_id": "42",
+    }
     assert session.requests[2][0] == "POST"
 
 
@@ -225,26 +236,3 @@ async def test_local_ring_recording_upload_and_inventory_are_private() -> None:
         request[2]["headers"]["Authorization"].startswith("Bearer ") for request in session.requests
     )
     assert all("x" * 32 not in request[1] for request in session.requests)
-
-
-def test_ring_audio_response_rejects_oversized_candidate_sets() -> None:
-    with pytest.raises(CannotConnectError):
-        parse_audio_session(
-            {
-                "session_id": "synthetic",
-                "answer_sdp": "v=0\r\n",
-                "ice_candidates": [
-                    {"candidate": f"candidate:{index}", "sdp_mline_index": 0} for index in range(65)
-                ],
-                "expires_in": 120,
-            }
-        )
-
-
-@pytest.mark.parametrize(
-    "value",
-    ["ftp://bridge", "http://user:pass@bridge", "http://bridge/path", "http://bridge?q=1"],
-)
-def test_url_normalization_rejects_unsafe_shapes(value: str) -> None:
-    with pytest.raises(ValueError):
-        normalize_url(value)

@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 export class BlinkLegacyLiveSession {
   constructor(hass, host) {
     this._hass = hass;
@@ -12,10 +13,10 @@ export class BlinkLegacyLiveSession {
   }
 
   async start(entityId) {
-    if (!entityId) throw new Error("Entità camera Blink non disponibile");
+    if (!entityId) throw new Error(copy(this, "Entità camera Blink non disponibile"));
     const request = ++this.request;
     const load = globalThis.loadCardHelpers;
-    if (typeof load !== "function") throw new Error("Player Home Assistant non disponibile");
+    if (typeof load !== "function") throw new Error(copy(this, "Player Home Assistant non disponibile"));
     const helpers = await load();
     const card = await helpers.createCardElement({
       type: "picture-entity",

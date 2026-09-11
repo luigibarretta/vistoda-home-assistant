@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 import { blinkWebRtcMicrophone } from "./blink-webrtc-microphone.js";
 
 const OFFER_ICE_TIMEOUT_MS = 8000;
@@ -30,7 +31,7 @@ export class BlinkWebRtcSession {
     if (this.pc) return;
     const generation = ++this.generation;
     this.alias = alias;
-    this.onState({ phase: "starting", message: "Preparazione WebRTC Blink…" });
+    this.onState({ phase: "starting", message: copy(this, "Preparazione WebRTC Blink…") });
     try {
       const pc = new RTCPeerConnection({
         iceServers: [], bundlePolicy: "balanced", rtcpMuxPolicy: "require", iceCandidatePoolSize: 4,
@@ -51,7 +52,7 @@ export class BlinkWebRtcSession {
         (event) => this._event(event, generation).catch(async (error) => {
           if (generation !== this.generation) return;
           await this.stop(false);
-          this.onState({ phase: "error", message: error?.message || "Segnalazione Blink non valida" });
+          this.onState({ phase: "error", message: error?.message || copy(this, "Segnalazione Blink non valida") });
         }),
         { type: "blink_live_bridge/webrtc/subscribe", alias,
           offer_sdp: pc.localDescription.sdp },
@@ -60,15 +61,15 @@ export class BlinkWebRtcSession {
         await Promise.resolve(unsubscribe()).catch(() => {}); return;
       }
       this.unsubscribe = unsubscribe;
-      this.onState({ phase: "connecting", message: "Connessione alla telecamera…" });
+      this.onState({ phase: "connecting", message: copy(this, "Connessione alla telecamera…") });
     } catch (error) {
       if (generation !== this.generation) return;
       await this.stop(false);
       const fallback = error?.code === "legacy_required";
       this.onState({ phase: fallback ? "fallback" : "error",
         reason: fallback ? "no_ring_device_id" : undefined,
-        message: fallback ? "Passaggio al live Blink compatibile" :
-          error?.message || "Live Blink non disponibile" });
+        message: fallback ? copy(this, "Passaggio al live Blink compatibile") :
+          error?.message || copy(this, "Live Blink non disponibile") });
     }
   }
 
@@ -77,12 +78,12 @@ export class BlinkWebRtcSession {
     const generation = this.generation;
     const enabled = !this.speaker;
     try { await this._control("speaker", { enabled }); }
-    catch (_error) { return this._state("active", "Comando audio non riuscito"); }
+    catch (_error) { return this._state("active", copy(this, "Comando audio non riuscito")); }
     if (generation !== this.generation || !this.pc) return;
     this.speaker = enabled;
     this.video.muted = !enabled;
     if (enabled) await this.video.play().catch(() => {});
-    this._state("active", enabled ? "Audio della telecamera attivo" : "Audio disattivato");
+    this._state("active", enabled ? copy(this, "Audio della telecamera attivo") : copy(this, "Audio disattivato"));
   }
 
   stop(notify = true) {
@@ -107,7 +108,7 @@ export class BlinkWebRtcSession {
       this.video.pause(); this.video.srcObject = null; this.video.muted = true;
     }
     if (notify) this.onState({ phase: "idle", microphone: false, speaker: false,
-      message: "Live terminato" });
+      message: copy(this, "Live terminato") });
     const cleanup = [];
     if (handle) cleanup.push(this.hass.callWS({ type: "blink_live_bridge/webrtc/control",
       session_id: handle, action: "stop" }));
@@ -126,7 +127,7 @@ export class BlinkWebRtcSession {
       for (const candidate of pending) await this._sendIce(candidate);
     } else if (event.type === "answer") {
       if (event.sdp.includes("a=e2ee-content-encryption-mode:")) {
-        throw new Error("Modalità E2EE Blink non supportata");
+        throw new Error(copy(this, "Modalità E2EE Blink non supportata"));
       }
       await this.pc.setRemoteDescription({ type: "answer", sdp: event.sdp });
       if (generation !== this.generation || !this.pc) return;
@@ -138,7 +139,7 @@ export class BlinkWebRtcSession {
         sdpMLineIndex: event.sdp_mline_index };
       if (this.pc.remoteDescription) await this.pc.addIceCandidate(candidate);
       else if (this.pendingRemoteIce.length < MAX_ICE_CANDIDATES) this.pendingRemoteIce.push(candidate);
-      else throw new Error("Troppi candidati ICE Blink");
+      else throw new Error(copy(this, "Troppi candidati ICE Blink"));
     } else if (event.type === "ice_restart") {
       await this._restartIce(generation);
     } else if (event.type === "mic_overridden") {
@@ -146,12 +147,12 @@ export class BlinkWebRtcSession {
       if (generation !== this.generation || !this.pc) return;
       this.micCooldownUntil = performance.now() + Math.max(0, event.cooldown_ms || 0);
       const seconds = Math.ceil((event.cooldown_ms || 0) / 1000);
-      this._state("active", `Microfono disattivato da un’altra sessione${seconds ? ` per ${seconds}s` : ""}`);
+      this._state("active", copy(this, "Microfono disattivato da un’altra sessione{p0}", { p0: seconds ? ` ${copy(this, "per {p0}s", { p0: seconds })}` : "" }));
     } else if (event.type === "fallback") {
       await this.stop(false); this.onState({ phase: "fallback", reason: event.reason,
-        message: event.message || "Passaggio al live Blink compatibile" });
+        message: event.message || copy(this, "Passaggio al live Blink compatibile") });
     } else if (event.type === "error" || event.type === "closed") {
-      const message = event.message || "Sessione Blink terminata";
+      const message = event.message || copy(this, "Sessione Blink terminata");
       await this.stop(false); this.onState({ phase: "error", message, providerCode: event.code });
     }
   }
@@ -196,7 +197,7 @@ export class BlinkWebRtcSession {
       pc.addEventListener("icecandidate", candidateChanged);
       const timer = setTimeout(() => {
         const hasCandidate = /^a=candidate:/m.test(pc.localDescription?.sdp ?? "");
-        finish(hasCandidate ? null : new Error("Raccolta ICE Blink scaduta"));
+        finish(hasCandidate ? null : new Error(copy(this, "Raccolta ICE Blink scaduta")));
       }, timeoutMs);
       gatheringChanged();
     });
@@ -214,7 +215,7 @@ export class BlinkWebRtcSession {
 
   _connectionChanged(generation) {
     if (generation !== this.generation) return;
-    if (this.pc?.connectionState === "connected") this._state("active", "Live WebRTC connesso");
+    if (this.pc?.connectionState === "connected") this._state("active", copy(this, "Live WebRTC connesso"));
     if (this.pc?.connectionState === "failed") this._restartIce(generation);
     if (this.pc?.connectionState === "closed") this.stop();
   }
@@ -222,7 +223,7 @@ export class BlinkWebRtcSession {
   async _restartIce(generation) {
     if (generation !== this.generation || !this.pc || this.restartAttempts >= 1) return;
     this.restartAttempts += 1;
-    this.onState({ phase: "connecting", message: "Ripristino connessione WebRTC…" });
+    this.onState({ phase: "connecting", message: copy(this, "Ripristino connessione WebRTC…") });
     try {
       await this.pc.setLocalDescription(await this.pc.createOffer({ iceRestart: true }));
       if (generation !== this.generation || !this.pc) return;

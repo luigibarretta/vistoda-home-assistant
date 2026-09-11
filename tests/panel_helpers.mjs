@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  CASA_PATH,
+  HOME_ASSISTANT_PATH,
+  homeAssistantPath,
   canonicalVistodaPath,
   devicesWithDomain,
   firstEntity,
@@ -98,8 +99,11 @@ test("horizontal swipes wrap forever and ignore short or vertical gestures", () 
   assert.equal(swipeStep({ x: 80, y: 20 }, { x: 100, y: 150 }), 0);
 });
 
-test("mobile exit fallback targets Casa only while still inside Vistoda", () => {
-  assert.equal(CASA_PATH, "/casa-famiglia/casa");
+test("mobile exit fallback uses the user's HA dashboard without private paths", () => {
+  assert.equal(HOME_ASSISTANT_PATH, "/lovelace");
+  assert.equal(homeAssistantPath({ defaultPanel: "home" }), "/home");
+  assert.equal(homeAssistantPath({ defaultPanel: "vistoda" }), "/lovelace");
+  assert.equal(homeAssistantPath({ defaultPanel: "//example.com" }), "/lovelace");
   assert.equal(isVistodaPath("/vistoda-blink"), true);
   assert.equal(isVistodaPath("/vistoda/blink"), true);
   assert.equal(isVistodaPath("/casa-famiglia/casa"), false);

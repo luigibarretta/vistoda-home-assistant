@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 import { BlinkLegacyLiveSession } from "./blink-legacy-live-session.js";
 import { BlinkWebRtcSession } from "./blink-webrtc-session.js";
 
@@ -65,7 +66,7 @@ export class BlinkLiveSession {
     legacy?.stop();
     if (webRtc) await webRtc.stop(false);
     if (notify) this.onState({ phase: "idle", transport: null, microphone: false,
-      speaker: false, legacyAvailable: false, message: "Live terminato" });
+      speaker: false, legacyAvailable: false, message: copy(this, "Live terminato") });
   }
 
   _webRtcState(state, generation) {
@@ -86,8 +87,8 @@ export class BlinkLiveSession {
     this.mode = "switching";
     this.onState({ phase: "connecting", transport: "walnut", legacyAvailable: false,
       microphone: false, speaker: false, message: trigger === "automatic"
-        ? "Passaggio automatico al live compatibile…" : trigger === "policy"
-          ? "Apertura live Blink…" : "Apertura live compatibile…" });
+        ? copy(this, "Passaggio automatico al live compatibile…") : trigger === "policy"
+          ? copy(this, "Apertura live Blink…") : copy(this, "Apertura live compatibile…") });
     const webRtc = this.webRtc; this.webRtc = null;
     if (webRtc) await webRtc.stop(false);
     if (generation !== this.generation) return;
@@ -99,11 +100,11 @@ export class BlinkLiveSession {
       this.mode = "legacy";
       this.onState({ phase: "active", transport: "walnut", legacyAvailable: false,
         microphone: false, speaker: false,
-        message: "Live Blink attivo · audio bidirezionale non disponibile per questo trasporto" });
+        message: copy(this, "Live Blink attivo · audio bidirezionale non disponibile per questo trasporto") });
     } catch (error) {
       legacy.stop(); this.legacy = null; this.mode = "error";
       this.onState({ phase: "error", transport: "walnut", legacyAvailable: false,
-        message: error?.message || "Live Blink compatibile non disponibile" });
+        message: error?.message || copy(this, "Live Blink compatibile non disponibile") });
     }
   }
 }

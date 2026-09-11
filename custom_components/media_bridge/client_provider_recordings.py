@@ -112,7 +112,7 @@ class ProviderRecordingClientMixin:
         }
         if any(not isinstance(item.get(key), expected) for key, expected in required.items()):
             raise CannotConnectError
-        if item["status"] not in STATUSES or item["media_type"] != "video/mpeg":
+        if item["status"] not in STATUSES or item["media_type"] not in {"video/mpeg", "video/mp2t"}:
             raise CannotConnectError
         optional = ("started_at", "completed_at", "actual_duration_seconds", "bytes", "sha256")
         return {**{key: item[key] for key in required}, **{key: item.get(key) for key in optional}}

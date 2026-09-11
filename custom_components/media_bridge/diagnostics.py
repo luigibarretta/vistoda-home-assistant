@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.redact import async_redact_data
 
 from . import BridgeRuntime
+from .backup_storage import configured_mount, storage_readiness
 from .const import (
     CONF_ALIAS,
     CONF_API_TOKEN,
@@ -30,7 +31,20 @@ async def async_get_config_entry_diagnostics(
     coordinator = runtime.coordinator if runtime else None
     payload: dict[str, Any] = {
         "integration_version": INTEGRATION_VERSION,
-        "config_entry": async_redact_data(dict(entry.data), TO_REDACT),
+        "config_entry": async_redact_data(
+            dict(entry.data),
+            TO_REDACT
+            | {
+                "ring_device_id",
+                "ring_official_binding",
+                "password",
+                "email",
+                "account",
+                "verification_code",
+                "refresh_token",
+                "access_token",
+            },
+        ),
         "provider": entry.data.get(CONF_PROVIDER, "unknown"),
         "managed_app": bool(entry.data.get(CONF_MANAGED_APP)),
         "loaded": runtime is not None,
@@ -41,6 +55,14 @@ async def async_get_config_entry_diagnostics(
             "data_kind": type(coordinator.data).__name__ if coordinator else "none",
         },
     }
+    if entry.data.get(CONF_PROVIDER) in {"blink", "ezviz"}:
+        try:
+            payload["backup_storage"] = await hass.async_add_executor_job(
+                storage_readiness, configured_mount(entry)
+            )
+        except (ValueError, OSError):
+            payload["backup_storage"] = {"ready": False, "reason": "invalid_storage_name"}
+    payload["reauth_supported"] = entry.data.get(CONF_PROVIDER) in {"ring", "ezviz"}
     if runtime and runtime.ring_status:
         payload["ring_status"] = {
             "last_update_success": runtime.ring_status.last_update_success,

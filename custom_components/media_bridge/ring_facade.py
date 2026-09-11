@@ -14,6 +14,13 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import CONF_ALIAS, CONF_RING_DELEGATE_CONTROLS, DOMAIN, SIGNAL_RING_POLICY_CHANGED
+from .ring_binding import (
+    CONF_RING_DEVICE_ID,
+    CONF_RING_OFFICIAL_BINDING,
+    device_identifier,
+    entity_prefix,
+    verified_device_id,
+)
 from .ring_contract import (
     DOORBELL_VOLUME,
     MIC_VOLUME,
@@ -28,22 +35,33 @@ _LOGGER = logging.getLogger(__name__)
 ATTRIBUTION = "Delegated to the official Home Assistant Ring integration"
 
 
-def ring_device_info(alias: str) -> dict[str, Any]:
+def ring_device_info(entry) -> dict[str, Any]:
     """Return the single enhanced Vistoda Ring device identity."""
     return {
-        "identifiers": {(DOMAIN, f"ring:{alias}")},
+        "identifiers": {device_identifier(entry)},
         "name": "Vistoda · RING",
         "manufacturer": "Vistoda",
         "model": "Ring Intercom enhanced bridge",
     }
 
 
-def resolve_source(hass: HomeAssistant, spec: RingSourceSpec) -> str | None:
+def resolve_source(hass: HomeAssistant, spec: RingSourceSpec, entry) -> str | None:
     """Resolve an official Ring Intercom entity from supported registries."""
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
+    binding = entry.data.get(CONF_RING_OFFICIAL_BINDING)
+    device_id = entry.data.get(CONF_RING_DEVICE_ID)
+    if not binding or not device_id:
+        return None
     candidates = []
     for entity in entity_registry.entities.values():
+        if (
+            entity.device_id != binding.get("device_id")
+            or entity.config_entry_id != binding.get("config_entry_id")
+            or entity.disabled_by is not None
+            or not entity.unique_id.startswith(f"{device_id}-")
+        ):
+            continue
         device = device_registry.async_get(entity.device_id) if entity.device_id else None
         candidates.append(
             RingSourceCandidate(
@@ -61,12 +79,47 @@ def resolve_source(hass: HomeAssistant, spec: RingSourceSpec) -> str | None:
     return source
 
 
-def official_controls_available(hass: HomeAssistant) -> bool:
+def official_controls_available(hass: HomeAssistant, entry) -> bool:
     """Require every official entity used by the delegated control path."""
     return all(
-        resolve_source(hass, spec) is not None
+        resolve_source(hass, spec, entry) is not None
         for spec in (OPEN_DOOR, DOORBELL_VOLUME, MIC_VOLUME, VOICE_VOLUME)
     )
+
+
+def async_bind_official(hass: HomeAssistant, entry) -> None:
+    """Bind only the official entity for the exact native Ring device ID."""
+    device_id = entry.data.get(CONF_RING_DEVICE_ID)
+    if not device_id or entry.data.get(CONF_RING_OFFICIAL_BINDING):
+        return
+    registry = er.async_get(hass)
+    devices = dr.async_get(hass)
+    matches = []
+    for entity in registry.entities.values():
+        device = devices.async_get(entity.device_id) if entity.device_id else None
+        if (
+            entity.platform == "ring"
+            and entity.unique_id == f"{device_id}-open_door"
+            and entity.entity_id.startswith("button.")
+            and entity.disabled_by is None
+            and device
+            and device.manufacturer == "Ring"
+            and device.model == "Intercom"
+        ):
+            matches.append(entity)
+    if len(matches) == 1:
+        source = matches[0]
+        hass.config_entries.async_update_entry(
+            entry,
+            data={
+                **entry.data,
+                CONF_RING_OFFICIAL_BINDING: {
+                    "device_id": source.device_id,
+                    "config_entry_id": source.config_entry_id,
+                    "unique_id": source.unique_id,
+                },
+            },
+        )
 
 
 class RingFacadeEntity(Entity):
@@ -81,9 +134,10 @@ class RingFacadeEntity(Entity):
         self._hass = hass
         self._entry = entry
         self._alias = entry.data[CONF_ALIAS]
-        self._source_entity_id = resolve_source(hass, spec)
-        self._attr_unique_id = f"ring-{self._alias}-facade-{spec.key}"
-        self._attr_device_info = ring_device_info(self._alias)
+        self._spec = spec
+        self._source_entity_id = resolve_source(hass, spec, entry)
+        self._attr_unique_id = f"{entity_prefix(entry)}facade-{spec.key}"
+        self._attr_device_info = ring_device_info(entry)
 
     @property
     def delegated(self) -> bool:
@@ -95,14 +149,21 @@ class RingFacadeEntity(Entity):
         """Return the shared native status snapshot, when healthy."""
         runtime = self._hass.data[DOMAIN][self._entry.entry_id]
         coordinator = runtime.ring_status
-        if coordinator is None or not coordinator.last_update_success:
+        if (
+            coordinator is None
+            or not coordinator.last_update_success
+            or verified_device_id(self._entry, coordinator.data) is None
+        ):
             return None
         return coordinator.data
 
     @property
     def source_state(self) -> State | None:
         """Return the current provider-owned source state."""
-        if self._source_entity_id is None:
+        if (
+            self._source_entity_id is None
+            or resolve_source(self._hass, self._spec, self._entry) != self._source_entity_id
+        ):
             return None
         return self.hass.states.get(self._source_entity_id)
 
@@ -172,4 +233,5 @@ class RingFacadeEntity(Entity):
             service,
             {**data, "entity_id": self._source_entity_id},
             blocking=True,
+            context=self._context,
         )

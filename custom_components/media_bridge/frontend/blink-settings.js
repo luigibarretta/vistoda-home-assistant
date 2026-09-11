@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import {
   booleanStateText, temperatureValueText, videoQualityOptions,
@@ -18,7 +19,7 @@ class VistodaBlinkSettings extends HTMLElement {
     this._mount();
   }
 
-  set hass(value) { this._hass = value; }
+  set hass(value) { this._hass = value; this._render(); }
   set camera(value) {
     const alias = value?.alias || "";
     if (alias === this._camera?.alias) return;
@@ -32,29 +33,29 @@ class VistodaBlinkSettings extends HTMLElement {
     const sections = BLINK_SETTING_SECTIONS.map((section, index) => `
       <details class="setting-section" data-section="${section.key}" ${index === 0 ? "open" : ""}>
         <summary><ha-icon icon="${section.icon}"></ha-icon><span class="section-copy">
-          <strong>${section.title}</strong><small>${section.description}</small></span>
+          <strong data-copy="${section.title}">${section.title}</strong><small data-copy="${section.description}">${section.description}</small></span>
           <ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon></summary>
         <div class="section-body">${section.key === "general" ? '<div id="summary"></div>' : ""}
           <div id="group-${section.key}"></div>${section.key === "privacy" ? '<slot name="zones"></slot>' : ""}</div>
       </details>`).join("");
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLES}${BLINK_SETTING_STYLES}</style>
-      <section class="card settings"><header><div><div class="eyebrow">Dettaglio camera</div>
-        <h3 id="title">Impostazioni Blink</h3><div class="muted">Valori letti direttamente
-        dalla camera, senza esporre credenziali.</div></div><button id="reload"
-        aria-label="Rileggi le impostazioni dal cloud Blink"
-        title="Rileggi le impostazioni dal cloud Blink"
-        data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate">
+      <section class="card settings"><header><div><div class="eyebrow"><span data-copy="Dettaglio camera">Dettaglio camera</span></div>
+        <h3 id="title"><span data-copy="Impostazioni Blink">Impostazioni Blink</span></h3><div class="muted"><span data-copy="Valori letti direttamente dalla camera, senza esporre credenziali.">Valori letti direttamente
+        dalla camera, senza esporre credenziali.</span></div></div><button id="reload"
+        aria-label="Rileggi le impostazioni dal cloud Blink" data-copy-aria-label="Rileggi le impostazioni dal cloud Blink"
+        title="Rileggi le impostazioni dal cloud Blink" data-copy-title="Rileggi le impostazioni dal cloud Blink"
+        data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate" data-copy-data-tooltip="Rilegge dal cloud Blink le impostazioni e conserva le modifiche non salvate">
         <ha-icon icon="mdi:refresh"></ha-icon></button></header>
         <div class="accordion" id="fields">${sections}</div><div class="draft-actions" id="draft-actions"
           hidden><span class="muted" id="draft-count"></span><button id="discard">
-          <ha-icon icon="mdi:undo-variant"></ha-icon><span>Annulla</span></button>
+          <ha-icon icon="mdi:undo-variant"></ha-icon><span><span data-copy="Annulla">Annulla</span></span></button>
           <button class="primary" id="save"><ha-icon icon="mdi:content-save-outline"></ha-icon>
-          <span>Salva modifiche</span></button></div>
+          <span><span data-copy="Salva modifiche">Salva modifiche</span></span></button></div>
         <div class="muted" id="status" role="status"></div>
-        <div class="notice muted">Vistoda mostra soltanto funzioni riconosciute per questo
+        <div class="notice muted"><span data-copy="Vistoda mostra soltanto funzioni riconosciute per questo modello. Il live WebRTC gestisce speaker e microfono separatamente e blocca l’uso contemporaneo del microfono da più sessioni Vistoda.">Vistoda mostra soltanto funzioni riconosciute per questo
         modello. Il live WebRTC gestisce speaker e microfono separatamente e blocca
-        l’uso contemporaneo del microfono da più sessioni Vistoda.</div></section>`;
+        l’uso contemporaneo del microfono da più sessioni Vistoda.</span></div></section>`; localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this._load());
     this.$("discard").addEventListener("click", () => this._discard());
@@ -74,7 +75,7 @@ class VistodaBlinkSettings extends HTMLElement {
   async _load() {
     if (!this._hass || !this._camera?.alias) return;
     const request = ++this._request;
-    this.$("status").textContent = "Lettura impostazioni…";
+    this.$("status").textContent = copy(this, "Lettura impostazioni…");
     this.$("reload").disabled = true;
     try {
       const result = await this._hass.callWS({
@@ -84,16 +85,17 @@ class VistodaBlinkSettings extends HTMLElement {
         reconcileDraft(result, this._draft()); this._render(); }
     } catch (_error) {
       if (request === this._request) this.$("status").textContent =
-        "Impostazioni avanzate non disponibili per questo modello.";
+        copy(this, "Impostazioni avanzate non disponibili per questo modello.");
     } finally {
       if (request === this._request) this.$("reload").disabled = false;
     }
   }
 
   _render() {
+    localizeCopy(this.shadowRoot, this);
     this.hidden = !this._camera?.alias;
     if (this.hidden) return;
-    this.$("title").textContent = this._settings?.name || this._camera.name || "Impostazioni Blink";
+    this.$("title").textContent = this._settings?.name || this._camera.name || copy(this, "Impostazioni Blink");
     if (!this._settings) { this.$("summary").replaceChildren();
       for (const section of BLINK_SETTING_SECTIONS) this.$(`group-${section.key}`).replaceChildren();
       return; }
@@ -111,15 +113,15 @@ class VistodaBlinkSettings extends HTMLElement {
     }
     this._renderDraftActions();
     this.$("status").textContent = (this._settings.settings || []).length
-      ? "" : "Nessuna impostazione riconosciuta.";
+      ? "" : copy(this, "Nessuna impostazione riconosciuta.");
   }
 
   _renderSummary() {
     const data = this._settings;
     const temp = temperatureValueText(data.temperature_f, this._hass);
-    const values = [["Modello", data.product_type || data.camera_type], ["Firmware", data.firmware],
-      ["Segnale Wi-Fi", Number.isFinite(data.wifi_dbm) ? `${data.wifi_dbm} dBm` : null],
-      ["Temperatura", temp]];
+    const values = [[copy(this, "Modello"), data.product_type || data.camera_type], ["Firmware", data.firmware],
+      [copy(this, "Segnale Wi-Fi"), Number.isFinite(data.wifi_dbm) ? `${data.wifi_dbm} dBm` : null],
+      [copy(this, "Temperatura"), temp]];
     this.$("summary").replaceChildren(...values.map(([label, value]) => {
       const item = document.createElement("div"); item.className = "datum";
       const caption = document.createElement("span"); caption.textContent = label;
@@ -129,7 +131,8 @@ class VistodaBlinkSettings extends HTMLElement {
   }
 
   _field(field) {
-    const meta = BLINK_SETTING_META[field.key] || [field.key, "", "general"];
+    const source = BLINK_SETTING_META[field.key];
+    const meta = source ? source.map((value, index) => index < 2 ? copy(this, value) : value) : [field.key, "", "general"];
     const row = document.createElement("div");
     row.className = `field${field.key === "video_quality" ? " quality" : ""}`;
     const text = document.createElement("div");
@@ -151,16 +154,16 @@ class VistodaBlinkSettings extends HTMLElement {
     if (field.kind === "boolean") {
       const button = document.createElement("button"); button.className = "toggle";
       button.setAttribute("role", "switch"); button.setAttribute("aria-checked", String(field.value));
-      button.setAttribute("aria-label", `${label}: ${booleanStateText(field.value)}`);
+      button.setAttribute("aria-label", `${label}: ${booleanStateText(field.value, this)}`);
       const state = document.createElement("span"); state.className = "toggle-state";
-      state.textContent = booleanStateText(field.value);
+      state.textContent = booleanStateText(field.value, this);
       const track = document.createElement("span"); track.className = "switch-track";
       track.setAttribute("aria-hidden", "true"); button.append(state, track);
       button.addEventListener("click", () => this._stage(field.key, !field.value)); return button;
     }
     if (field.kind === "select") {
       const select = document.createElement("select"); select.setAttribute("aria-label", label);
-      for (const option of field.options) select.add(new Option(BLINK_OPTION_LABELS[option] || option, option));
+      for (const option of field.options) select.add(new Option(BLINK_OPTION_LABELS[option] ? copy(this, BLINK_OPTION_LABELS[option]) : option, option));
       select.value = field.value; select.addEventListener("change", () => this._stage(field.key, select.value));
       return select;
     }
@@ -190,7 +193,7 @@ class VistodaBlinkSettings extends HTMLElement {
     const group = document.createElement("fieldset"); group.className = "quality-options";
     group.setAttribute("aria-label", label);
     const name = `video-quality-${this._camera?.alias || "camera"}`;
-    for (const option of videoQualityOptions(field.options, field.value)) {
+    for (const option of videoQualityOptions(field.options, field.value, this)) {
       const row = document.createElement("label"); row.className = "quality-option";
       const input = document.createElement("input"); input.type = "radio";
       input.name = name; input.value = option.value; input.checked = option.value === field.value;
@@ -208,8 +211,8 @@ class VistodaBlinkSettings extends HTMLElement {
     if (["temperature_min", "temperature_max"].includes(key)) {
       return temperatureValueText(value, this._hass);
     }
-    if (typeof value === "boolean") return booleanStateText(value);
-    return `${BLINK_OPTION_LABELS[value] || value}${unit ? ` ${unit}` : ""}`;
+    if (typeof value === "boolean") return booleanStateText(value, this);
+    return `${BLINK_OPTION_LABELS[value] ? copy(this, BLINK_OPTION_LABELS[value]) : value}${unit ? ` ${unit}` : ""}`;
   }
 
   _draft() { return cameraDraft(this._drafts, this._camera?.alias || ""); }
@@ -217,19 +220,19 @@ class VistodaBlinkSettings extends HTMLElement {
     if (render) this._render(); else this._renderDraftActions(); }
   _renderDraftActions() { const count = this._draft().size;
     this.$("draft-actions").hidden = count === 0;
-    this.$("draft-count").textContent = `${count} ${count === 1 ? "modifica" : "modifiche"} da salvare`;
-    this.$("save").textContent = `Salva modifiche (${count})`; }
+    this.$("draft-count").textContent = copy(this, "{p0} {p1} da salvare", { p0: count, p1: count === 1 ? copy(this, "modifica") : copy(this, "modifiche") });
+    this.$("save").textContent = copy(this, "Salva modifiche ({p0})", { p0: count }); }
   _discard() { this._draft().clear(); this._render();
-    this.$("status").textContent = "Modifiche locali annullate."; }
+    this.$("status").textContent = copy(this, "Modifiche locali annullate."); }
   async _saveDraft() {
     const draft = this._draft(); const count = draft.size; if (!count) return;
-    if (!globalThis.confirm(`Confermi ${count} ${count === 1 ? "modifica" : "modifiche"} a questa telecamera?`)) return;
-    this.$("status").textContent = "Salvataggio e verifica…";
+    if (!globalThis.confirm(copy(this, "Confermi {p0} {p1} a questa telecamera?", { p0: count, p1: count === 1 ? copy(this, "modifica") : copy(this, "modifiche") }))) return;
+    this.$("status").textContent = copy(this, "Salvataggio e verifica…");
     try { this._settings = await commitDraft(this._hass, this._camera.alias, this._settings, draft);
-      draft.clear(); this._render(); this.$("status").textContent = "Modifiche verificate sulla camera.";
+      draft.clear(); this._render(); this.$("status").textContent = copy(this, "Modifiche verificate sulla camera.");
     } catch (error) { await this._load(); this.$("status").textContent = error.rollbackFailed
-      ? "Salvataggio fallito: rileggi lo stato prima di riprovare."
-      : "Salvataggio fallito: le modifiche già inviate sono state ripristinate."; }
+      ? copy(this, "Salvataggio fallito: rileggi lo stato prima di riprovare.")
+      : copy(this, "Salvataggio fallito: le modifiche già inviate sono state ripristinate."); }
   }
 }
 

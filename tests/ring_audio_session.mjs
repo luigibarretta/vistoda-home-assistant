@@ -89,7 +89,7 @@ test("ICE timeout remains fail-closed when no candidate was gathered", async () 
   const session = new RingAudioSession({}, {}, {}, () => {});
   const peer = gatheringPeer("v=0\r\n");
 
-  await assert.rejects(session.waitForIce(peer, 1), /Raccolta ICE scaduta/);
+  await assert.rejects(session.waitForIce(peer, 1), /ICE gathering timed out/);
 
   assert.equal(peer.listeners.size, 0);
 });

@@ -12,14 +12,13 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .backup_storage import configured_mount, provider_entry, safe_directory
 from .recording_backup import (
     BACKUP_MOUNT,
-    BACKUP_ROOT,
     MAX_BACKUP_BYTES,
     MIN_FREE_BYTES,
     _commit,
     _discard,
-    _is_nfs_mount,
     _open_partial,
     _sha256,
     _write_metadata,
@@ -55,7 +54,7 @@ async def ws_backup_blink_usb(hass, connection, msg: dict[str, Any]) -> None:
         return
     try:
         lock = hass.data.setdefault("media_bridge", {}).setdefault(LOCK_KEY, asyncio.Lock())
-        async with lock:
+        async with lock, asyncio.timeout(180):
             result = await _backup_clip(hass, msg)
     except Exception:
         connection.send_error(msg["id"], "unavailable", "Blink USB backup is unavailable")
@@ -64,6 +63,7 @@ async def ws_backup_blink_usb(hass, connection, msg: dict[str, Any]) -> None:
 
 
 async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, Any]:
+    mount = configured_mount(provider_entry(hass, "blink"))
     runtime = hass.data.get("blink_live_bridge", {}).get("runtime")
     if runtime is None:
         raise ValueError("Blink runtime unavailable")
@@ -77,11 +77,11 @@ async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, An
             raise ValueError("Blink USB media response is invalid")
         if upstream.content_length is not None and upstream.content_length > MAX_BACKUP_BYTES:
             raise ValueError("Blink USB clip exceeds backup limit")
-        target, existing = await hass.async_add_executor_job(_prepare, msg)
+        target, existing = await hass.async_add_executor_job(_prepare, msg, mount)
         if existing:
             metadata = await hass.async_add_executor_job(_existing_metadata, target, msg)
             await hass.async_add_executor_job(_write_metadata, target, metadata)
-            return {"status": "existing", "relative_path": _relative(target)}
+            return {"status": "existing", "relative_path": _relative(target, mount)}
         partial = target.with_name(f".{target.name}.partial")
         handle = await hass.async_add_executor_job(_open_partial, partial)
         digest = hashlib.sha256()
@@ -97,26 +97,23 @@ async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, An
                 raise ValueError("Blink USB clip is empty")
             metadata = _metadata(msg, written, digest.hexdigest())
             await hass.async_add_executor_job(_commit, handle, partial, target, metadata)
-        except Exception:
+        except BaseException:
             await hass.async_add_executor_job(_discard, handle, partial)
             raise
-        return {"status": "created", "relative_path": _relative(target)}
+        return {"status": "created", "relative_path": _relative(target, mount)}
     finally:
         upstream.release()
 
 
-def _prepare(msg: dict[str, Any]) -> tuple[Path, bool]:
-    if not _is_nfs_mount(BACKUP_MOUNT):
-        raise OSError("Vistoda network mount is absent")
-    directory = BACKUP_ROOT / "blink-usb" / msg["camera"]
-    directory.mkdir(parents=True, exist_ok=True, mode=0o750)
+def _prepare(msg: dict[str, Any], mount: Path = BACKUP_MOUNT) -> tuple[Path, bool]:
+    directory = safe_directory(mount, "blink-usb", msg["camera"])
     target = directory / f"{msg['manifest_id']}-{msg['clip_id']}.mp4"
-    if not target.resolve().is_relative_to(BACKUP_ROOT.resolve()):
+    if target.is_symlink() or not target.resolve().is_relative_to(mount):
         raise OSError("unsafe Blink USB backup path")
     if target.is_file():
         return target, True
     target.with_name(f".{target.name}.partial").unlink(missing_ok=True)
-    if shutil.disk_usage(BACKUP_MOUNT).free < MIN_FREE_BYTES:
+    if shutil.disk_usage(mount).free < MIN_FREE_BYTES:
         raise OSError("network mount has no safe headroom")
     return target, False
 
@@ -147,5 +144,5 @@ def _metadata(msg: dict[str, Any], size: int, digest: str) -> dict[str, Any]:
     }
 
 
-def _relative(target: Path) -> str:
-    return str(target.relative_to(BACKUP_MOUNT))
+def _relative(target: Path, mount: Path = BACKUP_MOUNT) -> str:
+    return str(target.relative_to(mount))

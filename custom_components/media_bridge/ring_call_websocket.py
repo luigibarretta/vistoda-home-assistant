@@ -6,6 +6,8 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .ring_access import require_ring_access
+
 EVENT_RING_CALL_ANSWERED = "vistoda_ring_call_answered"
 CALL_ID = vol.All(str, vol.Match(r"^[A-Za-z0-9_-]{1,64}$"))
 
@@ -24,6 +26,7 @@ def async_register(hass: HomeAssistant) -> None:
     }
 )
 @callback
+@require_ring_access("control")
 def ws_ring_call_answered(hass, connection, msg: dict[str, Any]) -> None:
     """Acknowledge only after an authenticated Vistoda session is active."""
     from .websocket import resolve_ring

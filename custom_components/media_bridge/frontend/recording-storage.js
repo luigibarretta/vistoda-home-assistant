@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 const LABELS = {
   private: "privato all'app",
   addon_config: "configurazione pubblica dell'app",
@@ -6,46 +7,48 @@ const LABELS = {
   custom: "percorso personalizzato",
 };
 
-export function recordingStorageSummary(storage) {
-  if (!storage?.directory) return "Percorso non esposto da questa versione del bridge.";
-  return `Archivio: ${storage.directory} · ${LABELS[storage.kind] || storage.kind}`;
+export function recordingStorageSummary(storage, context = "it") {
+  if (!storage?.directory) return copy(context, "Percorso non esposto da questa versione del bridge.");
+  const kind = LABELS[storage.kind] ? copy(context, LABELS[storage.kind]) : storage.kind;
+  return copy(context, "Archivio: {p0} · {p1}", { p0: storage.directory, p1: kind });
 }
 
-export function recordingInfoContent(recording, storage) {
+export function recordingInfoContent(recording, storage, context = "it") {
   const content = document.createElement("div");
   content.className = "recording-info";
   const line = document.createElement("div");
   line.className = "path-line";
   const text = document.createElement("div");
   const label = document.createElement("strong");
-  label.textContent = "Percorso file ";
+  label.textContent = `${copy(context, "Percorso file")} `;
   const path = document.createElement("code");
-  path.textContent = recording.storage_path || "Non disponibile con questo bridge";
+  path.textContent = recording.storage_path || copy(context, "Non disponibile con questo bridge");
   text.append(label, path);
   const note = document.createElement("div");
   note.className = "hint";
   note.textContent = storage?.user_visible
-    ? "Percorso accessibile dallo storage Home Assistant selezionato."
-    : "Storage privato dell'app. La destinazione si cambia nella configurazione di Vistoda Ring.";
+    ? copy(context, "Percorso accessibile dallo storage Home Assistant selezionato.")
+    : copy(context, "Storage privato dell'app. La destinazione si cambia nella configurazione di Vistoda Ring.");
   text.append(note);
-  const copy = document.createElement("button");
-  copy.className = "row-action path-copy";
-  copy.disabled = !recording.storage_path;
-  copy.innerHTML = '<ha-icon icon="mdi:content-copy"></ha-icon><span>Copia</span>';
-  copy.addEventListener("click", () => content.dispatchEvent(new CustomEvent("copy-path", {
+  const button = document.createElement("button");
+  button.className = "row-action path-copy";
+  button.disabled = !recording.storage_path;
+  button.innerHTML = '<ha-icon icon="mdi:content-copy"></ha-icon><span data-copy="Copia"></span>';
+  localizeCopy(button, context);
+  button.addEventListener("click", () => content.dispatchEvent(new CustomEvent("copy-path", {
     detail: { path: recording.storage_path },
   })));
-  line.append(text, copy);
+  line.append(text, button);
   content.append(line);
   return content;
 }
 
-export function recordingInfoRow(recording, storage) {
+export function recordingInfoRow(recording, storage, context = "it") {
   const row = document.createElement("tr");
   row.className = "info-row";
   const cell = document.createElement("td");
   cell.colSpan = 4;
-  cell.append(recordingInfoContent(recording, storage));
+  cell.append(recordingInfoContent(recording, storage, context));
   row.append(cell);
   return row;
 }

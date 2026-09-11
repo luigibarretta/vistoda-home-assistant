@@ -1,6 +1,8 @@
+import { BASE_STYLES } from "./panel-styles.js";
+
 export function recordingArchiveTemplate() {
   return `
-    <style>
+    <style>${BASE_STYLES}
       :host{display:block;margin-top:18px;padding-top:17px;border-top:1px solid var(--divider-color)}
       *{box-sizing:border-box}.head{display:flex;justify-content:space-between;gap:14px;
         align-items:flex-start}.head>div:first-child{min-width:0;flex:1}h3{margin:0 0 4px;font-size:16px}
@@ -43,7 +45,7 @@ export function recordingArchiveTemplate() {
         border-top:1px solid var(--divider-color)}.list-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
       .list-tags span{padding:4px 8px;border-radius:999px;font-size:12px;background:color-mix(in srgb,
         var(--primary-color) 15%,transparent)}.list-picker{display:grid;gap:8px}.list-picker label{display:flex;
-        align-items:center;gap:9px;min-height:36px}.list-picker input{min-height:auto;width:20px;height:20px;
+        align-items:center;gap:9px;min-height:44px}.list-picker input{min-height:auto;width:20px;height:20px;
         accent-color:var(--primary-color)}.empty{text-align:center;padding:20px}.pager{display:flex;
         align-items:center;justify-content:flex-end;gap:9px;margin-top:12px}
       @media(max-width:620px){.head{display:block}.toolbar{margin-top:10px}.toolbar button{flex:1}
@@ -54,31 +56,31 @@ export function recordingArchiveTemplate() {
         .list-edit{flex-wrap:wrap}.list-edit input{width:100%;flex-basis:100%}.list-edit button{flex:1}
         .cards{grid-template-columns:1fr}.recording-card .row-action{flex:1}.table-wrap .row-action span{display:none}}
     </style>
-    <div class="head"><div><h3>Registrazioni salvate</h3><div class="hint" id="status"
+    <div class="head"><div><h3><span data-copy="Registrazioni salvate">Registrazioni salvate</span></h3><div class="hint" id="status"
       role="status"></div><div class="hint storage" id="storage"></div></div><div class="toolbar">
-      <button id="reload"><ha-icon icon="mdi:refresh"></ha-icon>Aggiorna</button>
+      <button id="reload"><ha-icon icon="mdi:refresh"></ha-icon><span data-copy="Aggiorna">Aggiorna</span></button>
       <button class="danger" id="delete-all" disabled><ha-icon icon="mdi:delete-sweep-outline">
-      </ha-icon>Elimina tutte</button></div></div>
-    <div class="archive-controls"><div class="view-switch" role="group" aria-label="Vista archivio">
-      <button id="view-cards" aria-pressed="false"><ha-icon icon="mdi:view-grid-outline"></ha-icon>Schede</button>
-      <button id="view-rows" aria-pressed="false"><ha-icon icon="mdi:view-list-outline"></ha-icon>Tabella</button>
-      </div><div class="list-controls"><select id="list-filter" aria-label="Filtra per lista"></select>
-      <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon>Nuova lista</button>
+      </ha-icon><span data-copy="Elimina tutte">Elimina tutte</span></button></div></div>
+    <div class="archive-controls"><div class="view-switch" role="group" aria-label="Vista archivio" data-copy-aria-label="Vista archivio">
+      <button id="view-cards" aria-pressed="false"><ha-icon icon="mdi:view-grid-outline"></ha-icon><span data-copy="Schede">Schede</span></button>
+      <button id="view-rows" aria-pressed="false"><ha-icon icon="mdi:view-list-outline"></ha-icon><span data-copy="Tabella">Tabella</span></button>
+      </div><div class="list-controls"><select id="list-filter" aria-label="Filtra per lista" data-copy-aria-label="Filtra per lista"></select>
+      <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon><span data-copy="Nuova lista">Nuova lista</span></button>
       <button id="manage-lists" aria-expanded="false"><ha-icon icon="mdi:playlist-edit"></ha-icon>
       Gestisci <span class="count" id="manage-count">0</span></button></div><form class="list-form"
       id="list-form" hidden>
-      <input id="list-name" maxlength="64" autocomplete="off" placeholder="Nome della lista"
-        aria-label="Nome della nuova lista"><button type="submit">Crea</button>
-      <button type="button" id="cancel-list">Annulla</button></form>
-      <section class="list-manager" id="list-manager" aria-label="Gestione liste" hidden>
-      <div class="hint" id="list-empty">Non hai ancora creato liste personalizzate.</div>
+      <input id="list-name" maxlength="64" autocomplete="off" placeholder="Nome della lista" data-copy-placeholder="Nome della lista"
+        aria-label="Nome della nuova lista" data-copy-aria-label="Nome della nuova lista"><button type="submit"><span data-copy="Crea">Crea</span></button>
+      <button type="button" id="cancel-list"><span data-copy="Annulla">Annulla</span></button></form>
+      <section class="list-manager" id="list-manager" aria-label="Gestione liste" data-copy-aria-label="Gestione liste" hidden>
+      <div class="hint" id="list-empty"><span data-copy="Non hai ancora creato liste personalizzate.">Non hai ancora creato liste personalizzate.</span></div>
       <div class="list-items" id="list-items"></div></section></div>
     <div class="cards" id="cards" hidden></div>
-    <div class="table-wrap" id="table-wrap"><table><thead><tr><th>Data</th><th>Durata</th>
-      <th>Dimensione</th><th>Azioni</th></tr></thead><tbody id="rows"></tbody></table></div>
-    <div class="empty hint" id="empty" hidden>Nessuna registrazione locale.</div>
-    <nav class="pager" id="pager" aria-label="Pagine archivio"><button id="previous"
-      aria-label="Pagina precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
-      <span id="page-label">Pagina 1 di 1</span><button id="next" aria-label="Pagina successiva">
+    <div class="table-wrap" id="table-wrap"><table><thead><tr><th><span data-copy="Data">Data</span></th><th><span data-copy="Durata">Durata</span></th>
+      <th><span data-copy="Dimensione">Dimensione</span></th><th><span data-copy="Azioni">Azioni</span></th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="empty hint" id="empty" hidden><span data-copy="Nessuna registrazione locale.">Nessuna registrazione locale.</span></div>
+    <nav class="pager" id="pager" aria-label="Pagine archivio" data-copy-aria-label="Pagine archivio"><button id="previous"
+      aria-label="Pagina precedente" data-copy-aria-label="Pagina precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
+      <span id="page-label"><span data-copy="Pagina 1 di 1">Pagina 1 di 1</span></span><button id="next" aria-label="Pagina successiva" data-copy-aria-label="Pagina successiva">
       <ha-icon icon="mdi:chevron-right"></ha-icon></button></nav>`;
 }

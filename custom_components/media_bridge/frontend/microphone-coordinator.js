@@ -1,10 +1,11 @@
+import { copy } from "./panel-copy.js";
 const LOCK_NAME = "vistoda-active-microphone";
 let fallbackLease = null;
 
 export async function claimMicrophone(owner) {
   if (!navigator.locks?.request) {
     if (fallbackLease && fallbackLease !== owner) {
-      throw new Error("Il microfono è già usato da un’altra sessione Vistoda");
+      throw new Error(copy(owner, "Il microfono è già usato da un’altra sessione Vistoda"));
     }
     fallbackLease = owner;
     return { release: () => { if (fallbackLease === owner) fallbackLease = null; } };
@@ -17,7 +18,7 @@ export async function claimMicrophone(owner) {
     resolveReady(Boolean(lock));
     if (lock) await held;
   }).catch(() => resolveReady(false));
-  if (!await ready) throw new Error("Il microfono è già usato da un’altra sessione Vistoda");
+  if (!await ready) throw new Error(copy(owner, "Il microfono è già usato da un’altra sessione Vistoda"));
   let released = false;
   return { release: () => { if (!released) { released = true; releaseLock(); } } };
 }

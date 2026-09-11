@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { PROVIDER_RECORDING_STYLES } from "./provider-recording-styles.js";
 import { recordingItem } from "./provider-recording-item.js";
@@ -31,7 +32,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this._mounted = false;
   }
 
-  set hass(value) { this._hass = value; }
+  set hass(value) { this._hass = value; this._render(); }
 
   connectedCallback() {
     if (!this._mounted) this._mount();
@@ -42,7 +43,7 @@ class VistodaProviderRecordings extends HTMLElement {
   configure(hass, config) {
     this._hass = hass;
     const key = `${config?.provider}:${config?.entryId || ""}:${config?.alias || ""}`;
-    if (key === this._key) return;
+    if (key === this._key) { this._render(); return; }
     this._key = key;
     this._config = config;
     this._items = [];
@@ -59,7 +60,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this._mounted = true;
     this.shadowRoot.innerHTML = providerRecordingsTemplate(
       BASE_STYLES + PROVIDER_RECORDING_STYLES + PROVIDER_LIST_STYLES + PROVIDER_BULK_LIST_STYLES,
-      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE);
+      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
     this.$("backup-all").addEventListener("click", () => this._backupAll());
@@ -84,7 +85,7 @@ class VistodaProviderRecordings extends HTMLElement {
       this._storage = result.storage || null;
       this._setMessage("");
     } catch (_error) {
-      this._setMessage("Archivio temporaneamente non disponibile.");
+      this._setMessage(copy(this, "Archivio temporaneamente non disponibile."));
     } finally {
       this._busy = false;
       this._render();
@@ -105,25 +106,26 @@ class VistodaProviderRecordings extends HTMLElement {
 
   _render() {
     if (!this._mounted) return;
+    if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("start").disabled = this._busy || !this._config;
     this.$("reload").disabled = this._busy || !this._config;
     this.$("backup-all").disabled = this._busy || !this._config;
     const providerStorage = this.$("provider-storage");
     providerStorage.textContent = this._config?.provider === "blink"
-      ? "Chiavetta Blink" : "MicroSD EZVIZ";
+      ? copy(this, "Chiavetta Blink") : copy(this, "MicroSD EZVIZ");
     this.$("destination-note").textContent = this._config?.provider === "blink"
-      ? "Blink non espone una scrittura diretta e selettiva sulla chiavetta USB: il salvataggio " +
-        "provider resta disabilitato finché il protocollo non è verificabile."
-      : "La registrazione standalone resta separata da SceneTrove e dalla microSD della camera.";
+      ? copy(this, "Blink non espone una scrittura diretta e selettiva sulla chiavetta USB: il salvataggio") + " " +
+        copy(this, "provider resta disabilitato finché il protocollo non è verificabile.")
+      : copy(this, "La registrazione standalone resta separata da SceneTrove e dalla microSD della camera.");
     const directory = this._storage?.directory;
     this.$("archive-path").hidden = !directory;
     this.$("archive-owner").textContent = this._config?.provider === "blink"
-      ? "Percorso interno add-on Vistoda Blink:"
-      : "Percorso interno add-on Vistoda EZVIZ:";
+      ? copy(this, "Percorso interno add-on Vistoda Blink:")
+      : copy(this, "Percorso interno add-on Vistoda EZVIZ:");
     this.$("archive-directory").textContent = directory || "";
     this.$("copy-archive-path").disabled = !directory;
-    this.$("summary").textContent = `Archivio locale (${this._pagination.total_items})`;
-    this.$("page-label").textContent = `Pagina ${this._pagination.page} di ${this._pagination.total_pages}`;
+    this.$("summary").textContent = copy(this, "Archivio locale ({p0})", { p0: this._pagination.total_items });
+    this.$("page-label").textContent = copy(this, "Pagina {p0} di {p1}", { p0: this._pagination.page, p1: this._pagination.total_pages });
     this.$("previous").disabled = this._busy || !this._pagination.has_previous;
     this.$("next").disabled = this._busy || !this._pagination.has_next;
     const visibleItems = this._listManager.filtered(this._items,
@@ -131,7 +133,7 @@ class VistodaProviderRecordings extends HTMLElement {
     const nodes = visibleItems.map((item) => {
       const mediaId = `local:${item.recording_id}`;
       return recordingItem(item, {
-      provider: this._config.provider, busy: this._busy,
+      hass: this._hass, provider: this._config.provider, busy: this._busy,
       play: () => this._play(item), download: () => this._download(item),
       backup: () => this._backup(item), remove: () => this._delete(item),
       selected: this._selected.has(item.recording_id),
@@ -144,12 +146,12 @@ class VistodaProviderRecordings extends HTMLElement {
     if (!nodes.length) {
       const empty = document.createElement("div");
       empty.className = "muted";
-      empty.textContent = "Nessuna registrazione locale per questa telecamera.";
+      empty.textContent = copy(this, "Nessuna registrazione locale per questa telecamera.");
       nodes.push(empty);
     }
     this.$("list").replaceChildren(...nodes);
     this.$("bulk-actions").hidden = this._selected.size === 0;
-    this.$("selected-count").textContent = `${this._selected.size} selezionate`;
+    this.$("selected-count").textContent = copy(this, "{p0} selezionate", { p0: this._selected.size });
     this.$("delete-selected").disabled = this._busy;
     this.$("add-selected-to-lists").disabled = this._busy;
   }

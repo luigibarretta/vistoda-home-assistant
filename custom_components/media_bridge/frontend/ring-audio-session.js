@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 import { createRingAudioMedia } from "./ring-audio-media.js";
 const STUN = "stun:stun.kinesisvideo.us-east-1.amazonaws.com:443";
 const COOLDOWN_MS = 10_500;
@@ -48,7 +49,7 @@ export class RingAudioSession {
       const pcmu = RTCRtpSender.getCapabilities("audio")?.codecs.filter(
         (codec) => codec.mimeType.toLowerCase() === "audio/pcmu",
       );
-      if (!pcmu?.length) throw new Error("PCMU non supportato dal browser");
+      if (!pcmu?.length) throw new Error(copy(this, "PCMU non supportato dal browser"));
       transceiver.setCodecPreferences(pcmu);
       await pc.setLocalDescription(await pc.createOffer());
       if (generation !== this.generation) return;
@@ -79,7 +80,7 @@ export class RingAudioSession {
         if (generation !== this.generation) return;
       }
       this.expiry = setTimeout(
-        () => this.stop("Sessione scaduta", "client_expired"), result.expires_in * 1000,
+        () => this.stop(copy(this, "Sessione scaduta"), "client_expired"), result.expires_in * 1000,
       );
       this.onState({ phase: "active", mode });
     } catch (error) {
@@ -88,9 +89,9 @@ export class RingAudioSession {
       await this.disposePeer();
       if (error?.code === "cooldown") {
         this.cooldownUntil = Date.now() + COOLDOWN_MS;
-        this.startCooldown("Ring sta chiudendo la sessione precedente");
+        this.startCooldown(copy(this, "Ring sta chiudendo la sessione precedente"));
       } else {
-        this.onState({ phase: "error", message: error?.message || "Audio Ring non disponibile" });
+        this.onState({ phase: "error", message: error?.message || copy(this, "Audio Ring non disponibile") });
       }
     } finally {
       this.busy = false;
@@ -120,7 +121,7 @@ export class RingAudioSession {
       this.onState({
         phase: "active",
         mode: this.mode,
-        message: error?.message || "Cambio modalità non riuscito",
+        message: error?.message || copy(this, "Cambio modalità non riuscito"),
       });
     } finally {
       this.busy = false;
@@ -149,7 +150,7 @@ export class RingAudioSession {
       pc.addEventListener("icecandidate", candidateChanged);
       const timer = setTimeout(() => {
         const hasCandidate = /^a=candidate:/m.test(pc.localDescription?.sdp ?? "");
-        finish(hasCandidate ? null : new Error("Raccolta ICE scaduta"));
+        finish(hasCandidate ? null : new Error(copy(this, "Raccolta ICE scaduta")));
       }, timeoutMs);
       gatheringChanged();
     });
@@ -162,7 +163,7 @@ export class RingAudioSession {
     this.onMedia(this.audio.srcObject, this.localMedia?.stream, this.mode || "listen");
     try { await this.audio.play(); } catch (_error) {
       if (generation !== this.generation) return;
-      this.onState({ phase: "active", mode: this.mode, message: "Tocca un controllo per l’audio" });
+      this.onState({ phase: "active", mode: this.mode, message: copy(this, "Tocca un controllo per l’audio") });
     }
   }
 
@@ -171,11 +172,11 @@ export class RingAudioSession {
     const state = pc.connectionState;
     if (state === "connected") this.onState({ phase: "active", mode: this.mode });
     if (["failed", "closed"].includes(state)) {
-      this.stop("Connessione terminata", "connection_ended");
+      this.stop(copy(this, "Connessione terminata"), "connection_ended");
     }
   }
 
-  stop(message = "Sessione terminata", reason = "user_stop") {
+  stop(message = copy(this, "Sessione terminata"), reason = "user_stop") {
     if (this.stopping) return this.stopping;
     ++this.generation;
     this.stopping = this.performStop(message, reason).finally(() => { this.stopping = null; });
@@ -227,7 +228,7 @@ export class RingAudioSession {
       if (seconds === 0) {
         clearInterval(this.cooldown);
         this.cooldown = null;
-        this.onState({ phase: "idle", message: "Pronto per una nuova sessione" });
+        this.onState({ phase: "idle", message: copy(this, "Pronto per una nuova sessione") });
       } else this.onState({ phase: "cooldown", seconds, message });
     };
     tick();
@@ -235,7 +236,7 @@ export class RingAudioSession {
   }
 
   async destroy() {
-    await this.stop("Pannello chiuso", "panel_closed");
+    await this.stop(copy(this, "Pannello chiuso"), "panel_closed");
     clearInterval(this.cooldown);
     this.cooldown = null;
   }

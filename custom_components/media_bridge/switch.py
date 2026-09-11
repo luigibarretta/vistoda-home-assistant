@@ -9,13 +9,14 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
-    CONF_ALIAS,
     CONF_PROVIDER,
     CONF_RING_AUTO_RECORD,
     CONF_RING_DELEGATE_CONTROLS,
     PROVIDER_RING,
     SIGNAL_RING_POLICY_CHANGED,
 )
+from .ring_access import async_require_context
+from .ring_binding import entity_prefix
 from .ring_facade import official_controls_available, ring_device_info
 
 
@@ -27,7 +28,7 @@ async def async_setup_entry(
     """Expose global policies only for Ring entries."""
     if entry.data[CONF_PROVIDER] != PROVIDER_RING:
         return
-    official_available = official_controls_available(hass)
+    official_available = official_controls_available(hass, entry)
     if not official_available and entry.options.get(CONF_RING_DELEGATE_CONTROLS, False):
         hass.config_entries.async_update_entry(
             entry,
@@ -49,7 +50,7 @@ async def async_setup_entry(
                 CONF_RING_DELEGATE_CONTROLS,
                 "ring_delegate_controls",
                 "mdi:swap-horizontal",
-                default=official_available,
+                default=False,
                 available=official_available,
             ),
         ]
@@ -80,9 +81,8 @@ class RingPolicySwitch(SwitchEntity):
         self._attr_translation_key = translation_key
         self._attr_icon = icon
         self._attr_available = available
-        alias = entry.data[CONF_ALIAS]
-        self._attr_unique_id = f"ring-{alias}-facade-{option.removeprefix('ring_')}"
-        self._attr_device_info = ring_device_info(alias)
+        self._attr_unique_id = f"{entity_prefix(entry)}facade-{option.removeprefix('ring_')}"
+        self._attr_device_info = ring_device_info(entry)
 
     @property
     def is_on(self) -> bool:
@@ -91,12 +91,14 @@ class RingPolicySwitch(SwitchEntity):
 
     async def async_turn_on(self, **_kwargs) -> None:
         """Enable this policy, failing closed if delegation is unavailable."""
+        await async_require_context(self._hass, self._context, self._entry.entry_id)
         if not self.available:
             raise HomeAssistantError("Official Ring controls are not available")
         self._set(True)
 
     async def async_turn_off(self, **_kwargs) -> None:
         """Disable this policy."""
+        await async_require_context(self._hass, self._context, self._entry.entry_id)
         self._set(False)
 
     def _set(self, value: bool) -> None:

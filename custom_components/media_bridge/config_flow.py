@@ -29,13 +29,17 @@ from .errors import CannotConnectError, InvalidBridgeAuthError
 from .ezviz_flow import EzvizEnrollmentMixin
 from .local import blink_adapter_available
 from .managed_flow import ManagedAppDiscoveryMixin
+from .reauth_flow import ReauthenticationMixin
 from .ring_flow import RingEnrollmentMixin
+from .ring_inventory_flow import RingInventoryFlowMixin
 from .schemas import bridge_schema, discovered_schema, provider_schema
 
 REMOTE_PROVIDERS = frozenset({PROVIDER_EZVIZ, PROVIDER_RING})
 
 
 class ConfigFlow(
+    ReauthenticationMixin,
+    RingInventoryFlowMixin,
     ManagedAppDiscoveryMixin,
     EzvizEnrollmentMixin,
     RingEnrollmentMixin,
@@ -53,6 +57,13 @@ class ConfigFlow(
         self._enrollment_id: str | None = None
         self._credentials_error: str | None = None
         self._discovery_token: str | None = None
+        self._reauth_entry = None
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        from .options_flow import VistodaOptionsFlow
+
+        return VistodaOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         self._set_flow_title()
@@ -79,6 +90,11 @@ class ConfigFlow(
 
     async def async_step_integration_discovery(self, discovery_info: dict[str, Any]) -> FlowResult:
         """Receive a local adapter discovery initiated by Blink Live Bridge."""
+        if "managed_continuation" in discovery_info:
+            result = await self._async_managed_discovery(
+                discovery_info["managed_continuation"], authenticated=True
+            )
+            return result
         if discovery_info.get(CONF_PROVIDER) != PROVIDER_BLINK:
             return self.async_abort(reason="unsupported_provider")
         self._provider = PROVIDER_BLINK
@@ -164,7 +180,7 @@ class ConfigFlow(
         if provider == PROVIDER_BLINK:
             return self.async_abort(reason="local_adapter")
         if entry.data.get(CONF_MANAGED_APP):
-            return self.async_abort(reason="managed_app")
+            return await self._begin_reauthentication(entry)
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -192,8 +208,13 @@ class ConfigFlow(
         return client
 
     async def _finish(self) -> FlowResult:
+        if self._reauth_entry is not None:
+            return self._finish_reauthentication()
+        if self._provider == PROVIDER_RING and not getattr(self, "_ring_inventory_complete", False):
+            return await self.async_step_ring_device()
         await self.async_set_unique_id(self._unique_id())
         self._abort_if_unique_id_configured()
+        await self._continue_managed_discovery()
         return self.async_create_entry(
             title=f"Vistoda · {self._provider.upper()}", data=self._bridge_data
         )

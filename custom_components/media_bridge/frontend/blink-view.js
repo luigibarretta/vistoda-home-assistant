@@ -1,9 +1,11 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import "./blink-settings.js";
 import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
 import { blinkViewLive } from "./blink-view-live.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
+import { localize, localizeElements } from "./panel-localize.js";
 import {
   devicesWithDomain,
   entityState,
@@ -35,10 +37,9 @@ class VistodaBlinkView extends HTMLElement {
 
   set hass(value) { this._hass = value; this._render(); }
   set info(value) { this._info = value; this._render(); }
-
   _mount() {
     this._mounted = true;
-    this.shadowRoot.innerHTML = BLINK_VIEW_TEMPLATE;
+    this.shadowRoot.innerHTML = BLINK_VIEW_TEMPLATE; localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
@@ -68,11 +69,14 @@ class VistodaBlinkView extends HTMLElement {
 
   _render() {
     if (!this._mounted) this._mount();
+    localizeCopy(this.shadowRoot, this);
+    localizeElements(this.shadowRoot, this._hass, { provider: "Blink" });
     const provider = this._info?.providers?.blink;
     const cameras = this._cameras();
+    this.$("empty").hidden = Boolean(cameras.length);
     this._index = Math.min(this._index, Math.max(cameras.length - 1, 0));
     if (!cameras.length) this._detailOpen = false;
-    this.$("availability").textContent = provider?.available ? "Operativo" : "Non disponibile";
+    this.$("availability").textContent = localize(this._hass, provider?.available ? "ready" : "unavailable");
     this.$("availability").classList.toggle("off", !provider?.available);
     this._renderAlarm();
     this.$("provider-head").hidden = this._detailOpen;
@@ -98,15 +102,14 @@ class VistodaBlinkView extends HTMLElement {
   }
 
   _cameras() { return devicesWithDomain(this._info, "blink", "camera"); }
-
   _renderAlarm() {
     const device = providerDevices(this._info, "blink")
       .find((item) => item.entities?.alarm_control_panel?.length);
     const alarm = firstEntity(device, "alarm_control_panel");
     const state = entityState(this._hass, alarm);
-    setText(this.shadowRoot, "system-name", device?.name || "Sistema Blink");
+    setText(this.shadowRoot, "system-name", device?.name || copy(this, "Sistema Blink"));
     setText(this.shadowRoot, "system-state", state?.state === "armed_away"
-      ? "Armato fuori casa" : state?.state === "disarmed" ? "Disarmato" : "Non disponibile");
+      ? copy(this, "Armato fuori casa") : state?.state === "disarmed" ? copy(this, "Disarmato") : copy(this, "Non disponibile"));
     this.$("system").hidden = !alarm;
     this.$("arm").disabled = !state || state.state === "armed_away";
     this.$("disarm").disabled = !state || state.state === "disarmed";
@@ -122,32 +125,32 @@ class VistodaBlinkView extends HTMLElement {
     const clips = cameraState?.attributes?.recent_clips || [];
     setText(this.shadowRoot, "camera-name", device.name);
     setText(this.shadowRoot, "details-title", device.name);
-    setText(this.shadowRoot, "camera-position", `${this._index + 1} di ${count}`);
+    setText(this.shadowRoot, "camera-position", copy(this, "{p0} di {p1}", { p0: this._index + 1, p1: count }));
     setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
       cameraState,
       this._hass?.locale?.language || "it-IT",
       this._snapshotTimes.get(camera?.entity_id),
     ));
     setText(this.shadowRoot, "camera-state", cameraState && cameraState.state !== "unavailable"
-      ? "Disponibile" : "Non disponibile");
+      ? copy(this, "Disponibile") : copy(this, "Non disponibile"));
     this.$("camera-state").classList.toggle("off", !cameraState || cameraState.state === "unavailable");
     const batteryState = entityState(this._hass, battery);
-    setText(this.shadowRoot, "battery", batteryState?.state === "on" ? "Scarica"
-      : batteryState?.state === "off" ? "OK" : "Non rilevata");
+    setText(this.shadowRoot, "battery", batteryState?.state === "on" ? copy(this, "Batteria scarica")
+      : batteryState?.state === "off" ? "OK" : copy(this, "Non rilevata"));
     this.$("battery-icon").setAttribute("icon", batteryState?.state === "on"
       ? "mdi:battery-alert-variant-outline" : "mdi:battery");
-    setText(this.shadowRoot, "temperature", stateText(this._hass, temperature, "Non rilevata"));
+    setText(this.shadowRoot, "temperature", stateText(this._hass, temperature, copy(this, "Non rilevata")));
     setText(this.shadowRoot, "clips", String(clips.length));
     const motionState = entityState(this._hass, motion);
     const motionEnabled = motionState?.state === "on";
     setText(this.shadowRoot, "motion-label", motionEnabled
-      ? "Disattiva movimento" : "Attiva movimento");
+      ? copy(this, "Disattiva movimento") : copy(this, "Attiva movimento"));
     this.$("motion-icon").setAttribute("icon", motionEnabled
       ? "mdi:motion-sensor-off" : "mdi:motion-sensor");
     this.$("motion").disabled = !motionState || motionState.state === "unavailable";
     const url = pictureUrl(this._hass, camera, this._nonce);
     if (this._liveSession) this._liveSession.hass = this._hass;
-    this.$("snapshot").alt = `Snapshot ${device.name}`;
+    this.$("snapshot").alt = copy(this, "Snapshot {p0}", { p0: device.name });
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
     this.$("recordings").configure(this._hass, {
@@ -166,8 +169,8 @@ class VistodaBlinkView extends HTMLElement {
     const dots = Array.from({ length: count }, (_, index) => {
       const button = document.createElement("button");
       button.className = `dot${index === this._index ? " active" : ""}`;
-      button.setAttribute("aria-label", `Apri telecamera ${index + 1}`);
-      button.title = `Apri telecamera ${index + 1}`;
+      button.setAttribute("aria-label", copy(this, "Apri telecamera {p0}", { p0: index + 1 }));
+      button.title = copy(this, "Apri telecamera {p0}", { p0: index + 1 });
       if (index === this._index) button.setAttribute("aria-current", "true");
       button.addEventListener("click", () => {
         this._liveSession?.stop(); this._index = index; this._render();
@@ -209,14 +212,14 @@ class VistodaBlinkView extends HTMLElement {
       this._snapshotTimes.set(camera.entity_id, Date.now());
       this._nonce = Date.now();
       this._render();
-    }, "Snapshot aggiornato");
+    }, copy(this, "Snapshot aggiornato"));
   }
 
   async _toggleMotion() {
     const motion = this._current("switch");
     const turnOn = entityState(this._hass, motion)?.state !== "on";
     await this._action("motion", () => this._hass.callService("switch", turnOn
-      ? "turn_on" : "turn_off", { entity_id: motion.entity_id }), "Movimento aggiornato");
+      ? "turn_on" : "turn_off", { entity_id: motion.entity_id }), copy(this, "Movimento aggiornato"));
   }
 
   async _setAlarm(armed) {
@@ -226,19 +229,18 @@ class VistodaBlinkView extends HTMLElement {
     await this._action(armed ? "arm" : "disarm", () => this._hass.callService(
       "alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm",
       { entity_id: alarm.entity_id },
-    ), armed ? "Sistema armato" : "Sistema disarmato");
+    ), armed ? copy(this, "Sistema armato") : copy(this, "Sistema disarmato"));
   }
 
   async _action(button, operation, success) {
     const control = this.$(button);
     if (!control) return;
     control.disabled = true;
-    setText(this.shadowRoot, "message", "Operazione in corso…");
+    setText(this.shadowRoot, "message", copy(this, "Operazione in corso…"));
     try { await operation(); setText(this.shadowRoot, "message", success); }
-    catch (_error) { setText(this.shadowRoot, "message", "Operazione non riuscita"); }
+    catch (_error) { setText(this.shadowRoot, "message", copy(this, "Operazione non riuscita")); }
     finally { this._render(); }
   }
-
 }
 
 Object.assign(VistodaBlinkView.prototype, blinkViewLive);

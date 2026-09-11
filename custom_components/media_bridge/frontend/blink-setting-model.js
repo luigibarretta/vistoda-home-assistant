@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 const QUALITY_COPY = Object.freeze({
   best: Object.freeze({
     label: "Migliore",
@@ -17,8 +18,8 @@ const QUALITY_COPY = Object.freeze({
 
 const QUALITY_ORDER = ["best", "standard", "saver"];
 
-export function booleanStateText(value) {
-  return value === true ? "Attivata" : "Disattivata";
+export function booleanStateText(value, context = "it") {
+  return copy(context, value === true ? "Attivata" : "Disattivata");
 }
 
 export function temperatureValueText(value, hass) {
@@ -29,7 +30,7 @@ export function temperatureValueText(value, hass) {
   return `${converted.toLocaleString(locale, { maximumFractionDigits: 1 })} ${unit}`;
 }
 
-export function videoQualityOptions(options = [], current = "") {
+export function videoQualityOptions(options = [], current = "", context = "it") {
   const available = new Set(options);
   if (current) available.add(current);
   const ordered = [
@@ -38,7 +39,7 @@ export function videoQualityOptions(options = [], current = "") {
   ];
   return ordered.map((value) => ({
     value,
-    label: QUALITY_COPY[value]?.label || value,
-    description: QUALITY_COPY[value]?.description || "Opzione supportata dalla telecamera.",
+    label: QUALITY_COPY[value] ? copy(context, QUALITY_COPY[value].label) : value,
+    description: copy(context, QUALITY_COPY[value]?.description || "Opzione supportata dalla telecamera."),
   }));
 }

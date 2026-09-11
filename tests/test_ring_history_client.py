@@ -46,6 +46,7 @@ async def test_ring_history_is_server_paginated_and_identity_is_bounded() -> Non
                 "device_name": "Front Entrance",
                 "location_name": "Home",
                 "city": "Casoria",
+                "device_id": "42",
             },
             "events": [
                 {"event_id": "event-1", "event_type": "unlock", "occurred_at": 1_788_995_400}
@@ -54,7 +55,12 @@ async def test_ring_history_is_server_paginated_and_identity_is_bounded() -> Non
         }
     )
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
-    page = await client.ring_history("front entrance", 20, "7330963245622279024")
+    page = await client.ring_history(
+        "front entrance",
+        20,
+        "7330963245622279024",
+        expected_device_id="42",
+    )
     assert page.identity.device_name == "Front Entrance"
     assert page.identity.location_name == "Home"
     assert page.identity.city == "Casoria"
@@ -63,5 +69,6 @@ async def test_ring_history_is_server_paginated_and_identity_is_bounded() -> Non
     assert session.requests[0][1].endswith("/v1/devices/front%20entrance/history")
     assert session.requests[0][2]["params"] == {
         "limit": 20,
+        "expected_device_id": "42",
         "cursor": "7330963245622279024",
     }

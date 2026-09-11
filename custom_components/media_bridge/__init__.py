@@ -102,8 +102,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ring_events = None
     ring_history = None
     if provider == PROVIDER_RING:
+        from .ring_binding import async_bind_native, async_migrate_registry
+        from .ring_facade import async_bind_official
+
+        async_migrate_registry(hass, entry)
         ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS])
         await ring_status.async_config_entry_first_refresh()
+        async_bind_native(hass, entry, ring_status.data)
+        async_bind_official(hass, entry)
         ring_history = RingHistoryManager(hass, entry, client, entry.data[CONF_ALIAS])
         await ring_history.async_initialize()
         ring_events = RingEventListener(hass, entry, client, entry.data[CONF_ALIAS], ring_history)
@@ -111,8 +117,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     snapshots = {}
     snapshot_updated_at = {}
     if provider == PROVIDER_EZVIZ:
+        from .ezviz_identity import async_migrate_registry
         from .ezviz_snapshot_cache import async_load
 
+        async_migrate_registry(hass, entry)
         image, updated_at = await async_load(hass, entry.entry_id)
         if image is not None:
             snapshots[entry.data[CONF_ALIAS]] = image

@@ -1,0 +1,15 @@
+{
+  "service": "media_bridge",
+  "config": {
+    "provider": "ring",
+    "url": "http://fixture-provider:8775",
+    "alias": "intercom-41",
+    "aliases": ["intercom-41", "intercom-42"],
+    "devices": [
+      {"alias": "intercom-41", "device_id": "41"},
+      {"alias": "intercom-42", "device_id": "42"}
+    ],
+    "api_token": "fixture-token-never-sent",
+    "managed_app": true
+  }
+}

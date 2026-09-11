@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from custom_components.media_bridge.client import BridgeClient
 
 
@@ -69,3 +71,16 @@ async def test_ezviz_recording_inventory_is_server_paginated() -> None:
     assert result["pagination"] == pagination
     assert result["storage"] == storage
     assert session.last_request[2]["params"] == {"page": 2, "page_size": 10, "camera": "front"}
+
+
+@pytest.mark.parametrize("media_type", ["video/mpeg", "video/mp2t"])
+def test_ezviz_client_preserves_the_recording_container_type(media_type):
+    manifest = {
+        "recording_id": "00000000-0000-4000-8000-000000000001",
+        "camera": "front",
+        "status": "ready",
+        "requested_at": "2026-09-11T20:00:00Z",
+        "requested_duration_seconds": 30,
+        "media_type": media_type,
+    }
+    assert BridgeClient._recording(manifest)["media_type"] == media_type

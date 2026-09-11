@@ -110,7 +110,10 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     assert "Caricamento snapshot" in ezviz and "mdi:loading" in ezviz
     assert ".loader[hidden] { display:none !important; }" in ezviz
     blink_template = (frontend / "blink-view-template.js").read_text()
-    assert "<span>Arma</span>" in blink_template and "mdi:shield-lock-outline" in blink_template
+    assert (
+        'data-i18n="arm">Arma</span>' in blink_template
+        and "mdi:shield-lock-outline" in blink_template
+    )
     assert "motion-icon" in blink_template and "mdi:motion-sensor-off" in blink
     assert "Arma fuori casa</button>" not in blink
     recordings = (frontend / "ring-recordings.js").read_text()
@@ -180,8 +183,11 @@ def test_provider_video_archives_use_typed_ha_boundaries_and_signed_media() -> N
     assert "Pagina" in recordings and "page_size" in recordings
     assert "playback.mp4" in model + proxy and "Chiudi riproduzione" in player
     assert "Chiavetta Blink" in recordings and "MicroSD EZVIZ" in recordings
-    assert "_is_nfs_mount(BACKUP_MOUNT)" in backup and "MIN_FREE_BYTES" in backup
-    assert 'fields[2] in {"nfs", "nfs4"}' in backup
+    assert "safe_directory(mount, provider, camera)" in backup and "MIN_FREE_BYTES" in backup
+    assert (
+        'NETWORK_FILESYSTEMS = {"nfs", "nfs4", "cifs"}'
+        in (component / "backup_storage.py").read_text()
+    )
     assert 'digest.hexdigest() != manifest["sha256"]' in backup
     assert "media_bridge/blink/usb/backup" in usb_backup
     assert "blink-usb" in usb_backup and "MAX_BACKUP_BYTES" in usb_backup

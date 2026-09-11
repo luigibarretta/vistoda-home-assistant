@@ -42,6 +42,17 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
             "manufacturer": "Vistoda",
             "model": "Local Home Assistant adapter" if local else "Private Rust bridge",
         }
+        if provider == "ring":
+            from .ring_binding import entity_prefix
+            from .ring_facade import ring_device_info
+
+            self._attr_unique_id = f"{entity_prefix(entry)}bridge-connectivity"
+            self._attr_device_info = ring_device_info(entry)
+        if provider == "ezviz":
+            from .ezviz_identity import device_info, entity_prefix
+
+            self._attr_unique_id = f"{entity_prefix(entry)}bridge-connectivity"
+            self._attr_device_info = device_info(entry)
         if runtime.panel_url:
             self._attr_device_info["configuration_url"] = runtime.panel_url
 

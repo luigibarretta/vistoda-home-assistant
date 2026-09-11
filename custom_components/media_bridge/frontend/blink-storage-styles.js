@@ -26,7 +26,7 @@ export const BLINK_STORAGE_STYLES = `
   .player-head { display:flex; align-items:center; justify-content:space-between; gap:10px;
     margin-bottom:10px; }
   .player video { display:block; width:100%; max-height:62vh; border-radius:12px; background:#000; }
-  .select-clip { display:grid; place-items:center; width:40px; min-height:40px; }
+  .select-clip { display:grid; place-items:center; width:44px; min-height:44px; }
   .select-clip input { width:20px; height:20px; }
   .icon-action { width:42px; height:42px; min-width:42px; padding:0; display:grid;
     place-items:center; border-radius:11px; }

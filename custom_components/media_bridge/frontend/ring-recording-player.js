@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 export class RingRecordingPlayer {
   constructor(host) {
     this.host = host;
@@ -30,7 +31,7 @@ export class RingRecordingPlayer {
       this.activeId = recording.recording_id;
       this.host.status("");
     } catch (_error) {
-      if (request === this.request) this.host.status("Riproduzione non disponibile.");
+      if (request === this.request) this.host.status(copy(this, "Riproduzione non disponibile."));
     } finally {
       if (request !== this.request) return;
       this.loadingId = null;
@@ -43,7 +44,7 @@ export class RingRecordingPlayer {
     const wrap = document.createElement("div");
     if (this.loadingId === recording.recording_id) {
       wrap.className = "player hint";
-      wrap.innerHTML = '<ha-icon icon="mdi:loading"></ha-icon> Caricamento audio…';
+      wrap.innerHTML = "<ha-icon icon=\"mdi:loading\"></ha-icon><span data-copy=\"Caricamento audio…\">Caricamento audio…</span>"; localizeCopy(wrap, this);
       wrap.append(this._closeButton());
       return wrap;
     }
@@ -60,8 +61,8 @@ export class RingRecordingPlayer {
   _closeButton() {
     const button = document.createElement("button");
     button.className = "row-action";
-    button.innerHTML = '<ha-icon icon="mdi:close"></ha-icon><span>Chiudi</span>';
-    button.setAttribute("aria-label", "Chiudi player");
+    button.innerHTML = "<ha-icon icon=\"mdi:close\"></ha-icon><span><span data-copy=\"Chiudi\">Chiudi</span></span>"; localizeCopy(button, this);
+    button.setAttribute("aria-label", copy(this, "Chiudi player"));
     button.addEventListener("click", () => this.close());
     return button;
   }
@@ -72,8 +73,8 @@ export class RingRecordingPlayer {
     const button = document.createElement("button");
     const forward = seconds > 0;
     button.className = "row-action";
-    button.innerHTML = `<ha-icon icon="mdi:${forward ? "fast-forward" : "rewind"}-10"></ha-icon>`;
-    button.setAttribute("aria-label", `${forward ? "Avanti" : "Indietro"} di 10 secondi`);
+    button.innerHTML = `<ha-icon icon="mdi:${forward ? "fast-forward" : "rewind"}-10"></ha-icon>`; localizeCopy(button, this);
+    button.setAttribute("aria-label", copy(this, "{p0} di 10 secondi", { p0: forward ? copy(this, "Avanti") : copy(this, "Indietro") }));
     button.addEventListener("click", () => {
       const limit = Number.isFinite(this.player.duration) ? this.player.duration : Infinity;
       this.player.currentTime = Math.max(0, Math.min(limit, this.player.currentTime + seconds));

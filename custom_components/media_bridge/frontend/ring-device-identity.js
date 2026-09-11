@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import "./ring-identity-dialog.js";
 
@@ -32,14 +33,14 @@ class RingDeviceIdentity extends HTMLElement {
           margin-top:9px;color:var(--secondary-text-color);font-size:13px}.summary ha-icon{
           --mdc-icon-size:18px;color:var(--primary-color)}
       </style><div class="title"><div class="copy"><div class="eyebrow">Ring Intercom</div>
-        <h2 id="name">Citofono</h2></div><button class="edit" id="edit" disabled
-        aria-label="Modifica identità del dispositivo Ring" title="Modifica identità Ring"
-        data-tooltip="Scegli i nomi del dispositivo e della casa usati nelle notifiche">
+        <h2 id="name"><span data-copy="Citofono">Citofono</span></h2></div><button class="edit" id="edit" disabled
+        aria-label="Modifica identità del dispositivo Ring" data-copy-aria-label="Modifica identità del dispositivo Ring" title="Modifica identità Ring" data-copy-title="Modifica identità Ring"
+        data-tooltip="Scegli i nomi del dispositivo e della casa usati nelle notifiche" data-copy-data-tooltip="Scegli i nomi del dispositivo e della casa usati nelle notifiche">
         <ha-icon icon="mdi:account-edit-outline"></ha-icon></button></div>
-        <div class="muted">Ascolto e conversazione simultanei · massimo 2 minuti</div>
+        <div class="muted"><span data-copy="Ascolto e conversazione simultanei · massimo 2 minuti">Ascolto e conversazione simultanei · massimo 2 minuti</span></div>
         <div class="summary"><ha-icon icon="mdi:home-map-marker"></ha-icon>
-          <span id="location">Location Ring</span></div>
-        <vistoda-ring-identity-dialog id="dialog"></vistoda-ring-identity-dialog>`;
+          <span id="location"><span data-copy="Location Ring">Location Ring</span></span></div>
+        <vistoda-ring-identity-dialog id="dialog"></vistoda-ring-identity-dialog>`; localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("edit").addEventListener("click", () => this.$("dialog").show());
     this.$("dialog").addEventListener("identity-updated", (event) => {
@@ -53,9 +54,10 @@ class RingDeviceIdentity extends HTMLElement {
   }
 
   _render() {
+    localizeCopy(this.shadowRoot, this);
     this.$("name").textContent = this._entry.device_name
       || this._entry.name.replace(/^Vistoda · /, "");
-    const location = this._entry.location_name || "Location Ring";
+    const location = this._entry.location_name || copy(this, "Location Ring");
     const city = this._entry.city || "";
     this.$("location").textContent = city && !location.toLocaleLowerCase("it-IT")
       .endsWith(` in ${city}`.toLocaleLowerCase("it-IT")) ? `${location} · ${city}` : location;

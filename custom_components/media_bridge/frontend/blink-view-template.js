@@ -11,50 +11,52 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #legacy-live .blink-legacy-card { display:block; width:100%; height:100%; }
 </style>
 <section class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
-  <h2>Telecamere Blink</h2><div class="muted">Gli snapshot esistenti non risvegliano
+  <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
   le camere. Aggiornamento e live partono soltanto su richiesta.</div></div>
-  <span class="badge off" id="availability">Verifica…</span></section>
-<section class="card system" id="system"><div><strong id="system-name">Sistema Blink</strong>
-  <div class="muted" id="system-state">Stato non disponibile</div></div>
+  <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></section>
+<section class="card empty" id="empty" hidden><p data-i18n="noCameras">Nessuna telecamera Blink configurata.</p>
+  <a class="button primary" href="/config/integrations/dashboard" data-i18n="configureProvider">Configura Blink</a></section>
+<section class="card system" id="system"><div><strong id="system-name"><span data-copy="Sistema Blink">Sistema Blink</span></strong>
+  <div class="muted" id="system-state"><span data-copy="Stato non disponibile">Stato non disponibile</span></div></div>
   <div class="actions"><button id="disarm"><ha-icon icon="mdi:shield-off-outline"></ha-icon>
-    <span>Disarma</span></button><button class="primary" id="arm">
-    <ha-icon icon="mdi:shield-lock-outline"></ha-icon><span>Arma</span></button></div></section>
+    <span data-i18n="disarm">Disarma</span></button><button class="primary" id="arm">
+    <ha-icon icon="mdi:shield-lock-outline"></ha-icon><span data-i18n="arm">Arma</span></button></div></section>
 <section class="card media-card" id="gallery">
   <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon
-    icon="mdi:cctv"></ha-icon>Snapshot non disponibile</div><img id="snapshot" alt="">
+    icon="mdi:cctv"></ha-icon><span data-i18n="noSnapshot">Snapshot non disponibile</span></div><img id="snapshot" alt="">
     <video id="live-video" autoplay playsinline muted hidden></video>
     <div id="legacy-live" hidden></div></div>
-  <div class="media-body"><div class="media-title"><div><h3 id="camera-name">Telecamera</h3>
+  <div class="media-body"><div class="media-title"><div><h3 id="camera-name"><span data-copy="Telecamera">Telecamera</span></h3>
     <div class="muted" id="camera-position"></div><div class="muted" id="snapshot-time"></div>
-    </div><span class="badge off" id="camera-state">Non disponibile</span></div>
+    </div><span class="badge off" id="camera-state"><span data-copy="Non disponibile">Non disponibile</span></span></div>
     <div class="facts"><div class="fact"><ha-icon id="battery-icon" icon="mdi:battery"></ha-icon>
-      <div><span>Batteria</span><strong id="battery">—</strong></div></div>
-      <div class="fact"><ha-icon icon="mdi:thermometer"></ha-icon><div><span>Temperatura</span>
+      <div><span data-i18n="battery"><span data-copy="Batteria">Batteria</span></span><strong id="battery">—</strong></div></div>
+      <div class="fact"><ha-icon icon="mdi:thermometer"></ha-icon><div><span data-i18n="temperature"><span data-copy="Temperatura">Temperatura</span></span>
       <strong id="temperature">—</strong></div></div>
-      <div class="fact"><ha-icon icon="mdi:video-box"></ha-icon><div><span>Clip recenti</span>
+      <div class="fact"><ha-icon icon="mdi:video-box"></ha-icon><div><span data-i18n="recentClips">Clip recenti</span>
       <strong id="clips">0</strong></div></div></div>
-    <div class="actions"><button class="primary" id="live" title="Apri il live in Home Assistant">
-      <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span>Apri live</span></button>
-      <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera">
-      <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span>Aggiorna snapshot</span></button>
+    <div class="actions"><button class="primary" id="live" title="Apri il live in Home Assistant" data-i18n-title="openLive">
+      <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span><span data-copy="Apri live">Apri live</span></span></button>
+      <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera" data-i18n-title="refreshSnapshot">
+      <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span data-i18n="refreshSnapshot">Aggiorna snapshot</span></button>
       <button id="motion"><ha-icon id="motion-icon" icon="mdi:motion-sensor"></ha-icon>
-      <span id="motion-label">Movimento</span></button><button id="details">
-      <ha-icon icon="mdi:cog-outline"></ha-icon><span>Dettagli e impostazioni</span></button>
+      <span id="motion-label"><span data-copy="Movimento">Movimento</span></span></button><button id="details">
+      <ha-icon icon="mdi:cog-outline"></ha-icon><span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
       <button id="speaker" hidden><ha-icon id="speaker-icon" icon="mdi:volume-off"></ha-icon>
-      <span id="speaker-label">Attiva audio</span></button><button id="microphone" hidden>
+      <span id="speaker-label"><span data-copy="Attiva audio">Attiva audio</span></span></button><button id="microphone" hidden>
       <ha-icon id="microphone-icon" icon="mdi:microphone-off"></ha-icon>
-      <span id="microphone-label">Attiva microfono</span></button></div>
+      <span id="microphone-label"><span data-copy="Attiva microfono">Attiva microfono</span></span></button></div>
     <div class="muted" id="message" role="status"></div>
     <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></div>
 </section>
-<nav class="pager" id="pager" aria-label="Seleziona telecamera"><button id="previous"
+<nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect"><button data-i18n-aria-label="cameraPrevious" id="previous"
   aria-label="Telecamera precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
-  <div class="dots" id="dots"></div><button id="next" aria-label="Telecamera successiva">
+  <div class="dots" id="dots"></div><button data-i18n-aria-label="cameraNext" id="next" aria-label="Telecamera successiva">
   <ha-icon icon="mdi:chevron-right"></ha-icon></button></nav>
 <vistoda-blink-storage id="storage"></vistoda-blink-storage>
 <section id="details-page" hidden><div class="detail-head"><button id="details-back"
-  title="Torna alle telecamere"><ha-icon icon="mdi:arrow-left"></ha-icon>
-  <span>Telecamere</span></button><div><div class="eyebrow">Dettaglio camera</div>
-  <h2 id="details-title">Impostazioni</h2></div></div>
+  title="Torna alle telecamere" data-copy-title="Torna alle telecamere"><ha-icon icon="mdi:arrow-left"></ha-icon>
+  <span><span data-copy="Telecamere">Telecamere</span></span></button><div><div class="eyebrow"><span data-copy="Dettaglio camera">Dettaglio camera</span></div>
+  <h2 id="details-title"><span data-copy="Impostazioni">Impostazioni</span></h2></div></div>
   <vistoda-blink-settings id="settings"><vistoda-blink-zones id="zones" slot="zones"
     embedded></vistoda-blink-zones></vistoda-blink-settings></section>`;

@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 import { BlinkLiveSession } from "./blink-live-session.js";
 import { entityState, openMoreInfo, setText } from "./panel-helpers.js";
 
@@ -35,8 +36,8 @@ export const blinkViewLive = {
     this.$("live").classList.toggle("danger", active);
     this.$("live").querySelector("ha-icon").setAttribute("icon", active
       ? "mdi:video-off-outline" : "mdi:video-wireless-outline");
-    this.$("live").querySelector("span").textContent = active ? "Chiudi live" :
-      this._liveState.legacyAvailable ? "Apri live compatibile" : "Apri live";
+    this.$("live").querySelector("span").textContent = active ? copy(this, "Chiudi live") :
+      this._liveState.legacyAvailable ? copy(this, "Apri live compatibile") : copy(this, "Apri live");
     this.$("speaker").hidden = !interactive; this.$("microphone").hidden = !interactive;
     this.$("speaker").disabled = !interactive;
     this.$("microphone").disabled = !interactive || Boolean(this._liveState.microphonePending);
@@ -50,9 +51,9 @@ export const blinkViewLive = {
     this.$("microphone-icon").setAttribute("icon", this._liveState.microphone
       ? "mdi:microphone" : "mdi:microphone-off");
     setText(this.shadowRoot, "speaker-label", this._liveState.speaker
-      ? "Disattiva audio" : "Attiva audio");
+      ? copy(this, "Disattiva audio") : copy(this, "Attiva audio"));
     setText(this.shadowRoot, "microphone-label", this._liveState.microphone
-      ? "Disattiva microfono" : "Attiva microfono");
+      ? copy(this, "Disattiva microfono") : copy(this, "Attiva microfono"));
     if (this._liveState.message) setText(this.shadowRoot, "message", this._liveState.message);
   },
 

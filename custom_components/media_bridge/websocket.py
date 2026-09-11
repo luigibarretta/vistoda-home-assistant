@@ -17,6 +17,8 @@ from .provider_recording_list_websocket import (
 )
 from .provider_recording_websocket import async_register as async_register_provider_recordings
 from .recording_backup import async_register as async_register_recording_backup
+from .ring_access import can_access_entry, require_ring_access
+from .ring_binding import CONF_RING_DEVICE_ID, async_verify_native, entity_prefix, valid_device_id
 from .ring_call_websocket import async_register as async_register_ring_calls
 from .ring_history_websocket import async_register as async_register_ring_history
 from .ring_recording_list_websocket import async_register as async_register_recording_lists
@@ -65,9 +67,11 @@ def ws_ring_info(
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.data.get(CONF_PROVIDER) != PROVIDER_RING:
             continue
+        if not can_access_entry(hass, connection.user, entry.entry_id):
+            continue
         runtime: BridgeRuntime | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
         controls = {}
-        prefix = f"ring-{entry.data[CONF_ALIAS]}-facade-"
+        prefix = f"{entity_prefix(entry)}facade-"
         for entity in registry.entities.values():
             if entity.config_entry_id != entry.entry_id or not entity.unique_id.startswith(prefix):
                 continue
@@ -109,6 +113,7 @@ def ws_ring_info(
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_start(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -121,8 +126,13 @@ async def ws_ring_start(
         return
     runtime, alias = resolved
     try:
+        expected_device_id = await async_verify_native(hass, msg["entry_id"], runtime.client, alias)
         result = await runtime.client.start_ring_audio(
-            alias, msg["offer_sdp"], msg["mode"], msg["ice_gathering_ms"]
+            alias,
+            msg["offer_sdp"],
+            msg["mode"],
+            msg["ice_gathering_ms"],
+            expected_device_id=expected_device_id,
         )
     except EnrollmentBusyError:
         connection.send_error(msg["id"], "session_busy", "Ring audio is already in use")
@@ -162,6 +172,7 @@ async def ws_ring_start(
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_stop(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -172,8 +183,17 @@ async def ws_ring_stop(
     acknowledged = False
     if resolved is not None:
         runtime, alias = resolved
+        entry = hass.config_entries.async_get_entry(msg["entry_id"])
+        expected_device_id = entry.data.get(CONF_RING_DEVICE_ID) if entry is not None else None
         try:
-            await runtime.client.stop_ring_audio(alias, msg["session_id"], msg["reason"])
+            if not valid_device_id(expected_device_id):
+                raise BridgeError("Ring physical device binding is missing")
+            await runtime.client.stop_ring_audio(
+                alias,
+                msg["session_id"],
+                msg["reason"],
+                expected_device_id=expected_device_id,
+            )
             acknowledged = True
         except BridgeError:
             pass

@@ -1,10 +1,12 @@
+import { localizeCopy } from "./panel-copy.js";
 import "./overview-view.js";
 import "./ring-view.js";
 import "./blink-view.js";
 import "./ezviz-view.js";
 import { BASE_STYLES } from "./panel-styles.js";
+import { localize, localizeElements } from "./panel-localize.js";
 import {
-  CASA_PATH,
+  homeAssistantPath,
   isVistodaPath,
   PROVIDERS,
   PROVIDER_META,
@@ -34,6 +36,7 @@ class VistodaPanel extends HTMLElement {
     this._hass = value;
     this._ensureMounted();
     if (this._child) this._child.hass = value;
+    if (this._mounted) this._localize();
   }
 
   set panel(value) {
@@ -77,7 +80,7 @@ class VistodaPanel extends HTMLElement {
       ? "Centro di controllo privato" : PROVIDER_META[this._provider].description;
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLES}
-        main { width:min(1120px,100%); margin:0 auto; padding:26px 18px 48px; }
+        main { width:min(1120px,100%); min-width:0; margin:0 auto; padding:26px 18px 48px; }
         header { display:flex; align-items:center; justify-content:space-between; gap:20px;
           margin-bottom:20px; }
         .header-start { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
@@ -87,16 +90,18 @@ class VistodaPanel extends HTMLElement {
           color:#fff; background:linear-gradient(145deg,#6246ea,#27b3a2); }
         .mark ha-icon { --mdc-icon-size:30px; }
         h1 { margin:0; font-size:28px; } header p { margin:4px 0 0; }
-        nav { display:flex; gap:7px; padding:7px; overflow-x:auto; margin-bottom:22px;
+        nav { display:flex; min-width:0; max-width:100%; gap:7px; padding:7px; overflow-x:auto; margin-bottom:22px;
           border:1px solid var(--divider-color); border-radius:16px;
           background:var(--card-background-color); }
-        nav a { min-height:42px; display:flex; align-items:center; justify-content:center; gap:7px;
+        nav a { min-height:44px; display:flex; align-items:center; justify-content:center; gap:7px;
           flex:1 0 auto; padding:8px 13px; border-radius:11px; color:var(--secondary-text-color);
           text-decoration:none; font-weight:650; }
         nav a.active { color:#fff; background:linear-gradient(135deg,#6246ea,#4967e9); }
         nav ha-icon { --mdc-icon-size:20px; }
         #back { display:none; } #reload { flex:0 0 auto; }
         @media (max-width:600px) {
+          nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+          nav a { min-width:0; padding:8px; }
           main { padding:18px 12px 36px; } header { align-items:flex-start; gap:8px; }
           #back { display:grid; place-items:center; min-width:44px; padding:8px; }
           .mark { display:none; } .identity { gap:8px; } h1 { font-size:24px; }
@@ -112,14 +117,27 @@ class VistodaPanel extends HTMLElement {
         <p class="muted"></p></div></div></div><button id="reload" aria-label="Aggiorna inventario"
         title="Aggiorna inventario Vistoda"
         data-tooltip="Rilegge dispositivi e stati di tutti i provider Vistoda">
-        <ha-icon icon="mdi:refresh"></ha-icon><span>Aggiorna</span></button></header>
+        <ha-icon icon="mdi:refresh"></ha-icon><span><span data-copy="Aggiorna">Aggiorna</span></span></button></header>
         <nav aria-label="Provider Vistoda"><a href="/vistoda" data-provider="overview">
           <ha-icon icon="mdi:view-dashboard"></ha-icon>Panoramica</a>
           ${PROVIDERS.map((provider) => `<a href="${providerPath(provider)}" data-provider="${provider}">
             <ha-icon icon="${PROVIDER_META[provider].icon}"></ha-icon>
             ${PROVIDER_META[provider].label}</a>`).join("")}
-        </nav><section id="content" aria-live="polite"></section></main>`;
+        </nav><section id="inventory-status" class="card empty" role="status" hidden></section>
+        <section id="content" aria-live="polite"></section></main>`; localizeCopy(this.shadowRoot, this);
     this.shadowRoot.querySelector("header p").textContent = activeLabel;
+    this.shadowRoot.querySelector("#back").dataset.i18nAriaLabel = "back";
+    this.shadowRoot.querySelector("#back").dataset.i18nTitle = "back";
+    this.shadowRoot.querySelector("#back").removeAttribute("data-tooltip");
+    this.shadowRoot.querySelector("#reload").dataset.i18nAriaLabel = "refreshInventory";
+    this.shadowRoot.querySelector("#reload").dataset.i18nTitle = "refreshInventory";
+    this.shadowRoot.querySelector("#reload").removeAttribute("data-tooltip");
+    this.shadowRoot.querySelector("#reload span").dataset.i18n = "reload";
+    this.shadowRoot.querySelector("nav").dataset.i18nAriaLabel = "navigation";
+    const overview = this.shadowRoot.querySelector('[data-provider="overview"]');
+    const label = document.createElement("span"); label.dataset.i18n = "overview";
+    overview.lastChild.replaceWith(label);
+    this._localize();
     this.shadowRoot.querySelectorAll("nav a").forEach((link) => {
       const active = link.dataset.provider === this._provider;
       link.classList.toggle("active", active);
@@ -139,14 +157,20 @@ class VistodaPanel extends HTMLElement {
 
   _leavePanel() {
     const fallback = () => {
-      if (isVistodaPath(globalThis.location?.pathname)) this._navigate(CASA_PATH);
+      if (isVistodaPath(globalThis.location?.pathname)) this._navigate(homeAssistantPath(this._hass));
     };
     if (globalThis.history?.length > 1) {
       globalThis.history.back();
       globalThis.setTimeout(fallback, 500);
     } else {
-      this._navigate(CASA_PATH);
+      this._navigate(homeAssistantPath(this._hass));
     }
+  }
+
+  _localize() {
+    localizeElements(this.shadowRoot, this._hass);
+    this.shadowRoot.querySelector("header p").textContent = localize(this._hass,
+      this._provider === "overview" ? "controlCenter" : `${this._provider}Description`);
   }
 
   _navigate(path) {
@@ -156,11 +180,20 @@ class VistodaPanel extends HTMLElement {
 
   async _loadInfo() {
     const button = this.shadowRoot.getElementById("reload");
+    const status = this.shadowRoot.getElementById("inventory-status");
+    const content = this.shadowRoot.getElementById("content");
     if (button) button.disabled = true;
+    status.hidden = false;
+    status.textContent = localize(this._hass, "loading");
+    content.hidden = !this._info || this._info.error;
     try {
       this._info = await this._hass.callWS({ type: "media_bridge/panel/info" });
+      status.hidden = true;
+      content.hidden = false;
     } catch (_error) {
-      this._info = { providers: {}, error: true };
+      status.textContent = localize(this._hass, "inventoryError");
+      content.hidden = true;
+      this._info = { error: true };
     } finally {
       if (button) button.disabled = false;
     }

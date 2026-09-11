@@ -25,8 +25,8 @@ def test_blink_settings_present_provider_values_as_states_not_actions() -> None:
     settings = (FRONTEND / "blink-settings.js").read_text(encoding="utf-8")
     model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
     assert 'button.setAttribute("aria-checked", String(field.value))' in settings
-    assert "booleanStateText(field.value)" in settings
-    assert 'return value === true ? "Attivata" : "Disattivata"' in model
+    assert "booleanStateText(field.value, this)" in settings
+    assert 'copy(context, value === true ? "Attivata" : "Disattivata")' in model
     assert 'field.value ? "Attiva" : "Spenta"' not in settings
 
 
@@ -35,7 +35,7 @@ def test_blink_settings_stage_one_confirmed_batch_and_show_ha_temperature_unit()
     draft = (FRONTEND / "blink-setting-draft.js").read_text(encoding="utf-8")
     model = (FRONTEND / "blink-setting-model.js").read_text(encoding="utf-8")
     assert "Salva modifiche" in settings
-    assert "Confermi ${count}" in settings
+    assert 'copy(this, "Confermi {p0} {p1} a questa telecamera?"' in settings
     assert "commitDraft" in settings and "applied.reverse()" in draft
     assert "temperatureValueText" in settings
     assert "unit_system?.temperature" in model

@@ -9,6 +9,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .errors import BridgeError
+from .ring_access import require_ring_access
 from .ring_recording_lists import async_get_recording_lists
 
 
@@ -39,6 +40,7 @@ def _resolve(hass: HomeAssistant, entry_id: str):
     }
 )
 @websocket_api.async_response
+@require_ring_access()
 async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
     """Return archive metadata without bridge credentials or media URLs."""
     resolved = _resolve(hass, msg["entry_id"])
@@ -91,6 +93,7 @@ async def ws_ring_recordings(hass, connection, msg: dict[str, Any]) -> None:
     }
 )
 @websocket_api.async_response
+@require_ring_access()
 async def ws_ring_recording_read(hass, connection, msg: dict[str, Any]) -> None:
     """Return one bounded recording through the authenticated HA connection."""
     resolved = _resolve(hass, msg["entry_id"])
@@ -120,6 +123,7 @@ async def ws_ring_recording_read(hass, connection, msg: dict[str, Any]) -> None:
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_upload(hass, connection, msg: dict[str, Any]) -> None:
     """Commit one browser-captured call without exposing bridge credentials."""
     resolved = _resolve(hass, msg["entry_id"])
@@ -166,6 +170,7 @@ async def ws_ring_recording_upload(hass, connection, msg: dict[str, Any]) -> Non
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recording_delete(hass, connection, msg: dict[str, Any]) -> None:
     """Idempotently remove one recording through the authenticated HA boundary."""
     resolved = _resolve(hass, msg["entry_id"])
@@ -191,6 +196,7 @@ async def ws_ring_recording_delete(hass, connection, msg: dict[str, Any]) -> Non
     }
 )
 @websocket_api.async_response
+@require_ring_access("control")
 async def ws_ring_recordings_delete_all(hass, connection, msg: dict[str, Any]) -> None:
     """Remove the complete bounded inventory and report partial failures."""
     resolved = _resolve(hass, msg["entry_id"])

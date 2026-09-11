@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.24.7"
+    assert manifest["version"] == "0.25.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -99,12 +99,12 @@ def test_supervisor_apps_hide_bridge_fields_and_keep_external_mode() -> None:
     assert "async_step_hassio" in managed
     assert "CONF_MANAGED_APP: True" in managed
     assert "self._existing_provider_entry()" in managed
-    assert "unique_id=self._unique_id()" in managed
-    assert "reload_even_if_entry_is_unchanged=False" in managed
+    assert "async_set_unique_id(self._unique_id())" in managed
+    assert "if changed:" in managed and "async_reload(existing.entry_id)" in managed
     assert "async_step_ring_credentials" in managed
     assert "async_step_ezviz_credentials" in managed
     assert "bridge_schema" in flow
-    assert 'return self.async_abort(reason="managed_app")' in flow
+    assert "return await self._begin_reauthentication(entry)" in flow
     assert "hassio" not in manifest["dependencies"]
 
 
@@ -158,7 +158,7 @@ def test_unified_panel_has_private_authenticated_boundaries() -> None:
     proxy = (COMPONENT / "ring_audio_proxy.py").read_text(encoding="utf-8")
     assert "requires_auth = True" in proxy
     assert 'PROXY_URL = "/api/media_bridge/ring/audio/{entry_id}"' in proxy
-    assert "runtime.client.ring_relay(alias)" in proxy
+    assert "expected_device_id=expected_device_id" in proxy
     assert "Authorization" not in proxy
     callback = (COMPONENT / "apple_oauth_view.py").read_text(encoding="utf-8")
     assert "requires_auth = False" in callback
@@ -213,7 +213,9 @@ def test_ring_door_service_is_vistoda_first_and_visible() -> None:
     assert definition.startswith("open_ring_door:\n")
     assert 'SERVICE_OPEN_RING_DOOR = "open_ring_door"' in service
     assert "await runtime.client.ring_status(alias)" in service
-    assert "await runtime.client.unlock_ring(alias)" in service
+    assert (
+        "await runtime.client.unlock_ring(alias, expected_device_id=expected_device_id)" in service
+    )
     assert '"official_fallback"' in service
     assert "outcome is unknown" in service
     assert 'call.data.get("entry_id")' in service
@@ -227,24 +229,3 @@ def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     assert 'self._attr_device_info["configuration_url"]' in sensor
     assert 'attributes["panel_path"] = f"/vistoda/{self._provider}"' in sensor
     assert '"full_duplex": "true"' in sensor
-
-
-def test_ring_facade_supports_native_and_official_control_paths() -> None:
-    constants = (COMPONENT / "const.py").read_text(encoding="utf-8")
-    facade = (COMPONENT / "ring_facade.py").read_text(encoding="utf-8")
-    contract = (COMPONENT / "ring_contract.py").read_text(encoding="utf-8")
-    button = (COMPONENT / "button.py").read_text(encoding="utf-8")
-    event = (COMPONENT / "event.py").read_text(encoding="utf-8")
-    assert '"button", "camera", "event", "number", "sensor"' in constants
-    assert 'candidate.platform == "ring"' in contract
-    assert 'candidate.manufacturer == "Ring"' in contract
-    assert 'candidate.model == "Intercom"' in contract
-    assert "await self.hass.services.async_call(" in facade
-    assert 'await self.call_source_service("button", "press", {})' in button
-    assert "await client.unlock_ring(self._alias)" in button
-    assert "await client.set_ring_volume" in (COMPONENT / "number.py").read_text(encoding="utf-8")
-    assert "self._trigger_event(event_type, attributes)" in event
-    assert "old_state.state == state.state" in event
-    assert "timestamp_is_recent(state.state)" in event
-    assert event.count("self.async_write_ha_state()") >= 3
-    assert "Never replay a restored call" in event

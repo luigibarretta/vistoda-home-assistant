@@ -10,8 +10,28 @@ the cameras and intercoms that remain inside the trusted network.
 - Vistoda Ring connector: secure password/SMS enrollment, one listen-first
   full-duplex session, private local call recording and a native
   facade with native or delegated controls, battery, sensors and events;
-- Vistoda Apple companion: authenticated iPhone/watchOS full-duplex audio over
-  a bounded HA-to-bridge PCMU relay, without Ring or bridge secrets on-device.
+- Vistoda Apple companion: a separate development/release track, excluded from
+  this Home Assistant release and its readiness claims.
+
+## Capability and support matrix
+
+| Provider | Included functionality | Support boundary |
+| --- | --- | --- |
+| Ring | Explicit intercom selection, scoped controls/history, audio and local recordings | Experimental consumer-API integration; vendor changes can interrupt service. No automatic retry of an ambiguous door command. |
+| Blink | Walnut/IMMI live, snapshots, clips and supported settings/storage | Full-duplex/Cayuga microphone operation is not proven or enabled for release. Model-specific controls remain capability-gated. |
+| EZVIZ | Cached snapshots, live/local recordings and limited encrypted RTP/NAL compatibility | Encryption compatibility covers implemented stream patterns, not every model. Talk and camera microSD access remain unavailable until a usable Open Platform path exists. |
+| Apple | Separate iPhone/watchOS project | Not included in this release; no App Store/TestFlight readiness claim. |
+
+These are compatibility integrations, not vendor-supported replacements for
+every function of the official apps. Keep the vendor app available for account
+recovery and unsupported device administration.
+
+The declared Home Assistant minimum is **2026.8.0**. CI also exercises
+**2026.9.1** with real Home Assistant imports, config entries, coordinators,
+registries and config flows on Python 3.14. Provider network responses and
+platform dispatch are isolated test boundaries; these tests do not actuate devices.
+Tag releases require the same commit's complete validation, including both HA
+versions, before publication. A local test pass does not substitute for that gate.
 
 ## Security boundary
 
@@ -21,9 +41,9 @@ backend to the bridge and are never saved in the config entry. The bridge owns
 its rotating vendor session.
 
 Vistoda reuses the bridge's single rotating Ring session for native battery,
-last activity, volume and one-shot door controls. A global switch may delegate
-controls to the official `ring` integration when its complete control surface is
-detected. Native mode remains available without it. Ding and unlock events use
+last activity, volume and one-shot door controls. Delegation to the official
+`ring` integration requires an explicit, unambiguous binding to the selected
+physical intercom. Native mode remains available without it. Ding and unlock events use
 the official event source during the push-event migration. Door opening is
 never retried automatically.
 
@@ -167,7 +187,8 @@ validated on physical Apple hardware.
 
 1. Install this repository as **Vistoda** through HACS.
 2. Add the shared `vistoda-addons` repository to the Home Assistant app store.
-3. Install and start **Vistoda Ring** and/or **Vistoda EZVIZ**.
+3. Install and start the apps you need: **Vistoda Ring**, **Vistoda Blink**
+   and/or **Vistoda EZVIZ**.
 4. Complete the automatically discovered integration under Settings → Devices
    & services.
 
@@ -176,6 +197,9 @@ for the account credentials and, when needed, the newest SMS code. EZVIZ asks
 for account credentials and MFA; its app options contain only the camera serial
 and a stable alias. Passwords and MFA codes are passed once to the private app
 and are not persisted in the Home Assistant config entry.
+For Ring, leave the app's `intercoms` list empty and select the discovered
+intercom by name/location after login. Stable `intercom-<id>` aliases require no
+manual numeric-ID copying; remaining entrances are offered as follow-up setup.
 
 Home Assistant Container/Core and SceneTrove deployments can keep the advanced
 standalone path: run the provider image externally, then select manual backend

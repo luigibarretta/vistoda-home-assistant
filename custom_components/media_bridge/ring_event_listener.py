@@ -9,8 +9,9 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .client_ring_events import RingEventCursor
 from .const import ring_event_signal
-from .errors import BridgeError
+from .errors import BridgeError, CannotConnectError
 from .repairs import update_ring_push_issue
+from .ring_binding import CONF_RING_DEVICE_ID, valid_device_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,7 +61,15 @@ class RingEventListener:
         failures = 0
         while True:
             try:
-                batch = await self.client.ring_events(self.alias, self.cursor.after)
+                expected_device_id = self.entry.data.get(CONF_RING_DEVICE_ID)
+                if not valid_device_id(expected_device_id):
+                    raise CannotConnectError
+                batch = await self.client.ring_events(
+                    self.alias,
+                    self.cursor.after,
+                    expected_device_id=expected_device_id,
+                    generation=self.cursor.generation,
+                )
             except BridgeError:
                 failures += 1
                 self.connected = False

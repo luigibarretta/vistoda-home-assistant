@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from . import BridgeRuntime
 from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .ring_access import can_access_entry
 from .ring_relay_contract import PROTOCOL
 
 CONFIG_PATH = "/api/media_bridge/apple/config"
@@ -27,6 +28,8 @@ class AppleConfigView(HomeAssistantView):
             if entry.data.get(CONF_PROVIDER) != PROVIDER_RING or not isinstance(
                 runtime, BridgeRuntime
             ):
+                continue
+            if not can_access_entry(hass, request.get("hass_user"), entry.entry_id):
                 continue
             entries.append(
                 {

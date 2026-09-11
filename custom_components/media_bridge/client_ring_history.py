@@ -13,6 +13,7 @@ class RingHistoryIdentity:
     device_name: str
     location_name: str
     city: str | None
+    device_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,9 +34,14 @@ class RingHistoryClientMixin:
     """Consume one authenticated, server-paginated history page."""
 
     async def ring_history(
-        self, alias: str, limit: int = 20, cursor: str | None = None
+        self,
+        alias: str,
+        limit: int = 20,
+        cursor: str | None = None,
+        *,
+        expected_device_id: str,
     ) -> RingHistoryPage:
-        params = {"limit": limit}
+        params = {"limit": limit, "expected_device_id": expected_device_id}
         if cursor is not None:
             params["cursor"] = cursor
         payload = await self._json(
@@ -47,6 +53,7 @@ class RingHistoryClientMixin:
                 str(raw_identity["device_name"]),
                 str(raw_identity["location_name"]),
                 None if raw_identity["city"] is None else str(raw_identity["city"]),
+                raw_identity.get("device_id"),
             )
             events = tuple(
                 RingHistoryEvent(
@@ -60,6 +67,8 @@ class RingHistoryClientMixin:
         if not _valid_text(identity.device_name) or not _valid_text(identity.location_name):
             raise CannotConnectError
         if identity.city is not None and not _valid_text(identity.city):
+            raise CannotConnectError
+        if identity.device_id != expected_device_id:
             raise CannotConnectError
         if not isinstance(next_cursor, (str, type(None))) or (
             next_cursor is not None and not _valid_cursor(next_cursor)

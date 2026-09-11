@@ -6,6 +6,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .ring_access import async_require_context
+from .ring_binding import verified_device_id
 from .ring_contract import OPEN_DOOR
 from .ring_facade import RingFacadeEntity
 
@@ -33,6 +35,7 @@ class RingOpenDoor(RingFacadeEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Open through the selected path; never retry an unlock."""
         runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+        await async_require_context(self._hass, self._context, self._entry.entry_id)
         if self.delegated:
             await self.call_source_service("button", "press", {})
             await runtime.ring_history.async_record("unlock", None, "command:official_button")
@@ -40,5 +43,9 @@ class RingOpenDoor(RingFacadeEntity, ButtonEntity):
         client = runtime.client
         if client is None:
             raise RuntimeError("Native Ring bridge is unavailable")
-        await client.unlock_ring(self._alias)
+        status = await client.ring_status(self._alias)
+        expected_device_id = verified_device_id(self._entry, status)
+        if expected_device_id is None or not status.online:
+            raise RuntimeError("Ring physical device binding is missing, changed or offline")
+        await client.unlock_ring(self._alias, expected_device_id=expected_device_id)
         await runtime.ring_history.async_record("unlock", None, "command:native_button")

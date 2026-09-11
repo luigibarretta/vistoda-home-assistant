@@ -1,14 +1,15 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 export const PROVIDER_LIST_TEMPLATE = `
-  <div class="list-controls"><select id="list-filter" aria-label="Filtra per lista">
-    <option value="">Tutte le registrazioni</option></select>
-    <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon><span>Nuova lista</span></button>
+  <div class="list-controls"><select id="list-filter" aria-label="Filtra per lista" data-copy-aria-label="Filtra per lista">
+    <option value="" data-copy="Tutte le registrazioni">Tutte le registrazioni</option></select>
+    <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon><span><span data-copy="Nuova lista">Nuova lista</span></span></button>
     <button id="manage-lists" aria-expanded="false"><ha-icon icon="mdi:playlist-edit"></ha-icon>
-      <span>Gestisci liste</span><span class="count" id="manage-count">0</span></button></div>
+      <span><span data-copy="Gestisci liste">Gestisci liste</span></span><span class="count" id="manage-count">0</span></button></div>
   <form class="list-form" id="list-form" hidden><input id="list-name" maxlength="64"
-    autocomplete="off" placeholder="Nome della lista" aria-label="Nome della nuova lista">
-    <button type="submit">Crea</button><button type="button" id="cancel-list">Annulla</button></form>
+    autocomplete="off" placeholder="Nome della lista" data-copy-placeholder="Nome della lista" aria-label="Nome della nuova lista" data-copy-aria-label="Nome della nuova lista">
+    <button type="submit"><span data-copy="Crea">Crea</span></button><button type="button" id="cancel-list"><span data-copy="Annulla">Annulla</span></button></form>
   <section class="list-manager" id="list-manager" hidden><div class="muted" id="list-empty">
-    Non hai ancora creato liste.</div><div id="list-items"></div></section>`;
+    <span data-copy="Non hai ancora creato liste.">Non hai ancora creato liste.</span></div><div id="list-items"></div></section>`;
 
 export const PROVIDER_LIST_STYLES = `
   .list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
@@ -34,7 +35,7 @@ export const PROVIDER_LIST_STYLES = `
   .list-icon ha-icon { --mdc-icon-size:21px; }
   .list-picker { grid-column:1 / -1; display:grid; gap:8px; width:100%; margin-top:8px;
     padding:11px; box-sizing:border-box; border-radius:12px; background:var(--card-background-color); }
-  .list-picker label { display:flex; align-items:center; gap:9px; min-height:40px; }
+  .list-picker label { display:flex; align-items:center; gap:9px; min-height:44px; }
   .list-picker input { width:20px; height:20px; }
   .list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
   .list-tag { padding:3px 7px; border-radius:999px; font-size:11px;
@@ -53,7 +54,6 @@ export class ProviderRecordingListManager {
     this.editingId = null;
     this.managing = false;
   }
-
   mount(root) {
     this.$ = (id) => root.getElementById(id);
     this.$("list-filter").addEventListener("change", (event) => {
@@ -82,7 +82,7 @@ export class ProviderRecordingListManager {
     try {
       const result = await this.host._hass.callWS(this._message("list"));
       this.update(result.lists);
-    } catch (_error) { this.host._setMessage?.("Liste temporaneamente non disponibili."); }
+    } catch (_error) { this.host._setMessage?.(copy(this, "Liste temporaneamente non disponibili.")); }
   }
 
   update(lists) {
@@ -91,7 +91,7 @@ export class ProviderRecordingListManager {
       this.filterId = "";
     }
     if (!this.$) return;
-    const options = [this._option("", "Tutte le registrazioni"), ...this.lists.map((item) => (
+    const options = [this._option("", copy(this, "Tutte le registrazioni")), ...this.lists.map((item) => (
       this._option(item.list_id, `${item.name} (${item.recording_ids.length})`)
     ))];
     this.$("list-filter").replaceChildren(...options);
@@ -127,11 +127,11 @@ export class ProviderRecordingListManager {
 
   picker(recordingId) {
     const wrap = document.createElement("div"); wrap.className = "list-picker";
-    const title = document.createElement("strong"); title.textContent = "Aggiungi alle liste";
+    const title = document.createElement("strong"); title.textContent = copy(this, "Aggiungi alle liste");
     wrap.append(title);
     if (!this.lists.length) {
       const empty = document.createElement("div"); empty.className = "muted";
-      empty.textContent = "Crea prima una lista personalizzata.";
+      empty.textContent = copy(this, "Crea prima una lista personalizzata.");
       wrap.append(empty); return wrap;
     }
     for (const item of this.lists) {
@@ -162,29 +162,29 @@ export class ProviderRecordingListManager {
 
   async _create() {
     const input = this.$("list-name"); const name = input.value.trim();
-    if (!name) return this.host._setMessage?.("Inserisci un nome per la lista.");
-    await this._mutate({ ...this._message("create"), name }, "Lista creata.", () => {
+    if (!name) return this.host._setMessage?.(copy(this, "Inserisci un nome per la lista."));
+    await this._mutate({ ...this._message("create"), name }, copy(this, "Lista creata."), () => {
       input.value = ""; this._hideForm();
     });
   }
 
   async _rename(item, name) {
-    if (!name) return this.host._setMessage?.("Inserisci un nome per la lista.");
+    if (!name) return this.host._setMessage?.(copy(this, "Inserisci un nome per la lista."));
     await this._mutate({ ...this._message("update"), list_id: item.list_id, name },
-      "Lista modificata.", () => { this.editingId = null; });
+      copy(this, "Lista modificata."), () => { this.editingId = null; });
   }
 
   async _delete(item) {
-    if (!globalThis.confirm(`Eliminare la lista “${item.name}”? I video resteranno salvati.`)) return;
+    if (!globalThis.confirm(copy(this, "Eliminare la lista “{p0}”? I video resteranno salvati.", { p0: item.name }))) return;
     await this._mutate({ ...this._message("delete"), list_id: item.list_id },
-      "Lista eliminata.", () => { if (this.filterId === item.list_id) this.filterId = ""; });
+      copy(this, "Lista eliminata."), () => { if (this.filterId === item.list_id) this.filterId = ""; });
   }
 
   async _membership(recordingId, item, input) {
     input.disabled = true;
     await this._mutate({ ...this._message("set_membership"), list_id: item.list_id,
       recording_id: recordingId, included: input.checked }, input.checked
-      ? "Video aggiunto alla lista." : "Video rimosso dalla lista.");
+      ? copy(this, "Video aggiunto alla lista.") : copy(this, "Video rimosso dalla lista."));
   }
 
   async _mutate(payload, success, after = () => {}) {
@@ -192,11 +192,11 @@ export class ProviderRecordingListManager {
       const result = await this.host._hass.callWS(payload); after(); this.update(result.lists);
       this.host._setMessage?.(success);
     } catch (error) {
-      const messages = { duplicate_name: "Esiste già una lista con questo nome.",
-        invalid_name: "Il nome della lista non è valido.", list_limit: "Numero massimo di liste raggiunto.",
-        membership_limit: "Questa lista ha raggiunto il limite di video.",
-        list_not_found: "La lista non esiste più." };
-      this.host._setMessage?.(messages[error?.code] || "Impossibile aggiornare le liste.");
+      const messages = { duplicate_name: copy(this, "Esiste già una lista con questo nome."),
+        invalid_name: copy(this, "Il nome della lista non è valido."), list_limit: copy(this, "Numero massimo di liste raggiunto."),
+        membership_limit: copy(this, "Questa lista ha raggiunto il limite di video."),
+        list_not_found: copy(this, "La lista non esiste più.") };
+      this.host._setMessage?.(messages[error?.code] || copy(this, "Impossibile aggiornare le liste."));
     }
     this.host._listsChanged?.(false);
   }
@@ -220,9 +220,9 @@ export class ProviderRecordingListManager {
     if (this.editingId === item.list_id) {
       const form = document.createElement("form"); form.className = "list-edit";
       const input = document.createElement("input"); input.value = item.name; input.maxLength = 64;
-      input.setAttribute("aria-label", `Nuovo nome per ${item.name}`);
-      form.append(input, this._icon("mdi:content-save", "Salva", "submit"),
-        this._icon("mdi:close", "Annulla", "button", () => {
+      input.setAttribute("aria-label", copy(this, "Nuovo nome per {p0}", { p0: item.name }));
+      form.append(input, this._icon("mdi:content-save", copy(this, "Salva"), "submit"),
+        this._icon("mdi:close", copy(this, "Annulla"), "button", () => {
           this.editingId = null; this._renderManager();
         }));
       form.addEventListener("submit", (event) => {
@@ -232,11 +232,11 @@ export class ProviderRecordingListManager {
     }
     const summary = document.createElement("div"); const name = document.createElement("strong");
     name.textContent = item.name; const count = document.createElement("span"); count.className = "muted";
-    count.textContent = `${item.recording_ids.length} video`; summary.append(name, count);
+    count.textContent = copy(this, "{p0} video", { p0: item.recording_ids.length }); summary.append(name, count);
     const actions = document.createElement("div"); actions.className = "list-item-actions";
-    actions.append(this._icon("mdi:pencil-outline", "Modifica lista", "button", () => {
+    actions.append(this._icon("mdi:pencil-outline", copy(this, "Modifica lista"), "button", () => {
       this.editingId = item.list_id; this._renderManager();
-    }), this._icon("mdi:delete-outline", "Elimina lista", "button", () => this._delete(item), true));
+    }), this._icon("mdi:delete-outline", copy(this, "Elimina lista"), "button", () => this._delete(item), true));
     row.append(summary, actions); return row;
   }
 
@@ -244,7 +244,7 @@ export class ProviderRecordingListManager {
     const button = document.createElement("button"); button.type = type;
     button.className = `list-icon${danger ? " danger" : ""}`;
     button.setAttribute("aria-label", label); button.title = label; button.dataset.tooltip = label;
-    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon>`;
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon>`; localizeCopy(button, this);
     if (action) button.addEventListener("click", action); return button;
   }
 }

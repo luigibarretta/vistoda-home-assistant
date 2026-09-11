@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from .ring_binding import valid_device_id
+
 
 @dataclass(frozen=True, slots=True)
 class Enrollment:
@@ -77,10 +79,11 @@ class RingStatus:
     mic_volume: int | None
     voice_volume: int | None
     last_activity: int | None
+    device_id: str | None = None
 
 
 def parse_ring_status(payload: dict) -> RingStatus:
-    """Validate native battery, connectivity, volumes and activity."""
+    """Validate native battery, connectivity, volumes, activity and identity."""
     from .errors import CannotConnectError
 
     try:
@@ -91,10 +94,15 @@ def parse_ring_status(payload: dict) -> RingStatus:
             mic_volume=_optional_int(payload["mic_volume"]),
             voice_volume=_optional_int(payload["voice_volume"]),
             last_activity=_optional_int(payload["last_activity"]),
+            device_id=payload.get("device_id"),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error
-    if not isinstance(result.online, bool) or not _valid_ring_status(result):
+    if (
+        not isinstance(result.online, bool)
+        or not _valid_ring_status(result)
+        or (result.device_id is not None and not valid_device_id(result.device_id))
+    ):
         raise CannotConnectError
     return result
 

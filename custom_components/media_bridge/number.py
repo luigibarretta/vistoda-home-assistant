@@ -6,6 +6,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .ring_access import async_require_context
+from .ring_binding import async_verify_native
 from .ring_contract import DOORBELL_VOLUME, MIC_VOLUME, VOICE_VOLUME, RingSourceSpec
 from .ring_facade import RingFacadeEntity
 
@@ -65,11 +67,20 @@ class RingVolume(RingFacadeEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Validate through NumberEntity and write through the selected path."""
+        await async_require_context(self._hass, self._context, self._entry.entry_id)
         if self.delegated:
             await self.call_source_service("number", "set_value", {"value": value})
             return
         client = self._hass.data[DOMAIN][self._entry.entry_id].client
         if client is None:
             raise RuntimeError("Native Ring bridge is unavailable")
-        await client.set_ring_volume(self._alias, self._setting, int(value))
+        expected_device_id = await async_verify_native(
+            self._hass, self._entry.entry_id, client, self._alias
+        )
+        await client.set_ring_volume(
+            self._alias,
+            self._setting,
+            int(value),
+            expected_device_id=expected_device_id,
+        )
         await self.refresh_native_status()

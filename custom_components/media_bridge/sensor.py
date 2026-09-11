@@ -11,8 +11,9 @@ from homeassistant.util import dt as dt_util
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError
+from .ring_binding import entity_prefix
 from .ring_contract import BATTERY, LAST_ACTIVITY, RingSourceSpec
-from .ring_facade import RingFacadeEntity
+from .ring_facade import RingFacadeEntity, ring_device_info
 
 RING_SENSORS = (
     (BATTERY, "ring_battery", SensorDeviceClass.BATTERY),
@@ -110,13 +111,8 @@ class RingRecordingArchive(SensorEntity):
     def __init__(self, runtime: BridgeRuntime, entry: ConfigEntry) -> None:
         self._runtime = runtime
         self._alias = entry.data[CONF_ALIAS]
-        self._attr_unique_id = f"ring-{self._alias}-recordings"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"ring:{self._alias}")},
-            "name": "Vistoda · RING",
-            "manufacturer": "Vistoda",
-            "model": "Private Rust bridge",
-        }
+        self._attr_unique_id = f"{entity_prefix(entry)}recordings"
+        self._attr_device_info = ring_device_info(entry)
         self._attr_native_value = 0
         self._attr_extra_state_attributes = {
             "retention_days": 30,

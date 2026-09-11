@@ -11,6 +11,9 @@ from homeassistant.core import HomeAssistant
 
 from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .errors import BridgeError
+from .ring_access import can_access_entry
+from .ring_binding import async_verify_native
 from .ring_relay_contract import (
     MAX_MESSAGE_BYTES,
     MAX_SESSION_SECONDS,
@@ -32,12 +35,22 @@ class RingAudioRelayView(HomeAssistantView):
     async def get(self, request: web.Request, entry_id: str) -> web.StreamResponse:
         """Upgrade only a loaded Ring entry for an authenticated HA user."""
         hass: HomeAssistant = request.app["hass"]
+        if not can_access_entry(hass, request.get("hass_user"), entry_id, "control"):
+            raise web.HTTPForbidden
         resolved = resolve_ring(hass, entry_id)
         if resolved is None:
             raise web.HTTPNotFound
         runtime, alias = resolved
         try:
-            async with runtime.client.ring_relay(alias) as upstream:
+            expected_device_id = await async_verify_native(hass, entry_id, runtime.client, alias)
+        except BridgeError as error:
+            raise web.HTTPConflict(
+                reason="Ring physical device is unavailable or changed"
+            ) from error
+        try:
+            async with runtime.client.ring_relay(
+                alias, expected_device_id=expected_device_id
+            ) as upstream:
                 downstream = web.WebSocketResponse(
                     heartbeat=15,
                     max_msg_size=MAX_MESSAGE_BYTES,

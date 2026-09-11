@@ -1,10 +1,13 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { RingAudioSession } from "./ring-audio-session.js";
-import { chooseRingEntry, saveRingEntry, storedRingEntry } from "./ring-entry-selection.js";
+import { saveRingEntry } from "./ring-entry-selection.js";
+import { loadRingEntry } from "./ring-view-inventory.js";
 import "./ring-controls.js";
 import "./ring-recordings.js";
 import "./ring-history.js";
 import "./ring-device-identity.js";
 import { BASE_STYLES } from "./panel-styles.js";
+import { localizeElements } from "./panel-localize.js";
 
 class VistodaRingView extends HTMLElement {
   constructor() {
@@ -28,6 +31,9 @@ class VistodaRingView extends HTMLElement {
   set hass(value) {
     this._hass = value;
     if (!this._mounted) this._mount();
+    localizeCopy(this.shadowRoot, this); localizeElements(this.shadowRoot, value);
+    if (this._entry) this.$("identity").configure(value, this._entry);
+    if (this._audio) this._audio.hass = value;
     if (this.$?.("controls")) this.$("controls").hass = value;
     if (this.$?.("recordings")) this.$("recordings").hass = value;
   }
@@ -54,30 +60,36 @@ class VistodaRingView extends HTMLElement {
         .privacy { margin:18px 0 0; padding-top:16px; border-top:1px solid var(--divider-color);
           color:var(--secondary-text-color); font-size:14px; line-height:1.5; }
         audio { width:100%; height:0; display:block; }
-        @media (max-width:600px) { .call{padding:18px} }
+        @media (max-width:600px) { .call{padding:18px} .device{flex-wrap:wrap}
+          .device-copy{flex-basis:100%} }
       </style>
+      <section class="card empty" id="connection-state" hidden><p id="connection-message" role="status"></p>
+        <button id="retry" data-i18n="retry">Riprova</button>
+        <a class="button" href="/config/integrations/dashboard" data-i18n="reconnect">Gestisci collegamento</a></section>
       <div id="ring-main"><section class="card call">
         <div class="device"><div class="device-copy">
           <vistoda-ring-device-identity id="identity"></vistoda-ring-device-identity>
           <select class="device-select" id="device-select"
-          aria-label="Seleziona Ring Intercom" hidden></select></div>
-          <span class="badge off" id="availability">Verifica…</span></div>
-        <div class="status"><span class="dot" id="dot"></span><span id="status">Pronto</span></div>
+          aria-label="Seleziona Ring Intercom" data-copy-aria-label="Seleziona Ring Intercom" hidden></select></div>
+          <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></div>
+        <div class="status"><span class="dot" id="dot"></span><span id="status"><span data-copy="Pronto">Pronto</span></span></div>
         <div class="actions"><button class="primary" id="call"><ha-icon id="call-icon"
-          icon="mdi:phone"></ha-icon><span id="call-label">Avvia comunicazione</span></button>
+          icon="mdi:phone"></ha-icon><span id="call-label"><span data-copy="Avvia comunicazione">Avvia comunicazione</span></span></button>
           <button id="microphone" hidden disabled><ha-icon id="microphone-icon"
             icon="mdi:microphone-off"></ha-icon><span id="microphone-label">
-            Attiva microfono</span></button><button id="history-open">
-            <ha-icon icon="mdi:history"></ha-icon><span>Cronologia eventi</span></button></div>
-        <p class="privacy">La sessione parte in solo ascolto. Il browser richiede il microfono
+            <span data-copy="Attiva microfono">Attiva microfono</span></span></button><button id="history-open">
+            <ha-icon icon="mdi:history"></ha-icon><span data-i18n="history">Cronologia eventi</span></button></div>
+        <p class="privacy"><span data-copy="La sessione parte in solo ascolto. Il browser richiede il microfono soltanto quando lo attivi e lo rilascia tornando al solo ascolto. Dopo “Termina” un breve conto alla rovescia protegge Ring da chiamate ripetute.">La sessione parte in solo ascolto. Il browser richiede il microfono
           soltanto quando lo attivi e lo rilascia tornando al solo ascolto. Dopo “Termina” un
-          breve conto alla rovescia protegge Ring da chiamate ripetute.</p>
+          breve conto alla rovescia protegge Ring da chiamate ripetute.</span></p>
         <audio id="remote" autoplay></audio>
       </section>
       <vistoda-ring-controls id="controls"></vistoda-ring-controls>
       <vistoda-ring-recordings id="recordings"></vistoda-ring-recordings></div>
-      <vistoda-ring-history id="history" hidden></vistoda-ring-history>`;
+      <vistoda-ring-history id="history" hidden></vistoda-ring-history>`; localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
+    localizeElements(this.shadowRoot, this._hass);
+    this.$("retry").addEventListener("click", () => this._loadEntry());
     this.$("call").addEventListener("click", () => this._toggleCall());
     this.$("microphone").addEventListener("click", () => this._toggleMicrophone());
     this.$("identity").addEventListener("identity-updated", () => this._renderEntrySelector());
@@ -89,28 +101,7 @@ class VistodaRingView extends HTMLElement {
     await this._loadEntry();
   }
 
-  async _loadEntry() {
-    try {
-      const result = await this._hass.callWS({ type: "media_bridge/ring/info" });
-      this._entries = result.entries || [];
-      this._entry = chooseRingEntry(
-        this._entries, this._requestedEntryId, storedRingEntry(this._storage),
-      );
-      if (this._requestedEntryId && this._entry?.entry_id !== this._requestedEntryId) {
-        this._answerMode = false;
-      }
-      this._available = Boolean(this._entry?.available);
-      this._renderEntrySelector();
-      this._renderAvailability();
-      if (this._entry) this._configureEntry();
-      this._renderState(this._entry ? { phase: "idle" } : {
-        phase: "error", message: "Nessun bridge Ring configurato",
-      });
-    } catch (_error) {
-      this._available = false;
-      this._renderState({ phase: "error", message: "Impossibile leggere Vistoda · Ring" });
-    }
-  }
+  _loadEntry() { return loadRingEntry(this); }
 
   _configureEntry() {
     this.$("identity").configure(this._hass, this._entry);
@@ -120,7 +111,7 @@ class VistodaRingView extends HTMLElement {
       () => this.$("recordings")?.finishCall(),
     );
     this.$("controls").hass = this._hass;
-    this.$("controls").configure(this._entry.controls);
+    this.$("controls").configure(this._entry.controls, this._entry);
     this.$("recordings").configure(this._hass, this._entry);
   }
 
@@ -147,7 +138,8 @@ class VistodaRingView extends HTMLElement {
       const option = document.createElement("option");
       option.value = entry.entry_id;
       option.textContent = (entry.device_name || entry.name.replace(/^Vistoda · /, ""))
-        + (entry.available ? "" : " · non disponibile");
+        + (entry.location_name ? ` · ${entry.location_name}` : "")
+        + (entry.available ? "" : copy(this, "· non disponibile"));
       return option;
     }));
     select.hidden = this._entries.length < 2;
@@ -159,7 +151,7 @@ class VistodaRingView extends HTMLElement {
 
   _renderAvailability() {
     const badge = this.$("availability");
-    badge.textContent = this._available ? "Disponibile" : "Non disponibile";
+    badge.textContent = this._available ? copy(this, "Disponibile") : copy(this, "Non disponibile");
     badge.classList.toggle("off", !this._available);
   }
 
@@ -172,20 +164,20 @@ class VistodaRingView extends HTMLElement {
     const talkMode = state.mode === "talk";
     const talk = active && talkMode;
     const defaults = {
-      idle: "Pronto", starting: talkMode ? "Autorizza il microfono…" : "Preparazione ascolto…",
-      connecting: "Connessione a Ring…", switching: talk
-        ? "Attivazione microfono…" : "Ritorno al solo ascolto…",
-      active: talk ? "Conversazione full-duplex attiva" : "Ascolto attivo",
+      idle: copy(this, "Pronto"), starting: talkMode ? copy(this, "Autorizza il microfono…") : copy(this, "Preparazione ascolto…"),
+      connecting: copy(this, "Connessione a Ring…"), switching: talk
+        ? copy(this, "Attivazione microfono…") : copy(this, "Ritorno al solo ascolto…"),
+      active: talk ? copy(this, "Conversazione full-duplex attiva") : copy(this, "Ascolto attivo"),
     };
     const message = state.phase === "cooldown"
-      ? `Nuova sessione disponibile tra ${state.seconds} s` : state.message || defaults[state.phase];
-    this.$("status").textContent = message || "Audio Ring non disponibile";
+      ? copy(this, "Nuova sessione disponibile tra {p0} s", { p0: state.seconds }) : state.message || defaults[state.phase];
+    this.$("status").textContent = message || copy(this, "Audio Ring non disponibile");
     this.$("dot").classList.toggle("live", active);
     const call = this.$("call");
     const connecting = ["starting", "connecting"].includes(state.phase);
-    const startLabel = this._answerMode ? "Rispondi in full-duplex" : "Avvia comunicazione";
-    const callLabel = ongoing ? "Termina" : connecting ? "Connessione…"
-      : state.phase === "cooldown" ? `Attendi ${state.seconds} s` : startLabel;
+    const startLabel = this._answerMode ? copy(this, "Rispondi in full-duplex") : copy(this, "Avvia comunicazione");
+    const callLabel = ongoing ? copy(this, "Termina") : connecting ? copy(this, "Connessione…")
+      : state.phase === "cooldown" ? copy(this, "Attendi {p0} s", { p0: state.seconds }) : startLabel;
     const callIcon = ongoing ? "mdi:phone-hangup" : connecting ? "mdi:loading"
       : state.phase === "cooldown" ? "mdi:timer-sand" : "mdi:phone";
     call.disabled = !this._available || locked;
@@ -198,7 +190,7 @@ class VistodaRingView extends HTMLElement {
     this.$("microphone").disabled = !active || locked;
     this.$("microphone").classList.toggle("primary", talk);
     this.$("microphone-icon").setAttribute("icon", talk ? "mdi:microphone" : "mdi:microphone-off");
-    this.$("microphone-label").textContent = talk ? "Disattiva microfono" : "Attiva microfono";
+    this.$("microphone-label").textContent = talk ? copy(this, "Disattiva microfono") : copy(this, "Attiva microfono");
     this.$("history-open").disabled = !this._entry || ongoing || locked;
     this.$("identity").setBusy(ongoing || locked);
     this.$("recordings")?.setCallState(ongoing);
@@ -209,6 +201,7 @@ class VistodaRingView extends HTMLElement {
     this.$("ring-main").hidden = open;
     this.$("history").hidden = !open;
     if (open) this.$("history").configure(this._hass, this._entry);
+    else this.$("history-open").focus();
   }
 
   _toggleCall() {

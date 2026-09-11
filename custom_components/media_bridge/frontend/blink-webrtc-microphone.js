@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 import { claimMicrophone } from "./microphone-coordinator.js";
 
 export const blinkWebRtcMicrophone = {
@@ -6,10 +7,10 @@ export const blinkWebRtcMicrophone = {
     if (!this.handle || !this.pc || this.micPending) return;
     if (performance.now() < this.micCooldownUntil) {
       const seconds = Math.ceil((this.micCooldownUntil - performance.now()) / 1000);
-      return this._state("active", `Microfono disponibile tra ${seconds}s`);
+      return this._state("active", copy(this, "Microfono disponibile tra {p0}s", { p0: seconds }));
     }
     const generation = this.generation;
-    this.micPending = true; this._state("active", "Autorizzazione microfono…");
+    this.micPending = true; this._state("active", copy(this, "Autorizzazione microfono…"));
     let lease = null; let track = null; let sender = null;
     try {
       lease = await claimMicrophone(this);
@@ -23,7 +24,7 @@ export const blinkWebRtcMicrophone = {
       if (generation !== this.generation || !this.pc || this.pendingMicLease !== lease) {
         stream.getTracks().forEach((item) => item.stop()); lease.release(); return;
       }
-      if (!track) throw new Error("Microfono non disponibile");
+      if (!track) throw new Error(copy(this, "Microfono non disponibile"));
       this.micLease = lease; this.pendingMicLease = null; this.localTrack = track;
       sender = this.pc.getTransceivers().find((item) => item.receiver.track.kind === "audio")?.sender;
       await sender?.replaceTrack(track);
@@ -35,12 +36,12 @@ export const blinkWebRtcMicrophone = {
         await this._discardMic(track, lease, sender); return;
       }
       this.micPending = false; this.microphone = true;
-      this._state("active", "Microfono attivo");
+      this._state("active", copy(this, "Microfono attivo"));
     } catch (error) {
       await this._discardMic(track, lease, sender);
       if (generation !== this.generation) return;
       await this._disableMicrophone(false);
-      this._state("active", error?.message || "Impossibile attivare il microfono");
+      this._state("active", error?.message || copy(this, "Impossibile attivare il microfono"));
     }
   },
 
@@ -59,7 +60,7 @@ export const blinkWebRtcMicrophone = {
     }
     if (generation !== this.generation) return;
     this.micPending = false;
-    if (notifyProvider && this.pc) this._state("active", "Microfono disattivato");
+    if (notifyProvider && this.pc) this._state("active", copy(this, "Microfono disattivato"));
   },
 
   async _discardMic(track, lease, sender) {

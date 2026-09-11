@@ -1,3 +1,4 @@
+import { copy } from "./panel-copy.js";
 function action(icon, label, className, disabled, expanded, callback) {
   const button = document.createElement("button");
   button.className = className;
@@ -12,15 +13,15 @@ function action(icon, label, className, disabled, expanded, callback) {
 function actions(recording, context) {
   const wrap = document.createElement("div");
   wrap.className = "row-actions";
-  const playLabel = context.playerOpen ? "Chiudi player" : "Riproduci";
+  const playLabel = context.playerOpen ? copy(context, "Chiudi player") : copy(context, "Riproduci");
   wrap.append(
     action(context.playerOpen ? "mdi:close-circle-outline" : "mdi:play-circle-outline",
       playLabel, "row-action", context.busy, context.playerOpen, () => context.onPlay(recording)),
-    action("mdi:playlist-plus", "Liste", "row-action", context.busy,
+    action("mdi:playlist-plus", copy(context, "Liste"), "row-action", context.busy,
       context.listsOpen, () => context.onLists(recording)),
-    action("mdi:information-outline", "Info", "row-action", context.busy,
+    action("mdi:information-outline", copy(context, "Info"), "row-action", context.busy,
       context.infoOpen, () => context.onInfo(recording)),
-    action("mdi:delete-outline", "Elimina", "danger row-action", context.busy,
+    action("mdi:delete-outline", copy(context, "Elimina"), "danger row-action", context.busy,
       null, () => context.onDelete(recording)),
   );
   return wrap;

@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { BLINK_STORAGE_STYLES } from "./blink-storage-styles.js";
 import { ProviderRecordingListManager, PROVIDER_LIST_STYLES,
@@ -23,6 +24,7 @@ class VistodaBlinkStorage extends HTMLElement {
 
   configure(hass, config) {
     this._hass = hass; this._config = config;
+    this._render();
     this._listManager.configure(config);
     if (hass && !this._loaded && !this._busy) this.reload();
   }
@@ -30,7 +32,7 @@ class VistodaBlinkStorage extends HTMLElement {
   _mount() {
     this.shadowRoot.innerHTML = blinkStorageTemplate(
       BASE_STYLES + BLINK_STORAGE_STYLES + PROVIDER_LIST_STYLES + PROVIDER_BULK_LIST_STYLES,
-      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE);
+      PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
     this.$("backup-all").addEventListener("click", () => this._backupAll());
@@ -54,27 +56,28 @@ class VistodaBlinkStorage extends HTMLElement {
 
   async reload() {
     if (!this._hass || this._busy) return;
-    this._busy = true; this._setMessage("Lettura indice USB Blink…"); this._render();
+    this._busy = true; this._setMessage(copy(this, "Lettura indice USB Blink…")); this._render();
     try {
       const result = await this._fetch(this._page);
       this._storages = Array.isArray(result.storages) ? result.storages : [];
       this._loaded = true; this._setMessage("");
     } catch (_error) {
-      this._setMessage("Archivio USB non disponibile o Sync Module senza supporto.");
+      this._setMessage(copy(this, "Archivio USB non disponibile o Sync Module senza supporto."));
     } finally { this._busy = false; this._render(); }
   }
 
   _render() {
+    if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("reload").disabled = this._busy || !this._hass;
     this.$("backup-all").disabled = this._busy || !this._hass;
     const nodes = this._storages.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {
       const empty = document.createElement("div"); empty.className = "muted";
-      empty.textContent = "Nessuna chiavetta USB Blink disponibile."; nodes.push(empty);
+      empty.textContent = copy(this, "Nessuna chiavetta USB Blink disponibile."); nodes.push(empty);
     }
     this.$("content").replaceChildren(...nodes);
     this.$("bulk-actions").hidden = this._selected.size === 0;
-    this.$("selected-count").textContent = `${this._selected.size} selezionate`;
+    this.$("selected-count").textContent = copy(this, "{p0} selezionate", { p0: this._selected.size });
     this.$("delete-selected").disabled = this._busy || !this._selectedDeletable();
     this.$("add-selected-to-lists").disabled = this._busy;
   }
@@ -82,24 +85,24 @@ class VistodaBlinkStorage extends HTMLElement {
   _module(storage) {
     const details = document.createElement("details"); details.className = "module"; details.open = true;
     const summary = document.createElement("summary");
-    const title = document.createElement("strong"); title.textContent = storage.network_name || "Sistema Blink";
+    const title = document.createElement("strong"); title.textContent = storage.network_name || copy(this, "Sistema Blink");
     const count = document.createElement("span");
-    count.textContent = `${storage.pagination?.total_items ?? storage.clips?.length ?? 0} clip`;
+    count.textContent = copy(this, "{p0} clip", { p0: storage.pagination?.total_items ?? storage.clips?.length ?? 0 });
     summary.append(title, count);
     const body = document.createElement("div"); body.className = "module-body";
     const facts = document.createElement("div"); facts.className = "module-facts";
     facts.append(this._fact("mdi:usb-flash-drive",
-      `USB: ${storage.status?.usb_state || "stato sconosciuto"}`));
+      `USB: ${storage.status?.usb_state || copy(this, "stato sconosciuto")}`));
     if (Number.isFinite(storage.status?.usb_storage_available_percentage)) {
       facts.append(this._fact("mdi:harddisk",
-        `Spazio disponibile: ${storage.status.usb_storage_available_percentage}%`));
+        copy(this, "Spazio disponibile: {p0}%", { p0: storage.status.usb_storage_available_percentage })));
     }
     if (storage.status?.last_backup_completed) {
       facts.append(this._fact("mdi:cloud-check-outline",
-        `Ultimo backup Blink: ${this._date(storage.status.last_backup_completed)}`));
+        copy(this, "Ultimo backup Blink: {p0}", { p0: this._date(storage.status.last_backup_completed) })));
     }
     if (storage.status?.can_format_usb) {
-      const format = this._icon("mdi:format-page-break", "Formatta chiavetta",
+      const format = this._icon("mdi:format-page-break", copy(this, "Formatta chiavetta"),
         () => this._openFormat(storage), false, true);
       format.classList.add("format-action"); facts.append(format);
     }
@@ -108,7 +111,7 @@ class VistodaBlinkStorage extends HTMLElement {
     if (!rows.length) {
       const empty = document.createElement("div"); empty.className = "muted";
       empty.textContent = this._listManager.filterId
-        ? "Nessuna clip di questa pagina appartiene alla lista." : "Nessuna clip indicizzata in questa pagina.";
+        ? copy(this, "Nessuna clip di questa pagina appartiene alla lista.") : copy(this, "Nessuna clip indicizzata in questa pagina.");
       rows.push(empty);
     }
     body.append(facts, ...rows, this._pager(storage.pagination));
@@ -121,23 +124,23 @@ class VistodaBlinkStorage extends HTMLElement {
     const selector = document.createElement("label"); selector.className = "select-clip";
     const checkbox = document.createElement("input"); checkbox.type = "checkbox";
     checkbox.checked = this._selected.has(key); checkbox.disabled = this._busy;
-    checkbox.setAttribute("aria-label", `Seleziona clip ${clip.device_name || clip.id}`);
+    checkbox.setAttribute("aria-label", copy(this, "Seleziona clip {p0}", { p0: clip.device_name || clip.id }));
     checkbox.addEventListener("change", () => {
       checkbox.checked ? this._selected.add(key) : this._selected.delete(key); this._render();
     }); selector.append(checkbox);
     const text = document.createElement("div"); const title = document.createElement("strong");
-    title.textContent = clip.device_name || "Telecamera Blink";
+    title.textContent = clip.device_name || copy(this, "Telecamera Blink");
     const meta = document.createElement("small"); const duration = Number.isFinite(clip.clip_length_ms)
       ? ` · ${(clip.clip_length_ms / 1000).toFixed(1)} s` : "";
     meta.textContent = `${this._date(clip.created_at)}${duration}`; text.append(title, meta);
     const tags = this._listManager.tags(mediaId); if (tags) text.append(tags);
     const actions = document.createElement("div"); actions.className = "clip-actions";
-    actions.append(this._icon("mdi:play", "Riproduci", () => this._play(storage, clip), !clip.media_available));
-    actions.append(this._icon("mdi:download", "Scarica", () => this._download(storage, clip), !clip.media_available));
-    actions.append(this._icon("mdi:cloud-upload", "Backup NFS", () => this._backupSingle(storage, clip), !clip.media_available));
-    actions.append(this._icon("mdi:playlist-plus", "Aggiungi alle liste",
+    actions.append(this._icon("mdi:play", copy(this, "Riproduci"), () => this._play(storage, clip), !clip.media_available));
+    actions.append(this._icon("mdi:download", copy(this, "Scarica"), () => this._download(storage, clip), !clip.media_available));
+    actions.append(this._icon("mdi:cloud-upload", copy(this, "Backup NFS"), () => this._backupSingle(storage, clip), !clip.media_available));
+    actions.append(this._icon("mdi:playlist-plus", copy(this, "Aggiungi alle liste"),
       () => this._listManager.toggle(mediaId), false));
-    actions.append(this._icon("mdi:delete-outline", "Elimina clip",
+    actions.append(this._icon("mdi:delete-outline", copy(this, "Elimina clip"),
       () => this._deleteOne(storage, clip), !storage.status?.can_delete_clips, true));
     row.append(selector, text, actions);
     if (this._listManager.openRecordingId === mediaId) row.append(this._listManager.picker(mediaId));
@@ -146,12 +149,12 @@ class VistodaBlinkStorage extends HTMLElement {
 
   _pager(pagination = {}) {
     const pager = document.createElement("nav"); pager.className = "archive-pager";
-    pager.setAttribute("aria-label", "Pagine archivio Blink");
-    const previous = this._button("mdi:chevron-left", "Precedente",
+    pager.setAttribute("aria-label", copy(this, "Pagine archivio Blink"));
+    const previous = this._button("mdi:chevron-left", copy(this, "Precedente"),
       () => this._go(pagination.page - 1), !pagination.has_previous);
     const label = document.createElement("span");
-    label.textContent = `Pagina ${pagination.page || 1} di ${pagination.total_pages || 1}`;
-    const next = this._button("mdi:chevron-right", "Successiva",
+    label.textContent = copy(this, "Pagina {p0} di {p1}", { p0: pagination.page || 1, p1: pagination.total_pages || 1 });
+    const next = this._button("mdi:chevron-right", copy(this, "Successiva"),
       () => this._go(pagination.page + 1), !pagination.has_next);
     pager.append(previous, label, next); return pager;
   }
@@ -177,14 +180,14 @@ class VistodaBlinkStorage extends HTMLElement {
   _setMessage(value) { if (this.$) this.$("status").textContent = value; }
   _button(icon, label, action, disabled = false) {
     const button = document.createElement("button");
-    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`;
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`; localizeCopy(button, this);
     button.disabled = disabled || this._busy; button.addEventListener("click", action); return button;
   }
   _icon(icon, label, action, disabled = false, danger = false) {
     const button = document.createElement("button");
     button.className = `icon-action${danger ? " danger" : ""}`;
     button.setAttribute("aria-label", label); button.title = label; button.dataset.tooltip = label;
-    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon>`; button.disabled = disabled || this._busy;
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon>`; localizeCopy(button, this); button.disabled = disabled || this._busy;
     button.addEventListener("click", action); return button;
   }
   _safeCamera(value) { return String(value || "Telecamera_Blink").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64) || "Telecamera_Blink"; }
@@ -197,7 +200,7 @@ class VistodaBlinkStorage extends HTMLElement {
   _date(value) {
     const numeric = typeof value === "string" && /^\d{11,}$/.test(value) ? Number(value) : value;
     const date = new Date(numeric); return Number.isNaN(date.valueOf())
-      ? (value || "Data non disponibile") : date.toLocaleString("it-IT");
+      ? (value || copy(this, "Data non disponibile")) : date.toLocaleString(this._hass?.locale?.language || "en");
   }
 }
 

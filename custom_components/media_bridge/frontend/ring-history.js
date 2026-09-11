@@ -1,12 +1,14 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
+import { localize, localizeElements } from "./panel-localize.js";
 
 const PAGE_SIZE = 20;
 const META = {
-  unlock: ["mdi:lock-open-outline", "Portone aperto da te", "unlock"],
-  live_view: ["mdi:play-circle-outline", "Live View", "live"],
-  ding: ["mdi:bell-ring-outline", "Chiamata al citofono", "ding"],
-  motion: ["mdi:motion-sensor", "Movimento rilevato", "motion"],
-  activity: ["mdi:history", "Attività Ring", "activity"],
+  unlock: ["mdi:lock-open-outline", "eventUnlock", "unlock"],
+  live_view: ["mdi:play-circle-outline", "eventLive", "live"],
+  ding: ["mdi:bell-ring-outline", "eventDing", "ding"],
+  motion: ["mdi:motion-sensor", "eventMotion", "motion"],
+  activity: ["mdi:history", "eventActivity", "activity"],
 };
 
 export class RingHistory extends HTMLElement {
@@ -21,9 +23,12 @@ export class RingHistory extends HTMLElement {
   }
 
   configure(hass, entry) {
+    if (this._entry?.entry_id !== entry.entry_id) this._filter = "all";
     this._hass = hass;
     this._entry = entry;
     if (!this._mounted) this._mount();
+    localizeElements(this.shadowRoot, this._hass);
+    this.$("event-filter").value = this._filter;
     this.$("device-filter").textContent = entry.device_name || entry.name;
     this.$("location").textContent = this._location(entry);
     this._load(true);
@@ -39,13 +44,13 @@ export class RingHistory extends HTMLElement {
           min-width:0}
         .head button{min-width:44px;padding:8px}.location{padding:0 20px 16px;
           color:var(--secondary-text-color);font-size:13px}
-        .filters{display:flex;gap:9px;padding:16px 20px;overflow-x:auto;
+        .filters{display:flex;flex-wrap:wrap;gap:9px;padding:16px 20px;
           border-bottom:1px solid var(--divider-color)}.pill{min-height:40px;border:1px solid
           var(--divider-color);border-radius:999px;padding:8px 13px;display:inline-flex;
-          align-items:center;gap:7px;white-space:nowrap;font-weight:650;background:transparent}
+          align-items:center;gap:7px;max-width:100%;font-weight:650;background:transparent}
         .pill.active{border-color:#229ed9;background:color-mix(in srgb,#229ed9 22%,transparent)}
         .pill ha-icon{--mdc-icon-size:19px;color:#229ed9}.select-pill{position:relative;padding:0}
-        select{min-height:40px;border:0;border-radius:999px;padding:8px 35px 8px 13px;
+        select{max-width:100%;min-height:44px;border:0;border-radius:999px;padding:8px 35px 8px 13px;
           appearance:none;color:var(--primary-text-color);background:transparent;font:inherit;
           font-weight:650;cursor:pointer}.select-pill>ha-icon{position:absolute;right:10px;
           pointer-events:none;color:var(--secondary-text-color);--mdc-icon-size:18px}
@@ -70,23 +75,24 @@ export class RingHistory extends HTMLElement {
           .location{padding:0 14px 14px}}
       </style>
       <section class="card history"><header class="head"><button id="back"
+        data-i18n-aria-label="historyBack" data-i18n-title="historyBack"
         aria-label="Torna a Ring Intercom" title="Torna a Ring Intercom">
-        <ha-icon icon="mdi:arrow-left"></ha-icon></button><h2>Cronologia eventi</h2>
+        <ha-icon icon="mdi:arrow-left"></ha-icon></button><h2 data-i18n="history">Cronologia eventi</h2>
         <button id="refresh" aria-label="Aggiorna cronologia" title="Aggiorna cronologia"
-          data-tooltip="Rilegge gli eventi più recenti da Ring">
+          data-i18n-aria-label="historyRefresh" data-i18n-title="historyRefresh">
           <ha-icon icon="mdi:refresh"></ha-icon></button></header>
-        <div class="location" id="location">Location Ring</div>
-        <div class="filters" aria-label="Filtri cronologia">
+        <div class="location" id="location"><span data-copy="Location Ring">Location Ring</span></div>
+        <div class="filters" aria-label="Filtri cronologia" data-i18n-aria-label="historyFilters">
           <span class="pill active"><ha-icon icon="mdi:lock-outline"></ha-icon>
-            Accessi e citofoni</span><span class="pill"><ha-icon icon="mdi:door"></ha-icon>
+            <span data-i18n="entrances">Accessi e citofoni</span></span><span class="pill"><ha-icon icon="mdi:door"></ha-icon>
             <span id="device-filter">Ring Intercom</span></span>
-          <label class="pill select-pill"><select id="event-filter" aria-label="Tipo evento">
-            <option value="all">Tutti gli eventi</option><option value="unlock">Aperture</option>
-            <option value="live_view">Live View</option><option value="ding">Chiamate</option>
+          <label class="pill select-pill"><select id="event-filter" aria-label="Tipo evento" data-i18n-aria-label="eventType">
+            <option value="all" data-i18n="allEvents">Tutti gli eventi</option><option value="unlock" data-i18n="unlocks">Aperture</option>
+            <option value="live_view" data-i18n="eventLive">Live View</option><option value="ding" data-i18n="calls">Chiamate</option>
           </select><ha-icon icon="mdi:chevron-down"></ha-icon></label></div>
         <p class="notice" id="notice" hidden></p><div class="body" id="body"></div>
         <div class="footer"><button id="more" hidden><ha-icon icon="mdi:chevron-down"></ha-icon>
-          Carica eventi precedenti</button></div></section>`;
+          <span data-i18n="earlierEvents">Carica eventi precedenti</span></button></div></section>`; localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("back").addEventListener("click", () => this.dispatchEvent(new CustomEvent(
       "history-close", { bubbles: true, composed: true },
@@ -101,10 +107,13 @@ export class RingHistory extends HTMLElement {
   async _load(reset) {
     if (!this._hass || !this._entry) return;
     const generation = ++this._generation;
-    if (reset) { this._events = []; this._cursor = null; }
+    if (reset) {
+      this._events = []; this._cursor = null;
+      this.$("body").replaceChildren(); this.$("more").hidden = true;
+    }
     this.$("refresh").disabled = true; this.$("more").disabled = true;
     this.$("notice").hidden = false;
-    this.$("notice").textContent = reset ? "Caricamento cronologia…" : "Caricamento…";
+    this.$("notice").textContent = localize(this._hass, "historyLoading");
     try {
       const request = { type: "media_bridge/ring/history", entry_id: this._entry.entry_id,
         limit: PAGE_SIZE };
@@ -118,16 +127,18 @@ export class RingHistory extends HTMLElement {
       this._events.sort((left, right) => right.occurred_at - left.occurred_at);
       this._cursor = page.next_cursor;
       this.$("notice").textContent = page.degraded
-        ? "Ring cloud non raggiungibile: sono mostrati gli eventi salvati da Vistoda."
+        ? localize(this._hass, "historyCached")
         : "";
       this.$("notice").hidden = !page.degraded;
       this._render();
     } catch (_error) {
-      this.$("notice").textContent = "Cronologia Ring temporaneamente non disponibile.";
+      if (generation !== this._generation) return;
+      this.$("notice").textContent = localize(this._hass, "historyUnavailable");
       this.$("notice").hidden = false;
     } finally {
-      if (generation === this._generation) this.$("refresh").disabled = false;
-      this.$("more").disabled = false;
+      if (generation === this._generation) {
+        this.$("refresh").disabled = false; this.$("more").disabled = false;
+      }
     }
   }
 
@@ -148,7 +159,7 @@ export class RingHistory extends HTMLElement {
     });
     if (!nodes.length) {
       const empty = document.createElement("div"); empty.className = "empty muted";
-      empty.textContent = "Nessun evento per questo filtro."; nodes.push(empty);
+      empty.textContent = localize(this._hass, "noEvents"); nodes.push(empty);
     }
     this.$("body").replaceChildren(...nodes);
     this.$("more").hidden = !this._cursor;
@@ -158,8 +169,8 @@ export class RingHistory extends HTMLElement {
     const [icon, title, className] = META[event.event_type] || META.activity;
     const row = document.createElement("article"); row.className = "event";
     row.innerHTML = `<span class="event-icon ${className}"><ha-icon icon="${icon}"></ha-icon></span>
-      <div><strong></strong><span class="device"></span></div><time class="time"></time>`;
-    row.querySelector("strong").textContent = title;
+      <div><strong></strong><span class="device"></span></div><time class="time"></time>`; localizeCopy(row, this);
+    row.querySelector("strong").textContent = localize(this._hass, title);
     row.querySelector(".device").textContent = this.$("device-filter").textContent;
     row.querySelector("time").textContent = this._time(event.occurred_at);
     return row;
@@ -169,9 +180,9 @@ export class RingHistory extends HTMLElement {
     const date = new Date(timestamp * 1000); const now = new Date();
     const today = this._dateKey(now); const yesterday = this._dateKey(new Date(now - 86400000));
     const key = this._dateKey(date);
-    if (key === today) return "Oggi";
-    if (key === yesterday) return "Ieri";
-    return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "long", year: "numeric",
+    if (key === today) return localize(this._hass, "today");
+    if (key === yesterday) return localize(this._hass, "yesterday");
+    return new Intl.DateTimeFormat(this._hass?.locale?.language || "en", { day: "2-digit", month: "long", year: "numeric",
       timeZone: this._timeZone() }).format(date);
   }
 
@@ -181,14 +192,14 @@ export class RingHistory extends HTMLElement {
   }
 
   _time(timestamp) {
-    return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false,
+    return new Intl.DateTimeFormat(this._hass?.locale?.language || "en", { hour: "2-digit", minute: "2-digit", hour12: false,
       timeZone: this._timeZone() }).format(new Date(timestamp * 1000));
   }
 
-  _timeZone() { return this._hass?.config?.time_zone || "Europe/Rome"; }
+  _timeZone() { return this._hass?.config?.time_zone || "UTC"; }
 
   _location(identity) {
-    const location = identity.location_name || "Location Ring";
+    const location = identity.location_name || copy(this, "Location Ring");
     const city = identity.city || "";
     return city && !location.toLocaleLowerCase("it-IT").endsWith(` in ${city}`
       .toLocaleLowerCase("it-IT")) ? `${location} · ${city}` : location;

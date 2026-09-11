@@ -6,6 +6,8 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
+from .ring_access import require_ring_access
+
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
@@ -22,6 +24,7 @@ def async_register(hass: HomeAssistant) -> None:
     }
 )
 @websocket_api.async_response
+@require_ring_access()
 async def ws_ring_history(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -54,6 +57,7 @@ async def ws_ring_history(
     }
 )
 @websocket_api.async_response
+@require_ring_access("edit")
 async def ws_ring_identity_update(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,

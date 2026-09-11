@@ -1,3 +1,4 @@
+import { copy, localizeCopy } from "./panel-copy.js";
 export class RingRecordingListManager {
   constructor(host) {
     this.host = host;
@@ -44,7 +45,7 @@ export class RingRecordingListManager {
     const select = this.$("list-filter");
     const all = document.createElement("option");
     all.value = "";
-    all.textContent = "Tutte le registrazioni";
+    all.textContent = copy(this, "Tutte le registrazioni");
     const options = this.lists.map((item) => {
       const option = document.createElement("option");
       option.value = item.list_id;
@@ -79,15 +80,15 @@ export class RingRecordingListManager {
     const wrap = document.createElement("div");
     wrap.className = "list-picker";
     const title = document.createElement("strong");
-    title.textContent = "Aggiungi alle liste";
+    title.textContent = copy(this, "Aggiungi alle liste");
     wrap.append(title);
     if (!this.lists.length) {
       const empty = document.createElement("div");
       empty.className = "hint";
-      empty.textContent = "Crea prima una lista personalizzata.";
+      empty.textContent = copy(this, "Crea prima una lista personalizzata.");
       const create = document.createElement("button");
       create.className = "row-action";
-      create.innerHTML = '<ha-icon icon="mdi:playlist-plus"></ha-icon><span>Nuova lista</span>';
+      create.innerHTML = "<ha-icon icon=\"mdi:playlist-plus\"></ha-icon><span><span data-copy=\"Nuova lista\">Nuova lista</span></span>"; localizeCopy(create, this);
       create.addEventListener("click", () => this._showForm());
       wrap.append(empty, create);
       return wrap;
@@ -109,29 +110,29 @@ export class RingRecordingListManager {
   async _create() {
     const input = this.$("list-name");
     const name = input.value.trim();
-    if (!name) return this.host.status("Inserisci un nome per la lista.");
+    if (!name) return this.host.status(copy(this, "Inserisci un nome per la lista."));
     await this._mutate({
       type: "media_bridge/ring/recording_lists/create", name,
-    }, "Lista creata.", () => {
+    }, copy(this, "Lista creata."), () => {
       input.value = "";
       this._hideForm();
     });
   }
 
   async _rename(item, name) {
-    if (!name) return this.host.status("Inserisci un nome per la lista.");
+    if (!name) return this.host.status(copy(this, "Inserisci un nome per la lista."));
     await this._mutate({
       type: "media_bridge/ring/recording_lists/update",
       list_id: item.list_id,
       name,
-    }, "Lista modificata.", () => { this.editingId = null; });
+    }, copy(this, "Lista modificata."), () => { this.editingId = null; });
   }
 
   async _delete(item) {
-    if (!item || !window.confirm(`Eliminare la lista “${item.name}”? Le registrazioni resteranno salvate.`)) return;
+    if (!item || !window.confirm(copy(this, "Eliminare la lista “{p0}”? Le registrazioni resteranno salvate.", { p0: item.name }))) return;
     await this._mutate({
       type: "media_bridge/ring/recording_lists/delete", list_id: item.list_id,
-    }, "Lista eliminata.", () => {
+    }, copy(this, "Lista eliminata."), () => {
       if (this.filterId === item.list_id) this.filterId = "";
       if (this.editingId === item.list_id) this.editingId = null;
     });
@@ -144,7 +145,7 @@ export class RingRecordingListManager {
       list_id: item.list_id,
       recording_id: recording.recording_id,
       included: input.checked,
-    }, input.checked ? "Registrazione aggiunta alla lista." : "Registrazione rimossa dalla lista.");
+    }, input.checked ? copy(this, "Registrazione aggiunta alla lista.") : copy(this, "Registrazione rimossa dalla lista."));
   }
 
   async _mutate(payload, success, after = () => {}) {
@@ -157,13 +158,13 @@ export class RingRecordingListManager {
       this.host.status(success);
     } catch (error) {
       const messages = {
-        duplicate_name: "Esiste già una lista con questo nome.",
-        invalid_name: "Il nome della lista non è valido.",
-        list_limit: "Hai raggiunto il numero massimo di liste.",
-        membership_limit: "Questa lista ha raggiunto il numero massimo di registrazioni.",
-        list_not_found: "La lista non esiste più.",
+        duplicate_name: copy(this, "Esiste già una lista con questo nome."),
+        invalid_name: copy(this, "Il nome della lista non è valido."),
+        list_limit: copy(this, "Hai raggiunto il numero massimo di liste."),
+        membership_limit: copy(this, "Questa lista ha raggiunto il numero massimo di registrazioni."),
+        list_not_found: copy(this, "La lista non esiste più."),
       };
-      this.host.status(messages[error?.code] || "Impossibile aggiornare le liste.");
+      this.host.status(messages[error?.code] || copy(this, "Impossibile aggiornare le liste."));
     }
     this.host.changed(false);
   }
@@ -197,9 +198,9 @@ export class RingRecordingListManager {
       const input = document.createElement("input");
       input.value = item.name;
       input.maxLength = 64;
-      input.setAttribute("aria-label", `Nuovo nome per ${item.name}`);
-      form.append(input, this._button("mdi:content-save", "Salva", "submit"),
-        this._button("mdi:close", "Annulla", "button", () => {
+      input.setAttribute("aria-label", copy(this, "Nuovo nome per {p0}", { p0: item.name }));
+      form.append(input, this._button("mdi:content-save", copy(this, "Salva"), "submit"),
+        this._button("mdi:close", copy(this, "Annulla"), "button", () => {
           this.editingId = null;
           this._renderManager();
         }));
@@ -216,16 +217,16 @@ export class RingRecordingListManager {
     name.textContent = item.name;
     const count = document.createElement("span");
     count.className = "hint";
-    count.textContent = `${item.recording_ids.length} registrazioni`;
+    count.textContent = copy(this, "{p0} registrazioni", { p0: item.recording_ids.length });
     summary.append(name, count);
     const actions = document.createElement("div");
     actions.className = "list-item-actions";
     actions.append(
-      this._button("mdi:pencil-outline", "Modifica", "button", () => {
+      this._button("mdi:pencil-outline", copy(this, "Modifica"), "button", () => {
         this.editingId = item.list_id;
         this._renderManager();
       }),
-      this._button("mdi:delete-outline", "Elimina", "button", () => this._delete(item), true),
+      this._button("mdi:delete-outline", copy(this, "Elimina"), "button", () => this._delete(item), true),
     );
     row.append(summary, actions);
     return row;
@@ -235,7 +236,7 @@ export class RingRecordingListManager {
     const button = document.createElement("button");
     button.type = type;
     button.className = `row-action${danger ? " danger" : ""}`;
-    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`;
+    button.innerHTML = `<ha-icon icon="${icon}"></ha-icon><span>${label}</span>`; localizeCopy(button, this);
     if (action) button.addEventListener("click", action);
     return button;
   }

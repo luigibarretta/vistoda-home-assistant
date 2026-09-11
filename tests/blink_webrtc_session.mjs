@@ -29,7 +29,7 @@ test("Blink ICE timeout is fail-closed without an embedded candidate", async () 
   const session = new BlinkWebRtcSession({}, {}, () => {});
   const peer = gatheringPeer("v=0\r\n");
 
-  await assert.rejects(session.waitForIce(peer, 1), /Raccolta ICE Blink scaduta/);
+  await assert.rejects(session.waitForIce(peer, 1), /Blink ICE gathering timed out/);
 
   assert.equal(peer.listeners.size, 0);
 });

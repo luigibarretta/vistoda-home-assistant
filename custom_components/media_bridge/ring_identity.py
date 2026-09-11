@@ -3,6 +3,7 @@
 from typing import Any
 
 from .const import DOMAIN
+from .ring_binding import device_identifier
 
 FIELDS = ("device_name", "location_name", "city")
 DEFAULT_SELECTION = dict.fromkeys(FIELDS, "ring")
@@ -18,7 +19,9 @@ def home_assistant_identity(hass, entry, alias: str) -> dict[str, str]:
     from homeassistant.helpers import device_registry as dr
 
     registry = dr.async_get(hass)
-    device = registry.async_get_device_by_identifier((DOMAIN, f"ring:{alias}"), entry.entry_id)
+    device = registry.async_get_device_by_identifier(device_identifier(entry), entry.entry_id)
+    if device is None:
+        device = registry.async_get_device_by_identifier((DOMAIN, f"ring:{alias}"), entry.entry_id)
     device_name = None if device is None else device.name_by_user or device.name
     return {
         "device_name": _safe_text(device_name, entry.title),
