@@ -27,7 +27,9 @@ jobs:
           python-version: "3.14"
           cache: pip
       - name: Install native camera support
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends libturbojpeg0
+        # Ubuntu 24.04 calls this runtime package libturbojpeg; Debian uses
+        # libturbojpeg0. GitHub-hosted runners are Ubuntu.
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends libturbojpeg
       - name: Install exact Home Assistant and its relevant platform requirements
         env:
           HA_VERSION: ${{ matrix.homeassistant }}
