@@ -56,6 +56,7 @@ export const blinkViewNavigation = {
   },
 
   _stopLiveForCameraChange() {
+    this._fullscreen?.exit().catch(() => {});
     const session = this._liveSession;
     this._liveSession = null;
     this._liveState = { phase: "idle", microphone: false, speaker: false,
@@ -64,6 +65,7 @@ export const blinkViewNavigation = {
   },
 
   _startSwipe(event) {
+    if (this._liveSession?.active || event.composedPath().some((node) => node.localName === "button")) return;
     if (event.isPrimary === false || this._cameras().length < 2) return;
     this._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
   },

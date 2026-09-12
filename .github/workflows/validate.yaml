@@ -99,6 +99,7 @@ jobs:
         run: |
           node tests/browser/panel-responsive.mjs
           node tests/browser/ha-card-helpers.mjs
+          node tests/browser/live-fullscreen.mjs
   hassfest:
     runs-on: ubuntu-latest
     steps:

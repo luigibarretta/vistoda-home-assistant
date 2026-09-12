@@ -80,6 +80,8 @@ Blink and EZVIZ present multiple cameras in stable, circular page views. Opening
 a page uses the latest stored snapshot; a new capture happens only after an
 explicit action. Provider settings and actions reflect reported capabilities.
 
+For fullscreen and microphone availability, see [Blink live controls](docs/blink-live-controls.md).
+
 In **Blink → Camera detail → General settings**, supported battery cameras expose
 their native temperature alert switch and cold/hot thresholds. Temperatures use
 Home Assistant's °C/°F preference. Edit the values, then select **Save changes**;

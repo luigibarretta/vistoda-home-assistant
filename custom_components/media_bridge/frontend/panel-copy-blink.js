@@ -1,4 +1,7 @@
 export const BLINK_COPY = {
+  "Schermo intero": "Fullscreen", "Esci da schermo intero": "Exit fullscreen",
+  "Schermo intero non disponibile in questo browser": "Fullscreen is unavailable in this browser",
+  "Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.": "This live stream does not yet support sending your voice to the camera from Vistoda.",
   "Salvataggio non completato: ripristino tentato. Verifica i valori riletti prima di riprovare.": "Save incomplete: restoration attempted. Check the reloaded values before retrying.",
   "Nessuna soglia salvata su Blink: inserisci entrambe le soglie e salva per configurarle.": "No threshold saved on Blink: enter both thresholds and save to configure them.",
   "Inserisci entrambe le soglie prima di attivare gli avvisi temperatura.": "Enter both thresholds before enabling temperature alerts.",

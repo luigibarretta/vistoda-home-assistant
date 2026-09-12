@@ -9,6 +9,15 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     background:#000; }
   #legacy-live { position:absolute; inset:0; width:100%; height:100%; background:#000; }
   #legacy-live .blink-legacy-card { display:block; width:100%; height:100%; }
+  #stage:is(:fullscreen, :-webkit-full-screen) { width:100vw; height:100vh;
+    max-height:none; aspect-ratio:auto; border-radius:0; background:#000; }
+  #stage:is(:fullscreen, :-webkit-full-screen) #legacy-live {
+    display:flex; align-items:center; justify-content:center; }
+  #stage:is(:fullscreen, :-webkit-full-screen) .blink-legacy-card {
+    width:min(100vw, calc(100vh * var(--live-aspect, 1.777778))); height:auto; }
+  #fullscreen { position:absolute; top:max(8px, env(safe-area-inset-top));
+    right:max(8px, env(safe-area-inset-right)); z-index:5; width:44px; height:44px;
+    padding:8px; min-width:44px; background:#181818; color:#fff; }
 </style>
 <section class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
@@ -25,7 +34,10 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon
     icon="mdi:cctv"></ha-icon><span data-i18n="noSnapshot">Snapshot non disponibile</span></div><img id="snapshot" alt="">
     <video id="live-video" autoplay playsinline muted hidden></video>
-    <div id="legacy-live" hidden></div></div>
+    <div id="legacy-live" hidden></div>
+    <button id="fullscreen" hidden aria-label="Schermo intero" title="Schermo intero"
+      data-copy-aria-label="Schermo intero" data-copy-title="Schermo intero" aria-pressed="false">
+      <ha-icon icon="mdi:fullscreen"></ha-icon></button></div>
   <div class="media-body"><div class="media-title"><div><h3 id="camera-name"><span data-copy="Telecamera">Telecamera</span></h3>
     <div class="muted" id="camera-position"></div><div class="muted" id="snapshot-time"></div>
     </div><span class="badge off" id="camera-state"><span data-copy="Non disponibile">Non disponibile</span></span></div>
@@ -43,9 +55,10 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
       <span id="motion-label"><span data-copy="Movimento">Movimento</span></span></button><button id="details">
       <ha-icon icon="mdi:cog-outline"></ha-icon><span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
       <button id="speaker" hidden><ha-icon id="speaker-icon" icon="mdi:volume-off"></ha-icon>
-      <span id="speaker-label"><span data-copy="Attiva audio">Attiva audio</span></span></button><button id="microphone" hidden>
+      <span id="speaker-label"><span data-copy="Attiva audio">Attiva audio</span></span></button><button id="microphone" hidden aria-describedby="microphone-unavailable">
       <ha-icon id="microphone-icon" icon="mdi:microphone-off"></ha-icon>
       <span id="microphone-label"><span data-copy="Attiva microfono">Attiva microfono</span></span></button></div>
+    <p class="muted" id="microphone-unavailable" hidden data-copy="Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.">Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.</p>
     <div class="muted" id="message" role="status"></div>
     <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></div>
 </section>

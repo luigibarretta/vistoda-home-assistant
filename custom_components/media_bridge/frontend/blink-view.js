@@ -43,6 +43,7 @@ class VistodaBlinkView extends HTMLElement {
     this.$("previous").addEventListener("click", () => this._move(-1));
     this.$("next").addEventListener("click", () => this._move(1));
     this.$("live").addEventListener("click", () => this._toggleLive());
+    this.$("fullscreen").addEventListener("click", () => this._toggleFullscreen());
     this.$("speaker").addEventListener("click", () => this._liveSession?.toggleSpeaker());
     this.$("microphone").addEventListener("click", () => this._liveSession?.toggleMicrophone());
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());

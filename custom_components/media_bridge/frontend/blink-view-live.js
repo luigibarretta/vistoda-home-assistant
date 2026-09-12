@@ -1,8 +1,22 @@
 import { copy } from "./panel-copy.js";
 import { BlinkLiveSession } from "./blink-live-session.js";
+import { LiveFullscreen } from "./live-fullscreen.js";
 import { entityState, openMoreInfo, setText } from "./panel-helpers.js";
 
 export const blinkViewLive = {
+  async _toggleFullscreen() {
+    this._fullscreen ||= new LiveFullscreen(this.$("stage"), (active) => {
+      const label = copy(this, active ? "Esci da schermo intero" : "Schermo intero");
+      const button = this.$("fullscreen");
+      button.title = label; button.setAttribute("aria-label", label);
+      button.setAttribute("aria-pressed", String(active));
+      button.querySelector("ha-icon").setAttribute("icon", active
+        ? "mdi:fullscreen-exit" : "mdi:fullscreen");
+    });
+    try { await this._fullscreen.toggle(); }
+    catch { setText(this.shadowRoot, "message", copy(this, "Schermo intero non disponibile in questo browser")); }
+  },
+
   async _toggleLive() {
     if (this._liveSession?.active) return this._liveSession.stop();
     if (this._liveSession && this._liveState.legacyAvailable) {
@@ -33,12 +47,16 @@ export const blinkViewLive = {
     const active = ["starting", "connecting", "active"].includes(this._liveState.phase);
     const connected = this._liveState.phase === "active";
     const interactive = connected && this._liveState.transport === "webrtc";
+    this.$("fullscreen").hidden = !connected;
+    this._fullscreen?.update();
+    if (!active) this._fullscreen?.exit().catch(() => {});
     this.$("live").classList.toggle("danger", active);
     this.$("live").querySelector("ha-icon").setAttribute("icon", active
       ? "mdi:video-off-outline" : "mdi:video-wireless-outline");
     this.$("live").querySelector("span").textContent = active ? copy(this, "Chiudi live") :
       this._liveState.legacyAvailable ? copy(this, "Apri live compatibile") : copy(this, "Apri live");
-    this.$("speaker").hidden = !interactive; this.$("microphone").hidden = !interactive;
+    this.$("speaker").hidden = !interactive; this.$("microphone").hidden = !connected;
+    this.$("microphone-unavailable").hidden = !connected || interactive;
     this.$("speaker").disabled = !interactive;
     this.$("microphone").disabled = !interactive || Boolean(this._liveState.microphonePending);
     this.$("speaker").classList.toggle("primary", Boolean(this._liveState.speaker));
@@ -66,5 +84,8 @@ export const blinkViewLive = {
     this.$("placeholder").hidden = live || show;
   },
 
-  disconnectedCallback() { this._liveSession?.stop(false); },
+  disconnectedCallback() {
+    this._fullscreen?.dispose(); this._fullscreen = null;
+    this._liveSession?.stop(false);
+  },
 };
