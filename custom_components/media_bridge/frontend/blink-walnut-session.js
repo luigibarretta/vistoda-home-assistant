@@ -44,9 +44,10 @@ export class BlinkWalnutSession {
       const ack = this.micAck; this.micAck = null;
       if (event.enabled === true) ack?.resolve();
       else {
+        const unexpected = Boolean(this.capture || ack);
         ack?.reject(new Error(copy(this, "Microfono non disponibile")));
         this._releaseCapture();
-        this.message = copy(this, "Microfono fermato: connessione lenta o sessione occupata");
+        if (unexpected) this.message = copy(this, "Microfono fermato: connessione lenta o sessione occupata");
       }
     } else if (["error", "closed"].includes(event.type)) {
       await this._fail(generation); return;

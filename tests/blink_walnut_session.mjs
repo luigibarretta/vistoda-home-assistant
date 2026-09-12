@@ -100,3 +100,10 @@ test("each PCM frame rejects a hidden page or replaced player before network sen
     else globalThis.document = previousDocument;
   }
 });
+
+test("intentional disable acknowledgement preserves the capture failure reason", async (t) => {
+  const { session } = harness(t); const pending = await begin(session); await ack(session, pending);
+  await session._disableMicrophone("capture diagnostic");
+  await session._event({ type: "microphone", enabled: false, request_id: session.micRequest }, session.generation);
+  assert.equal(session.message, "capture diagnostic"); await session.stop();
+});
