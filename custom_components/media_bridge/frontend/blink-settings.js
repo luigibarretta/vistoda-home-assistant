@@ -1,4 +1,5 @@
 import { copy, localizeCopy } from "./panel-copy.js";
+import { temperatureControl } from "./blink-temperature-control.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import {
   booleanStateText, temperatureValueText, videoQualityOptions,
@@ -123,6 +124,9 @@ class VistodaBlinkSettings extends HTMLElement {
     const text = document.createElement("div");
     const label = document.createElement("strong"); label.textContent = meta[0]; text.append(label);
     const help = document.createElement("small"); help.textContent = meta[1]; text.append(help);
+    if (field.value === null && field.key.startsWith("temperature_")) {
+      help.textContent = copy(this, "Nessuna soglia salvata su Blink: inserisci entrambe le soglie e salva per configurarle.");
+    }
     const control = document.createElement("div"); control.className = "control";
     control.append(this._control(field, meta)); row.append(text, control); return row;
   }
@@ -134,6 +138,9 @@ class VistodaBlinkSettings extends HTMLElement {
     if (!editable) {
       const value = document.createElement("span"); value.className = "readonly";
       value.textContent = this._value(field.value, unit, field.key); return value;
+    }
+    if (["temperature_min", "temperature_max"].includes(field.key)) {
+      return temperatureControl(this, field, label);
     }
     if (field.kind === "text") return this._textControl(field, label);
     if (field.kind === "boolean") {

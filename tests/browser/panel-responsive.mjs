@@ -60,7 +60,8 @@ try {
         }));
         window.requests = []; window.inventoryFailure = false;
         window.hassFixture = {
-          locale: { language }, user: { is_admin: true }, config: { time_zone: "Europe/Rome" },
+          locale: { language }, user: { is_admin: true }, config: { time_zone: "Europe/Rome",
+            unit_system: {temperature: language === "en" ? "°F" : "°C"} },
           states: Object.fromEntries(cameras.map((_, index) => [`camera.test${index}`, {
             state: "idle", attributes: { alias: index < 2 ? "shared-alias" : `camera${index}`,
               entry_id: `ezviz-${index}`, network_id: index < 3 ? 1 : 2,
@@ -89,7 +90,10 @@ try {
             if (request.type === "blink_live_bridge/camera/settings") return { name: "Elimina",
               settings: [{ key: "motion_detection", kind: "boolean", value: true, writable: true },
                 { key: "video_quality", kind: "select", value: "best", options: ["saver", "standard", "best"], writable: true },
-                { key: "camera_name", kind: "text", value: "Elimina", writable: true }], revision: "fake" };
+                { key: "camera_name", kind: "text", value: "Elimina", writable: true },
+                { key: "temperature_alerts", kind: "boolean", value: true, writable: true },
+                { key: "temperature_min", kind: "integer", value: 32, min: -4, max: 113, step: 1, writable: true },
+                { key: "temperature_max", kind: "integer", value: 95, min: -4, max: 113, step: 1, writable: true }], revision: "fake" };
             if (request.type === "blink_live_bridge/camera/zones") return { activity_masks: Array(25).fill(4095),
               privacy_zones: [], privacy_supported: true, revision: "fake" };
             if (request.type === "media_bridge/ezviz/snapshot/refresh") return {

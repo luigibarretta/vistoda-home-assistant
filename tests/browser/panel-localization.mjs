@@ -74,6 +74,16 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     const settings = page.locator("vistoda-blink-settings");
     assert.equal(await settings.locator("#title").textContent(), "Elimina");
     assert.equal(await settings.locator('input[type="text"]').inputValue(), "Elimina");
+    const temperatures = settings.locator('.temperature-control input');
+    assert.equal(await temperatures.count(), 2);
+    assert.equal(await temperatures.first().inputValue(), en ? "32" : "0");
+    await checkAuthoredCopy(page, language); await check(`temperature-${language}`);
+    await settings.locator('.temperature-control').first().locator('button').last().click();
+    assert.equal(await settings.locator('#draft-actions').isVisible(), true);
+    assert.equal(await page.evaluate(() => window.requests.some(request =>
+      request.type === 'blink_live_bridge/camera/settings/update')), false, 'temperature edits stay local until Save');
+    await settings.locator('#discard').click();
+    assert.equal(await temperatures.first().inputValue(), en ? "32" : "0");
     await settings.locator('details[data-section="video"] summary').click();
     assert.match(await settings.locator(".quality-options").textContent(), en ? /Best.*recommended/s : /Migliore.*consigliata/s);
     await checkAuthoredCopy(page, language); await check(`settings-${language}`);

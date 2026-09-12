@@ -1,4 +1,8 @@
 export const BLINK_SETTING_STYLES = `
+  .temperature-control { display:flex; align-items:center; gap:6px; max-width:100%; }
+  .temperature-control input { width:76px; min-width:0; min-height:44px; text-align:center; }
+  .temperature-control button { display:grid; place-items:center; width:44px; min-width:44px;
+    height:44px; padding:0; border-radius:50%; }
   :host { display:block; margin-top:18px; }
   .settings { padding:20px; }
   header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }

@@ -30,9 +30,9 @@ export const BLINK_SETTING_META = {
   speaker_volume: ["Volume altoparlante", "Livello audio dell’altoparlante", "audio"],
   sync_strength: ["Segnale Sync Module", "Ultima intensità radio rilevata", "general", "dBm"],
   camera_name: ["Nome telecamera", "Nome mostrato da Blink e Vistoda", "general"],
-  temperature_alerts: ["Avvisi temperatura", "Stato configurato nell’account Blink", "general"],
-  temperature_min: ["Temperatura minima", "Soglia inferiore", "general", "°F"],
-  temperature_max: ["Temperatura massima", "Soglia superiore", "general", "°F"],
+  temperature_alerts: ["Avvisi temperatura", "Notifiche push dell’app Blink per questa telecamera; richiedono i permessi notifiche sul telefono.", "general"],
+  temperature_min: ["Avviso freddo sotto", "Soglia letta da Blink. Le modifiche si applicano con Salva.", "general", "°F"],
+  temperature_max: ["Avviso caldo sopra", "La luce solare diretta può alterare la temperatura rilevata.", "general", "°F"],
 };
 
 export const BLINK_OPTION_LABELS = {

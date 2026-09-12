@@ -27,7 +27,8 @@ export const blinkSettingsIo = {
   },
 
   async _saveDraft() {
-    const draft = this._draft(); const count = draft.size;
+    if (this._saving) return;
+    const draft = new Map(this._draft()); const count = draft.size;
     if (!count || !globalThis.confirm(copy(this, "Confermi {p0} {p1} a questa telecamera?", {
       p0: count, p1: count === 1 ? copy(this, "modifica") : copy(this, "modifiche"),
     }))) return;
@@ -35,20 +36,32 @@ export const blinkSettingsIo = {
     const alias = this._camera.alias;
     const hass = this._hass;
     const settings = this._settings;
+    this._saving = true;
+    this.$("save").disabled = true;
     this.$("status").textContent = copy(this, "Salvataggio e verifica…");
     try {
       const result = await commitDraft(hass, alias, settings, draft);
       if (generation !== this._generation || alias !== this._camera?.alias) return;
       this._settings = result;
-      draft.clear(); this._render();
+      reconcileDraft(result, this._draft()); this._render();
       this.$("status").textContent = copy(this, "Modifiche verificate sulla camera.");
     } catch (error) {
       if (generation !== this._generation || alias !== this._camera?.alias) return;
+      if (error.message === "temperature_gap") {
+        this.$("status").textContent = copy(this, "Le soglie devono distare almeno 10 °F (circa 5,6 °C).");
+        return;
+      }
+      if (["temperature_missing", "temperature_initialization_separate"].includes(error.message)) {
+        this.$("status").textContent = copy(this, error.message === "temperature_missing"
+          ? "Inserisci entrambe le soglie prima di attivare gli avvisi temperatura."
+          : "Salva la prima configurazione temperatura separatamente dalle altre impostazioni.");
+        return;
+      }
       await this._load();
       if (generation !== this._generation || alias !== this._camera?.alias) return;
       this.$("status").textContent = error.rollbackFailed
         ? copy(this, "Salvataggio fallito: rileggi lo stato prima di riprovare.")
         : copy(this, "Salvataggio fallito: le modifiche già inviate sono state ripristinate.");
-    }
+    } finally { this._saving = false; this.$("save").disabled = false; }
   },
 };

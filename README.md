@@ -80,6 +80,22 @@ Blink and EZVIZ present multiple cameras in stable, circular page views. Opening
 a page uses the latest stored snapshot; a new capture happens only after an
 explicit action. Provider settings and actions reflect reported capabilities.
 
+In **Blink → Camera detail → General settings**, supported battery cameras expose
+their native temperature alert switch and cold/hot thresholds. Temperatures use
+Home Assistant's °C/°F preference. Edit the values, then select **Save changes**;
+nothing is sent while adjusting a control. If Blink has never saved thresholds,
+the fields are empty: enter both to initialize them explicitly. Initial setup
+must be saved separately from unrelated camera settings. Blink requires a gap of
+at least 10 °F (about 5.6 °C); its integer-Fahrenheit storage can round °C values.
+Vistoda preserves the current calibration and verifies saved values by reading
+them back. A failed first initialization cannot restore an absent threshold;
+reload and inspect the reported state before retrying.
+
+These switches configure **native Blink push notifications**, not Home Assistant
+Companion notifications. The Blink app needs notification permission. Cameras
+without the temperature capability (including the original Mini) do not expose
+the controls; missing telemetry disables writes rather than guessing a value.
+
 Ring, Blink and EZVIZ use separate app-owned archives. The same displayed
 `/data/recordings` path in two apps does not mean the same directory: each Home
 Assistant app has an isolated data volume. Vistoda shows the owning provider and
