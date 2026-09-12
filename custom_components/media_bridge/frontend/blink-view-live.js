@@ -46,7 +46,8 @@ export const blinkViewLive = {
   _renderLive() {
     const active = ["starting", "connecting", "active"].includes(this._liveState.phase);
     const connected = this._liveState.phase === "active";
-    const interactive = connected && this._liveState.transport === "webrtc";
+    const interactive = connected && (this._liveState.transport === "webrtc" ||
+      this._liveState.microphoneSupported === true);
     this.$("fullscreen").hidden = !connected;
     this._fullscreen?.update();
     if (!active) this._fullscreen?.exit().catch(() => {});
@@ -64,6 +65,11 @@ export const blinkViewLive = {
     this.$("speaker").setAttribute("aria-pressed", String(Boolean(this._liveState.speaker)));
     this.$("microphone").setAttribute("aria-pressed", String(Boolean(this._liveState.microphone)));
     this.$("microphone").setAttribute("aria-busy", String(Boolean(this._liveState.microphonePending)));
+    this.$("microphone").setAttribute("aria-describedby", interactive ? "message" : "microphone-unavailable");
+    this.$("microphone").title = copy(this, this._liveState.transport === "walnut"
+      ? this._liveState.microphone ? "Disattiva il microfono per riprendere l’ascolto"
+        : "Parla alla telecamera: l’ascolto viene sospeso mentre il microfono è attivo"
+      : this._liveState.microphone ? "Disattiva microfono" : "Attiva microfono");
     this.$("speaker-icon").setAttribute("icon", this._liveState.speaker
       ? "mdi:volume-high" : "mdi:volume-off");
     this.$("microphone-icon").setAttribute("icon", this._liveState.microphone

@@ -97,9 +97,11 @@ jobs:
           BROWSER_ENGINE: ${{ matrix.engine }}
           NODE_PATH: ${{ github.workspace }}/node_modules
         run: |
+          sudo apt-get install --yes --no-install-recommends pulseaudio
           node tests/browser/panel-responsive.mjs
           node tests/browser/ha-card-helpers.mjs
           node tests/browser/live-fullscreen.mjs
+          node tests/browser/blink-microphone.mjs
   hassfest:
     runs-on: ubuntu-latest
     steps:

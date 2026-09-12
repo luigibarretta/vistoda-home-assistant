@@ -1,6 +1,7 @@
 import { copy } from "./panel-copy.js";
 import { BlinkLegacyLiveSession } from "./blink-legacy-live-session.js";
 import { BlinkWebRtcSession } from "./blink-webrtc-session.js";
+import { BlinkWalnutSession } from "./blink-walnut-session.js";
 
 export class BlinkLiveSession {
   constructor(hass, video, legacyHost, onState, factories = {}) {
@@ -12,6 +13,8 @@ export class BlinkLiveSession {
       new BlinkWebRtcSession(this._hass, this.video, handler));
     this.makeLegacy = factories.legacy || (() =>
       new BlinkLegacyLiveSession(this._hass, this.legacyHost));
+    this.makeWalnut = factories.walnut || ((handler) =>
+      new BlinkWalnutSession(this._hass, this.legacyHost, handler));
     this.mode = "idle";
     this.generation = 0;
     this.fallbackUsed = false;
@@ -25,6 +28,7 @@ export class BlinkLiveSession {
     this._hass = value;
     if (this.webRtc) this.webRtc.hass = value;
     if (this.legacy) this.legacy.hass = value;
+    if (this.walnut) this.walnut.hass = value;
   }
 
   get active() { return ["webrtc", "switching", "legacy"].includes(this.mode); }
@@ -33,6 +37,7 @@ export class BlinkLiveSession {
     if (this.active) return;
     const generation = ++this.generation;
     this.entityId = entityId;
+    this.alias = alias;
     this.fallbackUsed = false;
     if (preferredTransport !== "cayuga") {
       await this._activateLegacy("policy", generation);
@@ -49,8 +54,8 @@ export class BlinkLiveSession {
     await this._activateLegacy("manual", ++this.generation);
   }
 
-  toggleSpeaker() { return this.webRtc?.toggleSpeaker(); }
-  toggleMicrophone() { return this.webRtc?.toggleMicrophone(); }
+  toggleSpeaker() { return (this.walnut || this.webRtc)?.toggleSpeaker(); }
+  toggleMicrophone() { return (this.walnut || this.webRtc)?.toggleMicrophone(); }
 
   stop(notify = true) {
     if (this.stopping) return this.stopping;
@@ -62,11 +67,14 @@ export class BlinkLiveSession {
     ++this.generation;
     const webRtc = this.webRtc; this.webRtc = null;
     const legacy = this.legacy; this.legacy = null;
+    const walnut = this.walnut; this.walnut = null;
     this.mode = "idle";
+    const audioStopped = walnut?.stop();
     legacy?.stop();
+    if (audioStopped) await audioStopped;
     if (webRtc) await webRtc.stop(false);
     if (notify) this.onState({ phase: "idle", transport: null, microphone: false,
-      speaker: false, legacyAvailable: false, message: copy(this, "Live terminato") });
+      microphoneSupported: false, speaker: false, legacyAvailable: false, message: copy(this, "Live terminato") });
   }
 
   _webRtcState(state, generation) {
@@ -86,7 +94,7 @@ export class BlinkLiveSession {
   async _activateLegacy(trigger, generation) {
     this.mode = "switching";
     this.onState({ phase: "connecting", transport: "walnut", legacyAvailable: false,
-      microphone: false, speaker: false, message: trigger === "automatic"
+      microphone: false, microphoneSupported: false, speaker: false, message: trigger === "automatic"
         ? copy(this, "Passaggio automatico al live compatibile…") : trigger === "policy"
           ? copy(this, "Apertura live Blink…") : copy(this, "Apertura live compatibile…") });
     const webRtc = this.webRtc; this.webRtc = null;
@@ -100,7 +108,16 @@ export class BlinkLiveSession {
       this.mode = "legacy";
       this.onState({ phase: "active", transport: "walnut", legacyAvailable: false,
         microphone: false, speaker: false,
-        message: copy(this, "Live Blink attivo · audio bidirezionale non disponibile per questo trasporto") });
+        message: copy(this, "Live Blink attivo · verifica disponibilità microfono…") });
+      if (this.alias && generation === this.generation) {
+        const walnut = this.makeWalnut((state) => {
+          if (generation === this.generation && this.mode === "legacy") {
+            this.onState({ ...state, phase: "active", transport: "walnut" });
+          }
+        });
+        this.walnut = walnut;
+        await walnut.start(this.alias);
+      }
     } catch (error) {
       legacy.stop(); this.legacy = null; this.mode = "error";
       this.onState({ phase: "error", transport: "walnut", legacyAvailable: false,

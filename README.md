@@ -33,7 +33,7 @@ users.
 | Provider | Released functions | Boundary |
 | --- | --- | --- |
 | Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings | Experimental consumer APIs; Ring does not support this third-party use. Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
-| Blink | Multiple cameras, stored/manual snapshots, Walnut live, supported settings and zones, cloud/USB/local archives and NFS backup | Cayuga/WebRTC microphone and full-duplex talk are disabled by current provider policy. Settings vary by model. |
+| Blink | Multiple cameras, stored/manual snapshots, Walnut live and conditional talk/listen controls, supported settings and zones, cloud/USB/local archives and NFS backup | Talk needs Blink engine 0.15.0+, a supported audio offer, HTTPS and microphone permission. Transport verified on Mini; speaker audibility requires device validation. Not simultaneous full duplex. Cayuga remains disabled by provider policy. Settings vary by model. |
 | EZVIZ | Multiple cameras, stored/manual snapshots, compatible live streams, local recordings and NFS backup | Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
 | Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
