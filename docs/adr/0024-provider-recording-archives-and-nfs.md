@@ -1,14 +1,14 @@
 # ADR 0024: Provider recording archives and NFS backup
 
-- Status: accepted
+- Status: accepted; Blink USB mutation boundary superseded by ADR 0025
 - Date: 2026-09-09
 
 ## Context
 
 The Blink panel's former record action invoked a cloud command that failed and
 could produce a misleading motion notification. EZVIZ finite capture existed
-for SceneTrove but was not available as a standalone Vistoda workflow. The user
-also needs durable NAS copies without risking the 30.8 GiB HAOS filesystem.
+for SceneTrove but was not available as a standalone Vistoda workflow. Users
+also need durable NAS copies without filling the Home Assistant system disk.
 
 Blink Sync Module USB, EZVIZ microSD and bidirectional audio are separate vendor
 protocols. An official-app screen or discovered URL does not prove a safe
@@ -33,14 +33,15 @@ The Blink Sync Module inventory is separately paginated by the provider app.
 Vistoda plays or downloads its MP4 clips through signed HA paths and can copy a
 single clip or traverse all backend pages for NFS backup. Because Blink does not
 publish a checksum, HA computes one while streaming and records it in the
-sidecar before atomic commit. No command acknowledges, deletes or mutates the
-provider-owned USB object.
+sidecar before atomic commit. At the time of this decision no command
+acknowledged, deleted or mutated the provider-owned USB object. ADR 0025 later
+added separately guarded deletion and compatible-media formatting.
 
 Backup fails closed unless `/proc/self/mounts` identifies the exact path as NFS
-and 512 MiB of headroom remains. Production provisions the path through
-Supervisor, backed by a compressed 20 GiB ZFS child dataset exported only to
-iot-01 with all identities squashed. This prevents an “active” Supervisor entry
-or local directory from silently filling the VM.
+and 512 MiB of headroom remains. A production installation provisions and
+limits that storage outside Vistoda through the Home Assistant Supervisor. This
+prevents an “active” storage entry or local substitute from silently filling
+the Home Assistant disk.
 
 Direct provider recording to USB/microSD and Blink/EZVIZ talk remain gated until their exact
 model-specific list, transport, mutation and recovery contracts pass live
@@ -51,5 +52,5 @@ canaries. No UI control may imply parity merely because downstream media works.
 - Recording from Vistoda no longer invokes Blink motion recording.
 - The NAS copy is independently durable and does not consume provider quota.
 - Local delete never cascades into NFS, SceneTrove, USB or microSD storage.
-- Arbitrary stop and vendor-media management remain roadmap items, explicitly
-  gated by durable cancellation and provider protocol evidence.
+- Direct recording to provider storage remains gated. Later guarded Blink USB
+  management is defined by ADR 0025.

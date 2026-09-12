@@ -3,6 +3,7 @@ import "./overview-view.js";
 import "./ring-view.js";
 import "./blink-view.js";
 import "./ezviz-view.js";
+import "./vistoda-about-dialog.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import {
@@ -98,7 +99,8 @@ class VistodaPanel extends HTMLElement {
           text-decoration:none; font-weight:650; }
         nav a.active { color:#fff; background:linear-gradient(135deg,#6246ea,#4967e9); }
         nav ha-icon { --mdc-icon-size:20px; }
-        #back { display:none; } #reload { flex:0 0 auto; }
+        .header-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+        #back { display:none; } #reload, #about { flex:0 0 auto; }
         @media (max-width:600px) {
           nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
           nav a { min-width:0; padding:8px; }
@@ -106,7 +108,8 @@ class VistodaPanel extends HTMLElement {
           #back { display:grid; place-items:center; min-width:44px; padding:8px; }
           .mark { display:none; } .identity { gap:8px; } h1 { font-size:24px; }
           header p { white-space:normal; overflow:visible; line-height:1.35; }
-          #reload { min-width:44px; padding:8px; } #reload span { display:none; }
+          #reload, #about { min-width:44px; padding:8px; }
+          #reload span, #about span { display:none; }
         }
       </style>
       <main><header><div class="header-start"><button id="back"
@@ -114,17 +117,19 @@ class VistodaPanel extends HTMLElement {
         data-tooltip="Esce da Vistoda e torna alla pagina precedente"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
         <div class="identity"><div class="mark">
         <ha-icon icon="mdi:shield-home"></ha-icon></div><div><h1>Vistoda</h1>
-        <p class="muted"></p></div></div></div><button id="reload" aria-label="Aggiorna inventario"
-        title="Aggiorna inventario Vistoda"
-        data-tooltip="Rilegge dispositivi e stati di tutti i provider Vistoda">
-        <ha-icon icon="mdi:refresh"></ha-icon><span><span data-copy="Aggiorna">Aggiorna</span></span></button></header>
+        <p class="muted"></p></div></div></div><div class="header-actions">
+        <button id="about" aria-label="Informazioni e supporto" title="Informazioni e supporto">
+          <ha-icon icon="mdi:information-outline"></ha-icon><span>Info</span></button>
+        <button id="reload" aria-label="Aggiorna inventario" title="Aggiorna inventario Vistoda">
+          <ha-icon icon="mdi:refresh"></ha-icon><span><span data-copy="Aggiorna">Aggiorna</span></span></button></div></header>
         <nav aria-label="Provider Vistoda"><a href="/vistoda" data-provider="overview">
           <ha-icon icon="mdi:view-dashboard"></ha-icon>Panoramica</a>
           ${PROVIDERS.map((provider) => `<a href="${providerPath(provider)}" data-provider="${provider}">
             <ha-icon icon="${PROVIDER_META[provider].icon}"></ha-icon>
             ${PROVIDER_META[provider].label}</a>`).join("")}
         </nav><section id="inventory-status" class="card empty" role="status" hidden></section>
-        <section id="content" aria-live="polite"></section></main>`; localizeCopy(this.shadowRoot, this);
+        <section id="content" aria-live="polite"></section>
+        <vistoda-about-dialog id="about-dialog"></vistoda-about-dialog></main>`; localizeCopy(this.shadowRoot, this);
     this.shadowRoot.querySelector("header p").textContent = activeLabel;
     this.shadowRoot.querySelector("#back").dataset.i18nAriaLabel = "back";
     this.shadowRoot.querySelector("#back").dataset.i18nTitle = "back";
@@ -133,6 +138,8 @@ class VistodaPanel extends HTMLElement {
     this.shadowRoot.querySelector("#reload").dataset.i18nTitle = "refreshInventory";
     this.shadowRoot.querySelector("#reload").removeAttribute("data-tooltip");
     this.shadowRoot.querySelector("#reload span").dataset.i18n = "reload";
+    this.shadowRoot.querySelector("#about").dataset.i18nAriaLabel = "aboutButton";
+    this.shadowRoot.querySelector("#about").dataset.i18nTitle = "aboutButton";
     this.shadowRoot.querySelector("nav").dataset.i18nAriaLabel = "navigation";
     const overview = this.shadowRoot.querySelector('[data-provider="overview"]');
     const label = document.createElement("span"); label.dataset.i18n = "overview";
@@ -148,7 +155,11 @@ class VistodaPanel extends HTMLElement {
       });
     });
     this.shadowRoot.getElementById("back").addEventListener("click", () => this._leavePanel());
+    this.shadowRoot.getElementById("about").addEventListener("click", (event) => {
+      this.shadowRoot.getElementById("about-dialog").open(event.currentTarget);
+    });
     this.shadowRoot.getElementById("reload").addEventListener("click", () => this._loadInfo());
+    this.shadowRoot.getElementById("about-dialog").hass = this._hass;
     this._child = document.createElement(VIEW_TAGS[this._provider]);
     this._child.hass = this._hass;
     this.shadowRoot.getElementById("content").replaceChildren(this._child);
@@ -169,6 +180,7 @@ class VistodaPanel extends HTMLElement {
 
   _localize() {
     localizeElements(this.shadowRoot, this._hass);
+    this.shadowRoot.getElementById("about-dialog").hass = this._hass;
     this.shadowRoot.querySelector("header p").textContent = localize(this._hass,
       this._provider === "overview" ? "controlCenter" : `${this._provider}Description`);
   }

@@ -22,6 +22,7 @@ export const COMMON_COPY = {
   "Bassa": "Low", "Media": "Medium", "Alta": "High", "Migliore": "Best", "Risparmio": "Saver",
   "Modello": "Model", "Movimento": "Motion", "Ripristina": "Reset",
   "Torna alle telecamere": "Back to cameras", "Apri telecamera {p0}": "Open camera {p0}",
+  "Tipi di zone telecamera": "Camera zone types",
   "{p0} di {p1}": "{p0} of {p1}", "Scarica batteria": "Low battery",
   "Operazione in corso…": "Operation in progress…", "Operazione non riuscita": "Operation failed",
   "Snapshot aggiornato": "Image refreshed", "Snapshot {p0}": "Image of {p0}",

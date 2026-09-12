@@ -34,7 +34,7 @@ export const RING_DEVICE_SELECTOR_TEMPLATE = `
   <div class="device-picker" id="device-picker" hidden>
     <span class="device-picker-label" id="device-picker-label" data-copy="Seleziona Ring Intercom">Seleziona Ring Intercom</span>
     <div class="device-options" id="device-options" role="listbox" aria-labelledby="device-picker-label"></div>
-    <select class="device-select" id="device-select" aria-label="Seleziona Ring Intercom"
+    <select class="device-select" id="device-select" aria-hidden="true" tabindex="-1" aria-label="Seleziona Ring Intercom"
       data-copy-aria-label="Seleziona Ring Intercom"></select>
   </div>`;
 

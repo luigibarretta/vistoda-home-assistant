@@ -29,7 +29,7 @@ export const BASE_STYLES = `
     transform:translateY(-3px); transition:opacity .14s ease,transform .14s ease; }
   [data-tooltip]:hover::after, [data-tooltip]:focus-visible::after {
     opacity:1; visibility:visible; transform:translateY(0); }
-  .eyebrow { color:var(--primary-color); font-size:12px; font-weight:750;
+  .eyebrow { color:var(--primary-text-color); font-size:12px; font-weight:750;
     letter-spacing:.08em; text-transform:uppercase; }
   .muted { color:var(--secondary-text-color); line-height:1.45; }
   .badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; max-width:100%;

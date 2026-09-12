@@ -4,7 +4,12 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { checkAdvancedPanel, checkAuthoredCopy } from "./panel-localization.mjs";
-const { chromium } = createRequire(import.meta.url)("playwright");
+import { checkSemantics } from "./panel-accessibility.mjs";
+const playwright = createRequire(import.meta.url)("playwright");
+const engine = process.env.BROWSER_ENGINE || "chromium";
+const browserType = playwright[engine];
+if (!browserType) throw new Error(`Unsupported browser engine: ${engine}`);
+const screenshotDirectory = process.env.AUDIT_SCREENSHOT_DIR;
 const frontend = new URL("../../custom_components/media_bridge/frontend/", import.meta.url);
 const server = createServer(async (request, response) => {
   const filename = request.url?.split("?")[0].slice(1);
@@ -25,7 +30,9 @@ const server = createServer(async (request, response) => {
     </style></head><body><div id="shell"><aside></aside><main></main></div></body></html>`);
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+const launchOptions = engine === "chromium" ? { headless: true, args: ["--no-sandbox"] }
+  : { headless: true };
+const browser = await browserType.launch(launchOptions);
 const origin = `http://127.0.0.1:${server.address().port}`;
 const errors = [];
 try {
@@ -133,9 +140,36 @@ try {
         assert.deepEqual(metrics.violations, [], `${label}: undersized targets`);
       };
       await check(`${provider}@${width}`);
+      await checkSemantics(page, `${provider}@${width}`);
       await checkAuthoredCopy(page, language);
+      if (screenshotDirectory && language === "it" && [393, 1280].includes(width)) {
+        await page.screenshot({
+          path: `${screenshotDirectory}/${engine}-${provider}-${width}.png`,
+          fullPage: true,
+        });
+      }
       await checkAdvancedPanel(page, provider, language, check);
+      await checkSemantics(page, `advanced-${provider}@${width}`);
       assert.equal(await page.locator(`vistoda-panel nav a[data-provider="${provider}"]`).getAttribute("aria-current"), "page");
+      if (provider === "overview" && [320, 393, 1280].includes(width)) {
+        const label = language === "en" ? "Information, support and accessibility"
+          : "Informazioni, supporto e accessibilità";
+        const about = page.getByRole("button", { name: label, exact: true });
+        await about.click();
+        const dialog = page.locator("vistoda-about-dialog dialog");
+        assert.equal(await dialog.isVisible(), true);
+        assert.match(await dialog.locator("h2").textContent(), language === "en" ? /About Vistoda/ : /Informazioni su Vistoda/);
+        assert.equal(await dialog.locator(`a[href="https://ko-fi.com/luigibarretta"]`).getAttribute("rel"), "noopener noreferrer");
+        assert.match(await dialog.locator("#accessibility-link").getAttribute("href"),
+          language === "en" ? /ACCESSIBILITY\.md$/ : /ACCESSIBILITY\.it\.md$/);
+        await check(`about-${language}@${width}`); await checkSemantics(page, `about-${language}@${width}`);
+        if (screenshotDirectory && language === "it") {
+          await page.screenshot({ path: `${screenshotDirectory}/${engine}-about-${width}.png`, fullPage: true });
+        }
+        await page.keyboard.press("Escape");
+        assert.equal(await dialog.isVisible(), false);
+        assert.equal(await about.evaluate((element) => element === element.getRootNode().activeElement), true);
+      }
       if (provider === "ring") {
         const devices = page.locator("vistoda-ring-view .device-card");
         assert.equal(await devices.count(), 2);
@@ -193,7 +227,7 @@ try {
       await page.getByRole("button", { name: language === "en" ? "Refresh devices and status" : "Aggiorna dispositivi e stato", exact: true }).click();
       await page.waitForFunction(() => !document.querySelector("vistoda-panel")._info.error);
       assert.equal(await page.locator("vistoda-panel > main > #content").isVisible(), true);
-      console.log(`PASS ${language} ${provider} ${width}px: width, targets, advanced copy, active tab, recovery`);
+      console.log(`PASS ${engine} ${language} ${provider} ${width}px: width, targets, advanced copy, active tab, recovery`);
     }
   }
   await page.evaluate(async () => {

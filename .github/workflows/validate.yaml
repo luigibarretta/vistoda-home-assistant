@@ -75,6 +75,28 @@ jobs:
       - run: python scripts/check_loc.py
       - run: python -m pytest
       - run: node --test tests/*.mjs
+  browser-engines:
+    name: Browser ${{ matrix.engine }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+      - name: Install pinned browser harness
+        run: npm install --no-save --package-lock=false playwright@1.61.1
+      - name: Install ${{ matrix.engine }} browser
+        run: npx playwright install --with-deps "${{ matrix.engine }}"
+      - name: Exercise responsive and accessible panel flows
+        env:
+          BROWSER_ENGINE: ${{ matrix.engine }}
+          NODE_PATH: ${{ github.workspace }}/node_modules
+        run: node tests/browser/panel-responsive.mjs
   hassfest:
     runs-on: ubuntu-latest
     steps:

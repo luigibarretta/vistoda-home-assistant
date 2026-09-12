@@ -29,14 +29,14 @@ class VistodaBlinkZones extends HTMLElement {
         <button id="reload" aria-label="Rileggi le zone dal cloud Blink" data-copy-aria-label="Rileggi le zone dal cloud Blink"
           title="Rileggi le zone dal cloud Blink" data-copy-title="Rileggi le zone dal cloud Blink"
           data-tooltip="Rilegge dal cloud Blink le zone di questa telecamera" data-copy-data-tooltip="Rilegge dal cloud Blink le zone di questa telecamera">↻</button></header>
-        <div class="tabs" role="tablist"><button id="activity" role="tab"><span data-copy="Zone attività">Zone attività</span></button>
-          <button id="privacy" role="tab"><span data-copy="Zone privacy">Zone privacy</span></button></div>
+        <div class="tabs" role="group" aria-label="Tipi di zone telecamera" data-copy-aria-label="Tipi di zone telecamera"><button id="activity"><span data-copy="Zone attività">Zone attività</span></button>
+          <button id="privacy"><span data-copy="Zone privacy">Zone privacy</span></button></div>
         <div class="mobile-preview" id="mobile-preview" aria-hidden="true"><img id="preview-photo" alt="">
           <div class="preview-grid" id="preview-grid"></div><div id="preview-overlays"></div></div>
         <button class="mobile-open" id="open-editor"><ha-icon icon="mdi:fullscreen"></ha-icon>
           <span data-copy="Modifica zone">Modifica zone</span></button>
         <div class="editor-shell" id="editor-shell">
-          <div class="editor-toolbar"><div><strong data-copy="Editor zone Blink">Editor zone Blink</strong>
+          <div class="editor-toolbar"><div><strong id="editor-title" data-copy="Editor zone Blink">Editor zone Blink</strong>
             <small id="mode-help"></small></div><div class="editor-controls" role="group" data-copy-aria-label="Modalità editor zone">
             <button id="pan" aria-pressed="true"><ha-icon icon="mdi:hand-back-right-outline"></ha-icon><span data-copy="Sposta">Sposta</span></button>
             <button id="paint" aria-pressed="false"><ha-icon icon="mdi:gesture-tap"></ha-icon><span data-copy="Modifica">Modifica</span></button>
@@ -74,6 +74,9 @@ class VistodaBlinkZones extends HTMLElement {
       if (event.key === "Escape" && this.$("editor-shell").classList.contains("mobile-expanded")) {
         event.preventDefault(); this._closeEditor();
       }
+      if (event.key === "Tab" && this.$("editor-shell").classList.contains("mobile-expanded")) {
+        this._trapEditorFocus(event);
+      }
     });
   }
 
@@ -102,7 +105,7 @@ class VistodaBlinkZones extends HTMLElement {
     const ready = Boolean(this._zones); this.$("editor-viewport").hidden = !ready;
     this.$("mobile-preview").hidden = !ready; this.$("open-editor").hidden = !ready;
     for (const tab of ["activity", "privacy"]) { const button = this.$(tab);
-      button.classList.toggle("active", this._tab === tab); button.setAttribute("aria-selected", String(this._tab === tab)); }
+      button.classList.toggle("active", this._tab === tab); button.setAttribute("aria-pressed", String(this._tab === tab)); }
     this.$("privacy").disabled = !this._zones?.privacy_supported;
     this.$("add").hidden = this._tab !== "privacy"; this.$("add").disabled = !ready || this._privacy.length >= 2;
     this.$("reset").disabled = !ready; this.$("save").disabled = !ready || !this._editable() || this._clean();
@@ -181,13 +184,15 @@ class VistodaBlinkZones extends HTMLElement {
   _openEditor() {
     const shell = this.$("editor-shell"); this._mobileMode = "pan";
     shell.classList.add("mobile-expanded"); shell.setAttribute("role", "dialog");
-    shell.setAttribute("aria-modal", "true"); this._setMobileMode("pan"); this.$("pan").focus();
+    shell.setAttribute("aria-modal", "true"); shell.setAttribute("aria-labelledby", "editor-title");
+    this._setSurroundingInert(true); this._setMobileMode("pan"); this.$("pan").focus();
   }
 
   _closeEditor(restoreFocus = true) {
     const shell = this.$?.("editor-shell"); if (!shell) return;
     shell.classList.remove("mobile-expanded", "pan", "paint"); shell.removeAttribute("role");
-    shell.removeAttribute("aria-modal"); this._drag = null;
+    shell.removeAttribute("aria-modal"); shell.removeAttribute("aria-labelledby");
+    this._setSurroundingInert(false); this.$("grid").inert = false; this._drag = null;
     if (restoreFocus) this.$("open-editor").focus();
   }
 
@@ -198,6 +203,24 @@ class VistodaBlinkZones extends HTMLElement {
     this.$("paint").setAttribute("aria-pressed", String(mode === "paint"));
     this.$("mode-help").textContent = copy(this, mode === "pan"
       ? "Trascina per spostarti nella griglia." : "Tocca o trascina per modificare le celle.");
+    this.$("grid").inert = mode === "pan";
+  }
+
+  _setSurroundingInert(inert) {
+    const shell = this.$("editor-shell");
+    for (const element of shell.parentElement.children) {
+      if (element !== shell) element.inert = inert;
+    }
+  }
+
+  _trapEditorFocus(event) {
+    const focusable = [...this.$("editor-shell").querySelectorAll("button:not(:disabled), [tabindex='0']")]
+      .filter((element) => element.checkVisibility() && !element.closest("[inert]"));
+    if (!focusable.length) return;
+    const current = this.shadowRoot.activeElement; const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && current === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && current === last) { event.preventDefault(); first.focus(); }
   }
 
   _reset() { const privacy = this._tab === "privacy";

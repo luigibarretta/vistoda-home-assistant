@@ -1,240 +1,130 @@
 # Vistoda for Home Assistant
 
-Vistoda is the native Home Assistant control plane for private, provider-specific
-Rust media bridges. The name joins *vista* and *custodia*: one guarded view over
-the cameras and intercoms that remain inside the trusted network.
+Vistoda is one private Home Assistant interface for supported Ring Intercom,
+Blink and EZVIZ devices. It combines device selection, live media, snapshots,
+controls and local archives without exposing provider services or credentials to
+the browser.
 
-- Vistoda Blink connector: connects the standalone Rust Blink app and exposes
-  its camera, control and media surface as native Home Assistant entities;
-- Vistoda EZVIZ connector: manually refreshed cached snapshot and shared MPEG-TS live camera;
-- Vistoda Ring connector: secure password/SMS enrollment, one listen-first
-  full-duplex session, private local call recording and a native
-  facade with native or delegated controls, battery, sensors and events;
-- Vistoda Apple companion: a separate development/release track, excluded from
-  this Home Assistant release and its readiness claims.
+The name joins *vista* and *custodia*: one guarded view of cameras and entrances
+inside the trusted Home Assistant network.
 
-## Capability and support matrix
+Vistoda is an independent project and is not affiliated with or endorsed by the
+device vendors it interoperates with. See the [full disclaimer](DISCLAIMER.md).
 
-| Provider | Included functionality | Support boundary |
+## What this repository owns
+
+This repository provides the unified Vistoda panel and the Home Assistant
+integration for Ring and EZVIZ. Blink also uses the small adapter from
+[`vistoda-blink`](https://github.com/luigibarretta/vistoda-blink). Provider
+sessions and protocols stay in separate Rust apps:
+
+- [`vistoda-ring`](https://github.com/luigibarretta/vistoda-ring);
+- [`vistoda-blink`](https://github.com/luigibarretta/vistoda-blink);
+- [`vistoda-ezviz`](https://github.com/luigibarretta/vistoda-ezviz);
+- [`vistoda-addons`](https://github.com/luigibarretta/vistoda-addons), the
+  Home Assistant app catalog and canonical installation guide.
+
+The internal Home Assistant domain remains `media_bridge` to preserve existing
+config entries, entities and automations. Vistoda is the product name shown to
+users.
+
+## Supported scope
+
+| Provider | Released functions | Boundary |
 | --- | --- | --- |
-| Ring | Explicit intercom selection, scoped controls/history, audio and local recordings | Experimental consumer-API integration; vendor changes can interrupt service. No automatic retry of an ambiguous door command. |
-| Blink | Walnut/IMMI live, snapshots, clips and supported settings/storage | Full-duplex/Cayuga microphone operation is not proven or enabled for release. Model-specific controls remain capability-gated. |
-| EZVIZ | Cached snapshots, live/local recordings and limited encrypted RTP/NAL compatibility | Encryption compatibility covers implemented stream patterns, not every model. Talk and camera microSD access remain unavailable until a usable Open Platform path exists. |
-| Apple | Separate iPhone/watchOS project | Not included in this release; no App Store/TestFlight readiness claim. |
+| Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings | Experimental consumer APIs; Ring does not support this third-party use. Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
+| Blink | Multiple cameras, stored/manual snapshots, Walnut live, supported settings and zones, cloud/USB/local archives and NFS backup | Cayuga/WebRTC microphone and full-duplex talk are disabled by current provider policy. Settings vary by model. |
+| EZVIZ | Multiple cameras, stored/manual snapshots, compatible live streams, local recordings and NFS backup | Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
+| Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
-These are compatibility integrations, not vendor-supported replacements for
-every function of the official apps. Keep the vendor app available for account
-recovery and unsupported device administration.
+Vistoda is not a complete replacement for every vendor app. Keep the official
+apps for account recovery and unsupported administration. Controls that a
+provider or model cannot verify are hidden or disabled.
 
-The declared Home Assistant minimum is **2026.8.0**. CI also exercises
-**2026.9.1** with real Home Assistant imports, config entries, coordinators,
-registries and config flows on Python 3.14. Provider network responses and
-platform dispatch are isolated test boundaries; these tests do not actuate devices.
-Tag releases require the same commit's complete validation, including both HA
-versions, before publication. A local test pass does not substitute for that gate.
+Home Assistant 2026.8.0 or newer is required. CI also tests 2026.9.1 with real
+Home Assistant imports, config entries, coordinators, registries and config
+flows on Python 3.14.
 
-## Security boundary
-
-Home Assistant stores only the private bridge URL, its independent high-entropy
-API token and a device alias. Ring password and SMS code pass once from the HA
-backend to the bridge and are never saved in the config entry. The bridge owns
-its rotating vendor session.
-
-Vistoda reuses the bridge's single rotating Ring session for native battery,
-last activity, volume and one-shot door controls. Delegation to the official
-`ring` integration requires an explicit, unambiguous binding to the selected
-physical intercom. Native mode remains available without it. Ding and unlock events use
-the official event source during the push-event migration. Door opening is
-never retried automatically.
-
-Keep bridge listeners private and firewall them to Home Assistant and approved
-backend consumers. Do not add a public Traefik route.
-
-The single **Vistoda** sidebar entry opens `/vistoda`, a unified health and
-device overview. Focused views use `/vistoda/ring`, `/vistoda/blink` and
-`/vistoda/ezviz`, so Home Assistant keeps the parent sidebar item selected.
-Legacy `/vistoda-ring`, `/vistoda-blink` and `/vistoda-ezviz` links remain
-registered and are rewritten to their canonical nested route. Panel assets use
-a release-versioned path, so the complete JavaScript module graph updates
-coherently without requiring a browser cache reset.
-The browser inventory is authenticated, bounded and contains no bridge URL or
-workload token.
-
-The Ring view proxies signaling through Home Assistant's authenticated
-WebSocket. **Avvia comunicazione** sends locally generated silence and never
-opens a microphone. **Attiva microfono** requests permission only after its
-button is pressed. Disabling it replaces the captured track with silence and
-releases the microphone without ending inbound audio. The same page shows
-battery and lets the user switch portone and volume controls between the native
-Rust bridge and the official Ring integration. Opening requires an explicit
-confirmation. The primary call action is contextual: it becomes **Termina**
-only while a session exists, and the microphone control appears only then.
-
-During an active panel call, **Registra questa chiamata** captures the remote
-audio and includes the microphone only while it is enabled. The browser sends
-the bounded WebM/MP4 through Home Assistant's authenticated WebSocket proxy;
-it never receives a bridge token. **Registra automaticamente** is persisted
-globally in the config entry and applies to every Vistoda browser. The archive
-retains 30 days and at most 512 MiB; Ring Call Recording is not required. Its
-paginated archive defaults to cards on mobile and to table rows on wider
-screens; the user's explicit choice is kept in that browser. Both views expose
-date, duration, size and confirmed deletion actions. A recording can belong to
-multiple custom lists, which are stored centrally by Home Assistant and shared
-across authenticated clients. A dedicated manager creates, renames and deletes
-lists; deleting a list never deletes its underlying media. Each item can load its bounded media through
-the authenticated Home Assistant WebSocket, play it with native browser
-controls and seek backward or forward by ten seconds. The browser receives no
-bridge URL or bearer and revokes the local media URL when playback changes or
-the panel closes.
-
-The archive header reports the effective storage directory. An Info action on
-every row reveals and copies the exact file path without widening the mobile
-table. Managed-app users choose private, app-config, media or share storage in
-the Vistoda Ring app configuration; private remains the upgrade-safe default.
-
-Incoming-call notifications carry a unique call ID. Vistoda acknowledges that
-ID only after the corresponding Ring audio session is active, allowing Home
-Assistant to dismiss the tagged alert on every household Companion when the
-first client answers.
-
-Core 2026.8.3 ships an affected Ring FCM dependency. Vistoda applies a bounded,
-temporary startup guard for the public upstream padding/header-parser defects,
-without logging push contents or modifying Home Assistant site packages.
-
-The **Vistoda · RING** device owns the enhanced entity facade, **Audio Vistoda**,
-a recording inventory sensor and a link to the provider-specific panel. When
-several Ring config entries exist, the panel shows an intercom selector, keeps
-the browser's last choice and honors an exact `entry` deep-link parameter. All
-sessions, controls, recordings, lists and door actions remain scoped to that
-config entry; `media_bridge.open_ring_door` requires `entry_id` only when the
-choice would otherwise be ambiguous. The
-official Ring device remains an optional rollback/event source. Vistoda adds
-answering, full-duplex audio, battery, native controls and private recordings.
-Microphone capture requires a browser gesture and cannot be modeled as a
-background Home Assistant button safely.
-
-With multiple intercoms, Ring shows explicit named device cards, so every unlock
-and history action stays tied to the chosen entrance. The selected card owns its
-display identity: device name, Location and city come from Ring, HA or a custom
-value. Event history is intentionally read-only and uses that effective
-identity for its rows and household unlock notifications.
-
-The Blink view groups cameras into one navigable gallery and exposes arming,
-motion, cached snapshots and native live opening. Snapshot
-refresh is explicit so merely opening the panel does not wake battery cameras.
-Every image shows its provider capture time; horizontal swipes and arrow
-controls wrap continuously through the gallery, with round page indicators and
-full-size touch targets. A model-aware detail view reads redacted settings from
-the Blink provider. Administrators can change only typed, recognized fields;
-each update carries a revision, is read back, and is restored when verification
-fails. Verified v1 cameras also expose a touch editor for the native 20×15
-activity grid and up to two privacy rectangles; Owl/Mini v2 zones remain hidden
-when the provider rejects their schema. The Mini speaker control uses the
-official integer scale 1–8. Unknown and unproven features stay hidden. Camera
-settings follow the official app's five task-oriented sections, with one
-accordion open at a time. On mobile, the header back button exits Vistoda to the
-previous Home Assistant page, with the Casa dashboard as a safe fallback.
-Blink and EZVIZ use stable-identity page views with round indicators, infinite
-swipe and previous/next controls; inventory reorder does not change selection.
-EZVIZ refreshes the protected HA camera snapshot only after the explicit action.
-Landing reads the private cache without a request and preserves its capture timestamp.
-
-Blink and EZVIZ each have a standalone Vistoda live archive. A user selects 15,
-30 or 60 seconds from the current shared stream; the provider writes a bounded
-file and immutable SHA-256 manifest without generating a cloud motion event.
-The per-camera UI consumes server-side ten-item pages and lists status,
-timestamp, duration and size. Compact Material Design icon actions provide
-playback, signed download, confirmed single or selected deletion and NFS backup.
-The actual private add-on spool path is visible and copyable, always qualified
-with the owning add-on because the same `/data/recordings` absolute path names
-two isolated Supervisor-managed data namespaces. Blink and EZVIZ
-recordings can belong to multiple centrally stored custom lists; users can
-create, rename and delete lists without deleting media. Selecting several local
-Blink/EZVIZ recordings—or several Blink USB clips—opens one multi-list picker;
-the server adds every requested association atomically and preserves existing
-memberships. EZVIZ remains
-independent from SceneTrove: neither archive deletes or adopts the other's media.
-
-Production mounts `/media/vistoda_archives` through the Home Assistant
-Supervisor network-storage API. Vistoda refuses backup unless the path is an
-actual NFS filesystem, at least 512 MiB remain, the file is at most 256 MiB and
-its received byte count and SHA-256 match the provider manifest. Publication is
-atomic and includes a JSON sidecar. The NAS child dataset has its own 20 GiB
-hard quota, compression and an export restricted to iot-01; Vistoda never falls
-back to the HAOS disk.
-
-Blink Sync Module USB contents remain vendor-owned but are available through a
-server-paginated inventory with signed playback/download and checksum-verified
-NFS copy for one clip or the complete archive. The panel reports only the
-provider-derived percentage of available space. Administrators may select and
-delete one or more exact clips after confirmation. Compatible supports expose
-formatting behind a destructive warning and an exact typed target phrase;
-mount and eject remain absent. The current EZVIZ CP4 microSD contract remains
-unavailable to the HAOS bridge. Blink WebRTC 4.1 signaling and
-camera capability discovery are independently implemented, but media/session
-negotiation is still gated; EZVIZ currently proves downstream H.264/AAC only.
-Full-duplex buttons will appear only after real uplink and recovery canaries pass.
-
-Native Apple clients use `/api/media_bridge/ring/audio/{entry_id}` with a Home
-Assistant OAuth access token. HA resolves the private config entry and adds the
-bridge bearer only server-side. The iPhone completes authorization-code login;
-the Watch receives scoped connection state through WatchConnectivity, starts
-muted and can listen and speak simultaneously. The existing HA actionable
-notification remains the first delivery path until signed PushKit/APNs is
-validated on physical Apple hardware.
-
-## Installation
+## Install on Home Assistant OS
 
 [![Install Vistoda through HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=luigibarretta&repository=vistoda-home-assistant&category=integration)
+[![Add the Vistoda app repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fluigibarretta%2Fvistoda-addons)
 
-1. Install this repository as **Vistoda** through HACS.
-2. Add the shared `vistoda-addons` repository to the Home Assistant app store.
-3. Install and start the apps you need: **Vistoda Ring**, **Vistoda Blink**
-   and/or **Vistoda EZVIZ**.
-4. Complete the automatically discovered integration under Settings → Devices
-   & services.
+1. Install **Vistoda** through HACS. Blink users also install **Vistoda Blink**.
+2. Restart Home Assistant once.
+3. Add the Vistoda Apps repository and install only the provider apps you use.
+4. Complete each discovered flow under **Settings → Devices & services**.
 
-For upgrades to this release, update the Vistoda EZVIZ app to 0.7.0 before
-Vistoda 0.26.0. The integration pins every EZVIZ alias to its serial/channel and
-rechecks that binding before live media, snapshots, recordings, playback and
-backup. Cached Home Assistant stream URLs carry only an opaque binding hash and
-are rejected after alias retarget. With an older app, Home Assistant Repairs
-explains the required order while the camera stays safely unavailable.
+The normal managed setup does not ask for a bridge URL, port or workload token.
+Provider credentials and MFA values are sent only to the private provider app
+during enrollment. EZVIZ additionally needs each camera serial in its app
+options before startup.
 
-The managed setup never asks for a bridge URL, port or workload token. Ring asks
-for the account credentials and, when needed, the newest SMS code. EZVIZ asks
-for account credentials and MFA; its app options contain only the camera serial
-and a stable alias. Passwords and MFA codes are passed once to the private app
-and are not persisted in the Home Assistant config entry.
-For Ring, leave the app's `intercoms` list empty and select the discovered
-intercom by name/location after login. Stable `intercom-<id>` aliases require no
-manual numeric-ID copying; remaining entrances are offered as follow-up setup.
+Follow the complete [English setup guide](https://github.com/luigibarretta/vistoda-addons/blob/main/GETTING_STARTED.md)
+or [guida italiana](https://github.com/luigibarretta/vistoda-addons/blob/main/GETTING_STARTED.it.md).
+The exact tested versions are listed in the
+[compatibility matrix](https://github.com/luigibarretta/vistoda-addons/blob/main/COMPATIBILITY.md).
 
-Home Assistant Container/Core and SceneTrove deployments can keep the advanced
-standalone path: run the provider image externally, then select manual backend
-configuration and enter its private URL, workload token and alias.
+## What to expect
 
-The homelab production deployment remains SHA-pinned through
-`deploy-ha-media-bridge.yml`. When a managed app announces the same provider
-and alias as an existing external bridge, Vistoda adopts it in place: the
-config-entry ID and entity identities stay stable while the private endpoint,
-credential and unique ID move to the Supervisor app.
+The single **Vistoda** sidebar item opens `/vistoda`. Provider views use
+`/vistoda/ring`, `/vistoda/blink` and `/vistoda/ezviz`, so the parent sidebar
+entry stays selected. Old top-level provider URLs are redirected to these
+canonical routes.
 
-The internal Home Assistant domain remains `media_bridge`. This deliberately
-stable identifier preserves existing config entries, entities and automations;
-Vistoda is the user-facing product identity.
+Ring presents every enrolled intercom as an explicitly selected device. History,
+identity, controls, notifications, audio and recordings remain tied to that
+physical entrance. Opening is never retried automatically.
 
-The provider repositories are `vistoda-blink`, `vistoda-ezviz` and
-`vistoda-ring`. Their legacy executable, protocol and Home Assistant domain
-names remain compatibility identifiers and are not separate products.
+Blink and EZVIZ present multiple cameras in stable, circular page views. Opening
+a page uses the latest stored snapshot; a new capture happens only after an
+explicit action. Provider settings and actions reflect reported capabilities.
 
-Remote bridges announce `_vistoda._tcp.local.` with provider and alias metadata.
-Discovery pre-fills their private endpoint but never broadcasts the API token.
-The loaded Blink Live Bridge initiates equivalent local-adapter discovery.
+Ring, Blink and EZVIZ use separate app-owned archives. The same displayed
+`/data/recordings` path in two apps does not mean the same directory: each Home
+Assistant app has an isolated data volume. Vistoda shows the owning provider and
+effective path. Supported archives are paginated server-side and allow playback,
+download, confirmed deletion, list membership and verified network backup.
+
+For NFS or SMB backup, add the storage in **Settings → System → Storage** with
+usage **Media**, then select its storage name in the Vistoda integration options.
+Vistoda requires a real writable network mount with at least 512 MiB free and
+never falls back silently to the Home Assistant disk. See the
+[network-backup guide](docs/reconnect-and-network-backup.md).
+
+## Security model
+
+Provider apps keep credentials, rotating sessions and workload tokens in their
+private persistent storage. The browser authenticates to Home Assistant and
+never receives a provider token or private bridge URL. Provider ports have no
+host mapping by default and must not be published through a public reverse
+proxy.
+
+The Vistoda panel confirms door actions, media deletion and storage formatting.
+Authorized Home Assistant buttons or automations can call door actions without
+that panel modal. Requests remain device-scoped and fail when identity or
+capability is ambiguous. See [SECURITY.md](SECURITY.md) and the
+[architecture decisions](docs/adr/README.md).
+
+## Advanced deployments
+
+Home Assistant Container/Core and SceneTrove users may run provider containers
+on a private network and configure their URL, workload token and alias manually.
+This path assumes the operator owns container security, persistent storage,
+updates and firewall policy; it is not the default onboarding route.
+
+Remote bridges may announce `_vistoda._tcp.local.` with provider and alias
+metadata. Discovery never broadcasts an API token.
 
 ## Development
 
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for the repository map, toolchains,
+validation commands and cross-repository release order.
+
+The local checks for this repository are:
+
 ```bash
+python -m pip install -e '.[dev]'
 python -m ruff format --check .
 python -m ruff check .
 python -m pytest
@@ -242,9 +132,26 @@ python scripts/check_loc.py
 node --test tests/*.mjs
 ```
 
-Every maintained Python, JSON, Markdown, TOML and YAML file is limited to 250
-physical lines. Tests reject generated caches and secret-shaped fixtures.
+Tests use synthetic provider boundaries and do not actuate devices. Tag releases
+require the same commit's complete CI validation; a local pass is not a release
+gate.
 
-Architectural decisions are indexed in [`docs/adr/`](docs/adr/README.md).
+## Further documentation
+
+- [Reconnect accounts and configure network backups](docs/reconnect-and-network-backup.md)
+  ([Italiano](docs/reconnect-and-network-backup.it.md));
+- [Frontend release hardening](docs/frontend-release-hardening.md)
+  ([Italiano](docs/frontend-release-hardening.it.md));
+- [Accessibility statement](ACCESSIBILITY.md)
+  ([Italiano](ACCESSIBILITY.it.md));
+- [Independent-project disclaimer](DISCLAIMER.md)
+  ([Italiano](DISCLAIMER.it.md));
+- [Architecture decisions](docs/adr/README.md);
+- [Archived mobile QA evidence](design-qa.md).
+
+## Author and support
+
+Created and maintained by [Luigi Barretta](https://github.com/luigibarretta).
+If Vistoda is useful to you, you can [support its development on Ko-fi](https://ko-fi.com/luigibarretta).
 
 Licensed under the MIT License.

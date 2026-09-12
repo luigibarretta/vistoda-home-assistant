@@ -108,13 +108,16 @@ export async function checkAdvancedPanel(page, provider, language, check) {
       }
     }
     await checkAuthoredCopy(page, language); await check(`zones-${language}`);
-    assert.equal(await zones.locator("#grid").evaluate(grid => grid.scrollWidth === grid.clientWidth && grid.scrollHeight === grid.clientHeight), true,
-      "all zone cells must fit the image coordinate grid, not overflow and get clipped");
+    const gridSize = await zones.locator("#grid").evaluate((grid) => ({ scrollWidth: grid.scrollWidth,
+      clientWidth: grid.clientWidth, scrollHeight: grid.scrollHeight, clientHeight: grid.clientHeight }));
+    assert.deepEqual([gridSize.scrollWidth, gridSize.scrollHeight], [gridSize.clientWidth, gridSize.clientHeight],
+      `all zone cells must fit the image coordinate grid: ${JSON.stringify(gridSize)}`);
     await zones.locator(".cell").first().focus(); await page.keyboard.press("Space");
     assert.equal(await zones.locator(".cell").first().getAttribute("aria-pressed"), "false");
     if (mobile) {
       await zones.locator("#close-editor").click();
       assert.equal(await zones.locator("#editor-shell").isVisible(), false);
+      assert.equal(await zones.locator("#grid").evaluate((element) => element.inert), false);
       assert.equal(await zones.locator("#open-editor").evaluate((element) => element === element.getRootNode().activeElement), true);
     }
     await page.locator("vistoda-blink-view #details-back").click();

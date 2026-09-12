@@ -157,8 +157,11 @@ def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:
     assert "aspect-ratio:16/9" in styles
     assert 'id="mobile-preview"' in zones and 'id="open-editor"' in zones
     assert 'id="pan"' in zones and 'id="paint"' in zones
-    assert "mobile-expanded .editor" in styles and "width:880px" in styles
+    assert "width:1174px; height:660px" in styles
+    assert "mobile-expanded .editor" in styles
     assert "mobile-expanded.pan .editor" in styles
+    assert 'aria-labelledby", "editor-title"' in zones
+    assert "_trapEditorFocus" in zones and "_setSurroundingInert" in zones
     assert "vistoda-blink-zones" in template
     assert 'id="details-page"' in template
     assert "Dettagli e impostazioni" in template

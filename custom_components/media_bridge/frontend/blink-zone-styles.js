@@ -12,7 +12,7 @@ export const BLINK_ZONE_STYLES = `
   .mobile-preview, .mobile-open, .editor-toolbar, .mobile-help { display:none; }
   .editor-shell { display:block; }
   .editor-viewport { max-width:100%; max-height:65vh; overflow:auto; overscroll-behavior:contain; }
-  .editor { position:relative; overflow:hidden; aspect-ratio:16/9; min-width:1174px; min-height:660px;
+  .editor { position:relative; overflow:hidden; width:1174px; height:660px; min-width:1174px; min-height:660px;
     border-radius:15px; background:#111; touch-action:none; user-select:none; }
   .editor img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; color:transparent; }
   .editor img.failed { visibility:hidden; }
@@ -25,8 +25,8 @@ export const BLINK_ZONE_STYLES = `
   .cell:focus-visible { z-index:2; outline:2px solid #fff; }
   .privacy-overlay { position:absolute; border:2px solid #00c781; background:rgba(0,0,0,.48);
     pointer-events:none; }
-  .privacy-overlay button { position:absolute; top:3px; right:3px; width:32px; height:32px;
-    min-width:32px; min-height:32px; padding:0; border-radius:50%; pointer-events:auto; }
+  .privacy-overlay button { position:absolute; top:3px; right:3px; width:44px; height:44px;
+    min-width:44px; min-height:44px; padding:0; border-radius:50%; pointer-events:auto; }
   .privacy-overlay.preview { border-style:dashed; }
   .legend { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; }
   .swatch { width:14px; height:14px; border-radius:4px; background:rgba(77,199,103,.45); }
@@ -67,8 +67,7 @@ export const BLINK_ZONE_STYLES = `
     .close-editor { padding:8px; }
     .mobile-expanded .editor-viewport { flex:1 1 auto; max-width:none; max-height:none; overflow:auto;
       border:1px solid var(--divider-color); border-radius:12px; }
-    .mobile-expanded .editor { width:880px; height:660px; min-width:880px; min-height:660px;
-      aspect-ratio:auto; border-radius:0; }
+    .mobile-expanded .editor { border-radius:0; }
     .mobile-expanded.pan .editor { touch-action:pan-x pan-y; }
     .mobile-expanded.pan .grid, .mobile-expanded.pan #overlays { pointer-events:none; }
     .zone-actions > * { flex:1 1 calc(50% - 9px); }

@@ -82,7 +82,7 @@ export class RingHistory extends HTMLElement {
           data-i18n-aria-label="historyRefresh" data-i18n-title="historyRefresh">
           <ha-icon icon="mdi:refresh"></ha-icon></button></header>
         <div class="location" id="location"><span data-copy="Location Ring">Location Ring</span></div>
-        <div class="filters" aria-label="Filtri cronologia" data-i18n-aria-label="historyFilters">
+        <div class="filters" role="group" aria-label="Filtri cronologia" data-i18n-aria-label="historyFilters">
           <span class="pill active"><ha-icon icon="mdi:lock-outline"></ha-icon>
             <span data-i18n="entrances">Accessi e citofoni</span></span><span class="pill"><ha-icon icon="mdi:door"></ha-icon>
             <span id="device-filter">Ring Intercom</span></span>

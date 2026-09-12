@@ -1,12 +1,15 @@
-# Vistoda mobile design QA
+# Archived Vistoda mobile design QA
 
-final result: passed
+Result at capture: passed.
 
-- Date: 2026-09-10
-- Current implementation: deployed Vistoda Home Assistant `0.24.5`.
-- Blink evidence browser: Google Chrome, mobile viewport `390 × 794` CSS pixels.
-- Deployed capture:
-  `/home/ansible/audits/vistoda-0.22.1/blink-mobile.png` (`390 × 2720`).
+This is historical evidence from 2026-09-10, not the current release status.
+It covers Vistoda Home Assistant `0.24.5`, Vistoda Ring `0.12.0` and an earlier
+Blink browser transport. Current release gates are documented in
+[`docs/frontend-release-hardening.md`](docs/frontend-release-hardening.md).
+
+The Blink capture used Google Chrome at a `390 × 794` CSS-pixel viewport. Visual
+artifacts were retained in the private QA archive and are not distributed in
+this source repository.
 
 ## Navigation and camera gallery
 
@@ -35,7 +38,7 @@ three requested video-quality descriptions are present. The activity/privacy
 zone editor preserves the native `20 × 15` model at a measured `1.7777` aspect
 ratio.
 
-The `0.22.1` browser transport waits for ICE gathering and embeds the gathered
+The `0.22.1` browser transport captured here waited for ICE gathering and embedded the gathered
 candidates in the Blink offer before subscribing. Its canary records only a
 sanitized structural summary (media sections, directions, codecs and candidate
 types), never SDP addresses, ICE credentials or device identifiers.
@@ -54,13 +57,11 @@ add-on namespace, and the cards/table selector communicates its active state.
 
 ## Ring event history
 
-- Implementation: deployed Vistoda Home Assistant `0.24.5` and Vistoda Ring
+- Captured implementation: Vistoda Home Assistant `0.24.5` and Vistoda Ring
   app `0.12.0`, served by Home Assistant from `/vistoda_static/0.24.5`.
 - Browser: Google Chrome, `393 × 800` CSS pixels at device scale `1.6`, producing
   the same `629 × 1280` raster dimensions as the supplied Ring reference.
-- Reference: `artifacts/qa/ring-reference.jpg`.
-- Deployed capture: `artifacts/qa/ring-history-mobile.png`.
-- Side-by-side comparison: `artifacts/qa/ring-history-comparison.png`.
+- Reference and comparison images were retained in the private QA archive.
 
 The deployed capture uses real Ring history and Home Assistant's real Material
 Design icon component. It preserves the supplied hierarchy: compact header,
