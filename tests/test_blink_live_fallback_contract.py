@@ -26,6 +26,6 @@ def test_blink_official_policy_selects_walnut_before_signaling() -> None:
 
 def test_blink_legacy_player_uses_home_assistant_without_vendor_secrets() -> None:
     source = (FRONTEND / "blink-legacy-live-session.js").read_text(encoding="utf-8")
-    assert "loadCardHelpers" in source
+    assert "loadHaCardHelpers" in source
     assert 'camera_view: "live"' in source
     assert "api_token" not in source

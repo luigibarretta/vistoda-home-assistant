@@ -13,6 +13,15 @@ pannello legge soltanto immagini già salvate, senza risvegliare dispositivi.
 
 ## Italiano e inglese
 
+Il live compatibile Blink deve funzionare anche entrando direttamente in
+`/vistoda/blink`, senza aver prima visitato Lovelace. `ha-card-helpers.js` carica
+il modulo tramite il loader della rotta registrata da Home Assistant quando
+manca l'helper globale. Non cambia URL, non monta altre dashboard, non indovina
+hash degli asset e non richiede media durante il caricamento. Chiudere il live
+in attesa impedisce di creare successivamente la card della telecamera.
+`tests/browser/ha-card-helpers.mjs` verifica il percorso DOM sui tre browser
+con loader sintetico; la prova su HA e media reali resta distinta.
+
 `panel-localize.js` copre navigazione, panoramica e cronologia.
 `panel-copy.js` e i cataloghi common/Ring/Blink/storage coprono impostazioni,
 archivi, liste, audio, registrazione, messaggi, conferme, dialoghi, tooltip e

@@ -96,7 +96,9 @@ jobs:
         env:
           BROWSER_ENGINE: ${{ matrix.engine }}
           NODE_PATH: ${{ github.workspace }}/node_modules
-        run: node tests/browser/panel-responsive.mjs
+        run: |
+          node tests/browser/panel-responsive.mjs
+          node tests/browser/ha-card-helpers.mjs
   hassfest:
     runs-on: ubuntu-latest
     steps:

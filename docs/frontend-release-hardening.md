@@ -46,6 +46,15 @@ explicit, confirmed operation. Privacy and read-only cells cannot be toggled.
 
 ## Automated verification
 
+Blink compatible live must also work on a cold direct `/vistoda/blink` entry,
+before any Lovelace dashboard has been visited. `ha-card-helpers.js` loads the
+Lovelace module through Home Assistant's registered route loader when the
+global card helper is absent. It does not change the URL, mount another
+dashboard, guess asset hashes or request camera media during bootstrap.
+Closing live during loading prevents subsequent card creation.
+`tests/browser/ha-card-helpers.mjs` exercises this DOM path in all three browser
+engines with a synthetic loader; actual HA/media verification remains separate.
+
 ```sh
 node --test tests/*.mjs
 NODE_PATH=/path/to/node_modules node tests/browser/panel-responsive.mjs
