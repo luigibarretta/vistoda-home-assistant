@@ -1,4 +1,5 @@
 export const BLINK_COPY = {
+  "Salvataggio non completato: ripristino tentato. Verifica i valori riletti prima di riprovare.": "Save incomplete: restoration attempted. Check the reloaded values before retrying.",
   "Nessuna soglia salvata su Blink: inserisci entrambe le soglie e salva per configurarle.": "No threshold saved on Blink: enter both thresholds and save to configure them.",
   "Inserisci entrambe le soglie prima di attivare gli avvisi temperatura.": "Enter both thresholds before enabling temperature alerts.",
   "Salva la prima configurazione temperatura separatamente dalle altre impostazioni.": "Save the initial temperature configuration separately from other settings.",

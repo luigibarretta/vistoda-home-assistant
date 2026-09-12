@@ -61,7 +61,7 @@ export const blinkSettingsIo = {
       if (generation !== this._generation || alias !== this._camera?.alias) return;
       this.$("status").textContent = error.rollbackFailed
         ? copy(this, "Salvataggio fallito: rileggi lo stato prima di riprovare.")
-        : copy(this, "Salvataggio fallito: le modifiche già inviate sono state ripristinate.");
+        : copy(this, "Salvataggio non completato: ripristino tentato. Verifica i valori riletti prima di riprovare.");
     } finally { this._saving = false; this.$("save").disabled = false; }
   },
 };
