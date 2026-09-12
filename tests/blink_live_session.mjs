@@ -19,6 +19,7 @@ function harness() {
   const session = new BlinkLiveSession({}, {}, {}, (state) => states.push(state), {
     webRtc: (handler) => { emit = handler; return webRtc; },
     legacy: () => legacy,
+    walnut: () => ({ start: async () => {}, stop: async () => {} }),
   });
   return { legacy, order, session, states, webRtc, emit: (value) => emit(value) };
 }

@@ -1,3 +1,4 @@
+import { PAGE_SIZE_TEMPLATE } from "./archive-page-size.js";
 export const providerRecordingsTemplate = (styles, listTemplate, bulkListTemplate) => `<style>${styles}</style>
   <section><div class="head"><div><h4><span data-copy="Registrazione live locale">Registrazione live locale</span></h4>
     <div class="muted"><span data-copy="Cattura il flusso che stai visualizzando, senza creare eventi cloud.">Cattura il flusso che stai visualizzando, senza creare eventi cloud.</span></div>
@@ -20,7 +21,7 @@ export const providerRecordingsTemplate = (styles, listTemplate, bulkListTemplat
       data-tooltip="Copia il percorso interno dell’archivio" data-copy-data-tooltip="Copia il percorso interno dell’archivio"><ha-icon icon="mdi:content-copy"></ha-icon></button></div>
     <div class="message muted" id="message" role="status"></div>
     <vistoda-provider-recording-player id="player"></vistoda-provider-recording-player>
-    <details open><summary id="summary"><span data-copy="Archivio locale">Archivio locale</span></summary>${listTemplate}${bulkListTemplate}
+    <details open><summary id="summary"><span data-copy="Archivio locale">Archivio locale</span></summary>${PAGE_SIZE_TEMPLATE}${listTemplate}${bulkListTemplate}
     <div class="bulk-actions" id="bulk-actions" hidden><strong id="selected-count"><span data-copy="0 selezionate">0 selezionate</span></strong>
       <div class="bulk-buttons">
       <button class="icon-action" id="add-selected-to-lists" aria-label="Aggiungi selezionate alle liste" data-copy-aria-label="Aggiungi selezionate alle liste"

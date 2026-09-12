@@ -56,6 +56,11 @@ export class BlinkLiveSession {
 
   toggleSpeaker() { return (this.walnut || this.webRtc)?.toggleSpeaker(); }
   toggleMicrophone() { return (this.walnut || this.webRtc)?.toggleMicrophone(); }
+  setMicrophone(enabled) {
+    if (this.walnut) return this.walnut.setMicrophone(enabled);
+    if (this.webRtc && !enabled) return this.webRtc._disableMicrophone(true);
+    if (this.webRtc && Boolean(this.webRtc.microphone) !== enabled) return this.webRtc.toggleMicrophone();
+  }
 
   stop(notify = true) {
     if (this.stopping) return this.stopping;

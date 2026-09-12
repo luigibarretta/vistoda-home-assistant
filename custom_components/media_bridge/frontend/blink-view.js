@@ -3,7 +3,9 @@ import "./blink-settings.js";
 import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
+import "./system-arm-control.js";
 import { blinkViewLive } from "./blink-view-live.js";
+import { BlinkLiveControls } from "./blink-live-controls.js";
 import { blinkViewNavigation } from "./blink-view-navigation.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import { localize, localizeElements } from "./panel-localize.js";
@@ -45,15 +47,13 @@ class VistodaBlinkView extends HTMLElement {
     this.$("live").addEventListener("click", () => this._toggleLive());
     this.$("fullscreen").addEventListener("click", () => this._toggleFullscreen());
     this.$("speaker").addEventListener("click", () => this._liveSession?.toggleSpeaker());
-    this.$("microphone").addEventListener("click", () => this._liveSession?.toggleMicrophone());
+    this._liveControls = new BlinkLiveControls(this);
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("details").addEventListener("click", () => {
       this._liveSession?.stop(); this._detailOpen = true; this._render();
     });
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
-    this.$("arm").addEventListener("click", () => this._setAlarm(true));
-    this.$("disarm").addEventListener("click", () => this._setAlarm(false));
     this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
     this.$("stage").addEventListener("pointerup", (event) => this._finishSwipe(event));
     this.$("stage").addEventListener("pointercancel", () => { this._swipeStart = null; });
@@ -146,6 +146,7 @@ class VistodaBlinkView extends HTMLElement {
     const motionEnabled = motionState?.state === "on";
     setText(this.shadowRoot, "motion-label", motionEnabled
       ? copy(this, "Disattiva movimento") : copy(this, "Attiva movimento"));
+    this.$("motion").title = this.$("motion-label").textContent;
     this.$("motion-icon").setAttribute("icon", motionEnabled
       ? "mdi:motion-sensor-off" : "mdi:motion-sensor");
     this.$("motion").disabled = !motionState || motionState.state === "unavailable";
@@ -185,16 +186,6 @@ class VistodaBlinkView extends HTMLElement {
     const turnOn = entityState(this._hass, motion)?.state !== "on";
     await this._action("motion", () => this._hass.callService("switch", turnOn
       ? "turn_on" : "turn_off", { entity_id: motion.entity_id }), copy(this, "Movimento aggiornato"));
-  }
-
-  async _setAlarm(armed) {
-    const device = this._alarmDevice();
-    const alarm = firstEntity(device, "alarm_control_panel");
-    if (!alarm) return;
-    await this._action(armed ? "arm" : "disarm", () => this._hass.callService(
-      "alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm",
-      { entity_id: alarm.entity_id },
-    ), armed ? copy(this, "Sistema armato") : copy(this, "Sistema disarmato"));
   }
 
   async _action(button, operation, success) {

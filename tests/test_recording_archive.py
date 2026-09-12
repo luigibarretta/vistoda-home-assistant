@@ -110,10 +110,10 @@ def test_ring_archive_and_controls_expose_compact_contextual_ux() -> None:
     assert "Caricamento snapshot" in ezviz and "mdi:loading" in ezviz
     assert ".loader[hidden] { display:none !important; }" in ezviz
     blink_template = (frontend / "blink-view-template.js").read_text()
-    assert (
-        'data-i18n="arm">Arma</span>' in blink_template
-        and "mdi:shield-lock-outline" in blink_template
-    )
+    system_control = (frontend / "system-arm-control.js").read_text()
+    assert "vistoda-system-arm-control" in blink_template
+    assert "mdi:shield-lock-outline" in system_control
+    assert "state?.state === this.pending.expected" in system_control
     assert "motion-icon" in blink_template and "mdi:motion-sensor-off" in blink
     assert "Arma fuori casa</button>" not in blink
     recordings = (frontend / "ring-recordings.js").read_text()

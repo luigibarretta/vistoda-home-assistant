@@ -51,6 +51,13 @@ export const MEDIA_STYLES = `
   .stage { position:relative; aspect-ratio:16/9; min-height:220px;
     display:grid; place-items:center; background:#111; touch-action:pan-y; user-select:none; }
   .stage img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+  .stage-actions { position:absolute; left:8px; bottom:8px; z-index:5; display:flex; gap:8px; flex-wrap:wrap; }
+  .stage-actions button { display:inline-flex; align-items:center; justify-content:center;
+    flex:0 0 44px; width:44px; height:44px; min-width:44px; padding:8px;
+    background:#181818; color:#fff; border:1px solid #777; border-radius:50%; }
+  .stage-actions button.primary { background:var(--primary-color); color:var(--text-primary-color, #fff); }
+  .stage-actions button span { position:absolute; width:1px; height:1px; padding:0;
+    margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .stage .placeholder { color:#ddd; text-align:center; padding:20px; }
   .stage .placeholder ha-icon { --mdc-icon-size:48px; display:block; margin:0 auto 10px; }
   .media-body { padding:20px; }

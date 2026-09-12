@@ -61,7 +61,7 @@ async def ws_refresh_snapshot(hass, connection, msg: dict[str, Any]) -> None:
         vol.Required("type"): "media_bridge/ezviz/recordings/list",
         vol.Required("entry_id"): ENTRY_ID,
         vol.Optional("page", default=1): vol.All(int, vol.Range(min=1)),
-        vol.Optional("page_size", default=10): vol.All(int, vol.Range(min=1, max=50)),
+        vol.Optional("page_size", default=10): vol.All(int, vol.Range(min=1, max=100)),
     }
 )
 @websocket_api.async_response

@@ -18,7 +18,7 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.28.1"
+    assert manifest["version"] == "0.29.0"
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
@@ -193,9 +193,9 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
     blink_template = (COMPONENT / "frontend" / "blink-view-template.js").read_text(encoding="utf-8")
     ezviz = (COMPONENT / "frontend" / "ezviz-view.js").read_text(encoding="utf-8")
-    assert 'callService("blink_live_bridge", "trigger_camera"' in blink and (
-        '"alarm_control_panel", armed ? "alarm_arm_away" : "alarm_disarm"' in blink
-    )
+    assert 'callService("blink_live_bridge", "trigger_camera"' in blink
+    system_control = (COMPONENT / "frontend" / "system-arm-control.js").read_text()
+    assert '"alarm_control_panel", arm ? "alarm_arm_away" : "alarm_disarm"' in system_control
     live = (COMPONENT / "frontend" / "blink-webrtc-session.js").read_text(encoding="utf-8")
     assert "blink_live_bridge/webrtc/subscribe" in live and (
         'pc.addTransceiver("audio", { direction: "sendrecv" })' in live

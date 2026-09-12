@@ -30,7 +30,7 @@ class ProviderRecordingClientMixin:
         storage = payload.get("storage")
         if (
             not isinstance(raw, list)
-            or len(raw) > 50
+            or len(raw) > 100
             or not self._pagination(pagination)
             or not self._storage(storage)
         ):
@@ -89,7 +89,7 @@ class ProviderRecordingClientMixin:
         integers = ("page", "page_size", "total_items", "total_pages")
         return (
             all(isinstance(value.get(key), int) for key in integers)
-            and 1 <= value["page_size"] <= 50
+            and 1 <= value["page_size"] <= 100
             and value["page"] >= 1
             and value["total_items"] >= 0
             and value["total_pages"] >= 1

@@ -1,5 +1,5 @@
 import { copy } from "./panel-copy.js";
-import { entityState, firstEntity, providerDevices, setText, swipeStep,
+import { entityState, firstEntity, providerDevices, swipeStep,
   wrappedIndex } from "./panel-helpers.js";
 
 export const blinkViewNavigation = {
@@ -18,14 +18,9 @@ export const blinkViewNavigation = {
   _renderAlarm() {
     const device = this._alarmDevice();
     const alarm = firstEntity(device, "alarm_control_panel");
-    const state = entityState(this._hass, alarm);
-    setText(this.shadowRoot, "system-name", device?.name || copy(this, "Sistema Blink"));
-    setText(this.shadowRoot, "system-state", state?.state === "armed_away"
-      ? copy(this, "Armato fuori casa") : state?.state === "disarmed"
-        ? copy(this, "Disarmato") : copy(this, "Non disponibile"));
-    this.$("system").hidden = !alarm;
-    this.$("arm").disabled = !state || state.state === "armed_away";
-    this.$("disarm").disabled = !state || state.state === "disarmed";
+    this.$("system").hidden = this._detailOpen;
+    this.$("system-controls").hidden = !alarm;
+    this.$("system-controls").configure(this._hass, alarm?.entity_id, device?.name || copy(this, "Sistema Blink"));
   },
 
   _renderDots(count) {
@@ -56,6 +51,8 @@ export const blinkViewNavigation = {
   },
 
   _stopLiveForCameraChange() {
+    this._liveOpening = false;
+    this._liveControls?.reset();
     this._fullscreen?.exit().catch(() => {});
     const session = this._liveSession;
     this._liveSession = null;

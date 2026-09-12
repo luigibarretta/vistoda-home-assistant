@@ -36,10 +36,15 @@ try {
             navigator.mediaDevices.getUserMedia = async () => destination.stream;
             const frames = []; const errors = [];
             microphone = new WalnutMicrophone({ hass: { locale: { language: "en" } } },
-              async (frame) => frames.push(frame), (error) => errors.push(error.message));
+              async (frame) => {
+                frames.push(frame);
+                // VPN-like RTT exceeds four 32ms frames; congestion must drop
+                // fresh input without stopping capture or replaying a backlog.
+                await new Promise((resolve) => setTimeout(resolve, frames.length % 7 ? 180 : 300));
+              }, (error) => errors.push(error.message));
             window.step = "capture-prepare"; await microphone.prepare(); microphone.enable();
-            const deadline = Date.now() + 4500;
-            while (frames.length < 10 && !errors.length && Date.now() < deadline) {
+            const deadline = Date.now() + 6500;
+            while (!errors.length && Date.now() < deadline) {
               await new Promise((resolve) => setTimeout(resolve, 25));
             }
             const clock = microphone.context.currentTime;
@@ -54,15 +59,15 @@ try {
         };
       });
       await page.getByRole("button").click();
-      await page.waitForFunction(() => window.result, null, { timeout: 10000 }).catch(async (error) => {
+      await page.waitForFunction(() => window.result, null, { timeout: 15000 }).catch(async (error) => {
         console.log(JSON.stringify({ engine, step: await page.evaluate(() => window.step) })); throw error;
       });
       const result = await page.evaluate(() => window.result);
       assert.equal(result.failure, undefined, JSON.stringify({ engine, result }));
-      assert.ok(result.count >= 8 && result.count <= 24, JSON.stringify({ engine, result }));
+      assert.ok(result.count >= 40 && result.count <= 220, JSON.stringify({ engine, result }));
       assert.deepEqual(result.sizes, [1024]); assert.deepEqual(result.errors, []);
       assert.equal(result.stopped, true); assert.equal(result.tracksEnded, true);
-      console.log(`${engine}: PCM32ms capture, exact frames and teardown passed`);
+      console.log(`${engine}: 6.5s PCM capture with 180–300ms RTT, bounded frames and teardown passed`);
     } finally { await browser.close(); }
   }
 } finally { await audio?.stop(); await new Promise((resolve) => server.close(resolve)); }

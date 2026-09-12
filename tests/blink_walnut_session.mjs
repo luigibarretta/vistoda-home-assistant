@@ -107,3 +107,32 @@ test("intentional disable acknowledgement preserves the capture failure reason",
   await session._event({ type: "microphone", enabled: false, request_id: session.micRequest }, session.generation);
   assert.equal(session.message, "capture diagnostic"); await session.stop();
 });
+
+test("busy rejection is translated and leaves video and future microphone attempts usable", async (t) => {
+  const { session, video } = harness(t); const pending = await begin(session);
+  session.hass.locale = { language: "en" };
+  await session._event({ type: "microphone", enabled: false, reason: "busy", request_id: pending.request }, session.generation);
+  await pending.completion;
+  assert.match(session.message, /Another device/);
+  assert.equal(session.supported, true); assert.equal(video.muted, false);
+  const next = await begin(session); await ack(session, next); await session.stop();
+});
+
+test("AEC offer alone cannot enable duplex; verified capture AEC enables simultaneous listening", async (t) => {
+  const { session, video } = harness(t); session.streamAec = true;
+  const first = await begin(session); await ack(session, first);
+  assert.equal(session.duplex, false); await session.setMicrophone(false);
+  t.mock.method(WalnutMicrophone.prototype, "prepare", async function () { this.echoCancellation = true; return true; });
+  const second = await begin(session); await ack(session, second);
+  assert.equal(session.duplex, true); assert.equal(video.muted, false);
+  await session.toggleSpeaker(); assert.equal(video.muted, true);
+  await session.setMicrophone(false); assert.equal(video.muted, true); await session.stop();
+});
+
+test("speaker preference survives offers before player initialization", async (t) => {
+  const { session, video } = harness(t); video.muted = true;
+  await session._event({ type: "audio_offer", connected: true, supported: true }, session.generation);
+  assert.equal(session.speaker, true);
+  session.initializedVideo = video; await session._applySpeaker();
+  assert.equal(video.muted, false); await session.stop();
+});

@@ -8,6 +8,7 @@ import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { providerRecordingActions } from "./provider-recordings-actions.js";
 import { providerRecordingsTemplate } from "./provider-recordings-template.js";
+import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import "./provider-recording-player.js";
 import {
   cameraRecordings,
@@ -69,6 +70,10 @@ class VistodaProviderRecordings extends HTMLElement {
       PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
+    bindPageSize(this.shadowRoot, async (size) => {
+      if (this._busy) return;
+      this._pagination.page_size = size; this._selected.clear(); await this._go(1);
+    });
     this.$("backup-all").addEventListener("click", () => this._backupAll());
     this.$("start").addEventListener("click", () => this._start());
     this.$("copy-archive-path").addEventListener("click", () => this._copyArchivePath());
@@ -147,6 +152,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("summary").textContent = copy(this, "Archivio locale ({p0})", { p0: this._pagination.total_items });
     this.$("page-label").textContent = copy(this, "Pagina {p0} di {p1}", { p0: this._pagination.page, p1: this._pagination.total_pages });
     this.$("previous").disabled = this._busy || !this._pagination.has_previous;
+    renderPageSize(this.shadowRoot, this._pagination.page_size, this._busy);
     this.$("next").disabled = this._busy || !this._pagination.has_next;
     const visibleItems = this._listManager.filtered(this._items,
       (item) => `local:${item.recording_id}`);

@@ -1,17 +1,18 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { preferredRecordingView, recordingDate, recordingDuration, recordingPage,
-  recordingSize, saveRecordingView } from "./recording-table.js";
+  recordingSize, renderRecordingViewControls, saveRecordingView } from "./recording-table.js";
 import { copyRecordingPath, recordingInfoContent, recordingStorageSummary } from "./recording-storage.js";
 import { recordingCard, recordingTableNodes } from "./ring-recording-item.js";
 import { RingRecordingListManager } from "./ring-recording-list-manager.js";
 import { RingRecordingPlayer } from "./ring-recording-player.js";
 import { recordingArchiveTemplate } from "./ring-recording-template.js";
+import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 
 class RingRecordingArchive extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this._recordings = []; this._page = 1; this._busy = false;
+    this._recordings = []; this._page = 1; this._pageSize = 10; this._busy = false;
     this._infoId = null; this._storage = null;
     this._generation = 0;
     this._browserStorage = this._storageAccess();
@@ -41,8 +42,7 @@ class RingRecordingArchive extends HTMLElement {
 
   set hass(value) { this._hass = value; this._render(); }
   get hass() { return this._hass; }
-  get entry() { return this._entry; }
-  render() { this._render(); }
+  get entry() { return this._entry; } render() { this._render(); }
   status(message) { if (this.$) this.$("status").textContent = message; }
   changed(resetPage) { if (resetPage) this._page = 1; this._render(); }
 
@@ -50,6 +50,10 @@ class RingRecordingArchive extends HTMLElement {
     this.shadowRoot.innerHTML = recordingArchiveTemplate(); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.load());
+    bindPageSize(this.shadowRoot, (size) => {
+      if (this._busy) return;
+      this._pageSize = size; this._page = 1; this._player.release(); this._render();
+    });
     this.$("delete-all").addEventListener("click", () => this._deleteAll());
     this.$("previous").addEventListener("click", () => this._changePage(-1));
     this.$("next").addEventListener("click", () => this._changePage(1));
@@ -95,7 +99,8 @@ class RingRecordingArchive extends HTMLElement {
     if (!this.$) return;
     if (localizeCopy(this.shadowRoot, this)) this._lists.update(this._lists.lists);
     const filtered = this._lists.filtered(this._recordings);
-    const page = recordingPage(filtered, this._page);
+    const page = recordingPage(filtered, this._page, this._pageSize);
+    renderPageSize(this.shadowRoot, this._pageSize, this._busy);
     this._page = page.page;
     if (this._view === "rows") {
       this.$("rows").replaceChildren(...page.items.flatMap(
@@ -119,15 +124,7 @@ class RingRecordingArchive extends HTMLElement {
     this.$("next").disabled = this._busy || page.page === page.pages;
     this.$("delete-all").disabled = this._busy || this._recordings.length === 0;
     this.$("storage").textContent = recordingStorageSummary(this._storage, this);
-    for (const view of ["cards", "rows"]) {
-      this.$(`view-${view}`).setAttribute("aria-pressed", String(this._view === view));
-    }
-    this.$("view-cards").querySelector("ha-icon").setAttribute(
-      "icon", this._view === "cards" ? "mdi:view-grid" : "mdi:view-grid-outline",
-    );
-    this.$("view-rows").querySelector("ha-icon").setAttribute(
-      "icon", this._view === "rows" ? "mdi:view-list" : "mdi:view-list-outline",
-    );
+    renderRecordingViewControls(this.shadowRoot, this._view);
   }
 
   _context(recording) {
@@ -225,6 +222,7 @@ class RingRecordingArchive extends HTMLElement {
     this._busy = busy;
     if (this.$) {
       this.$("reload").disabled = busy;
+      renderPageSize(this.shadowRoot, this._pageSize, busy);
       if (message) this.status(message);
     }
   }
@@ -237,10 +235,7 @@ class RingRecordingArchive extends HTMLElement {
   _date(recording) {
     return recordingDate(recording, this._hass?.locale?.language, this._hass?.config?.time_zone);
   }
-  _storageAccess() {
-    try { return globalThis.localStorage; } catch (_error) { return null; }
-  }
-
+  _storageAccess() { try { return globalThis.localStorage; } catch (_error) { return null; } }
   disconnectedCallback() { this._player.release(); }
 }
 

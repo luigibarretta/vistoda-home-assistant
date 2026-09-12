@@ -1,5 +1,11 @@
 // Source-owned UI copy only; never look up device names or user-entered text.
 export const COMMON_COPY = {
+  "Arma": "Arm", "Disarma": "Disarm",
+  "Area Home Assistant: {p0}": "Home Assistant area: {p0}",
+  "Il comando Arma/Disarma si applica all’account EZVIZ associato.": "Arm/Disarm applies to the linked EZVIZ account.",
+  "Collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema.": "Connect the EZVIZ integration in Home Assistant to control the system.",
+  "Stato non confermato. Verifica il sistema prima di riprovare.": "State not confirmed. Check the system before trying again.",
+  "Armato": "Armed",
   "Il microfono è già usato da un’altra sessione Vistoda": "The microphone is already in use by another Vistoda session",
   "Batteria scarica": "Low battery",
   "Aggiorna": "Refresh", "Annulla": "Cancel", "Salva": "Save", "Crea": "Create",

@@ -17,6 +17,7 @@ from .const import (
     DOMAIN,
     PROVIDERS,
 )
+from .ezviz_panel_metadata import panel_metadata
 
 MAX_ENTITIES_PER_PROVIDER = 256
 
@@ -102,6 +103,7 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
                 "alias": entry.data.get(CONF_ALIAS),
                 "name": entry.title,
                 "available": entry_available,
+                **(panel_metadata(hass, entry) if provider == "ezviz" else {}),
             }
         )
         providers[provider]["available"] = providers[provider]["available"] or entry_available

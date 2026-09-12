@@ -26,6 +26,14 @@ export function recordingPage(recordings, requestedPage, pageSize = RECORDINGS_P
   return { items: recordings.slice(start, start + pageSize), page, pages };
 }
 
+export function renderRecordingViewControls(root, selected) {
+  for (const [view, icon] of [["cards", "view-grid"], ["rows", "view-list"]]) {
+    const button = root.getElementById(`view-${view}`);
+    button.setAttribute("aria-pressed", String(selected === view));
+    button.querySelector("ha-icon").setAttribute("icon", `mdi:${icon}${selected === view ? "" : "-outline"}`);
+  }
+}
+
 export function recordingDate(recording, locale = "it-IT", timeZone = undefined) {
   const options = { dateStyle: "medium", timeStyle: "short" };
   if (timeZone) options.timeZone = timeZone;

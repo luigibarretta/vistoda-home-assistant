@@ -53,6 +53,9 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     assert.equal(await page.locator("vistoda-ring-device-identity #edit").evaluate(e => e === e.getRootNode().activeElement), true);
   }
   if (provider === "blink" || provider === "ezviz") {
+    const section = page.locator(`#recording-section`);
+    assert.equal(await section.evaluate((node) => node.open), false);
+    await section.locator(":scope > summary").click();
     const archive = page.locator("vistoda-provider-recordings");
     await archive.locator(".item").first().waitFor();
     assert.match(await archive.locator(".item .meta").textContent(), en ? /Ready/ : /Pronta/);

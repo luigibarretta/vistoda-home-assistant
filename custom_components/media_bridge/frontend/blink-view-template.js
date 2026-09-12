@@ -2,6 +2,23 @@ import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 
 export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #message { min-height:21px; margin-top:12px; }
+  #system { display:block; }
+  #system-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  #provider-head { margin-bottom:16px; }
+  #live-message { position:absolute; left:8px; right:8px; top:8px; max-width:calc(100% - 68px);
+    z-index:4; color:#fff; background:#181818e8; padding:6px 10px; border-radius:8px; font-size:13px; }
+  #continue { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:6; }
+  #microphone { touch-action:none; user-select:none; -webkit-user-select:none; }
+  #mobile-live-dialog { border:0; padding:0; margin:0; width:100vw; max-width:none;
+    height:100dvh; max-height:none; background:#000; color:#fff; }
+  #mobile-live-dialog::backdrop { background:#000; }
+  #mobile-stage-slot { height:100%; }
+  #mobile-live-dialog #stage { width:100%; height:100%; max-height:none; aspect-ratio:auto; border-radius:0; }
+  #mobile-live-dialog #legacy-live { display:flex; align-items:center; justify-content:center; }
+  #mobile-live-dialog .blink-legacy-card { width:100%; height:auto; }
+  #mobile-live-dialog .stage-actions { bottom:max(16px, env(safe-area-inset-bottom)); }
+  #recording-section { margin-top:12px; }
+  #recording-section > summary { padding:12px 0; cursor:pointer; font-weight:600; }
   .detail-head { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
   .detail-head h2 { margin:0; font-size:23px; }
   .detail-head button { flex:0 0 auto; }
@@ -19,25 +36,34 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     right:max(8px, env(safe-area-inset-right)); z-index:5; width:44px; height:44px;
     padding:8px; min-width:44px; background:#181818; color:#fff; }
 </style>
-<section class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
+<section class="card system" id="system"><div class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
   le camere. Aggiornamento e live partono soltanto su richiesta.</div></div>
-  <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></section>
+  <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></div>
+<vistoda-system-arm-control id="system-controls"></vistoda-system-arm-control></section>
 <section class="card empty" id="empty" hidden><p data-i18n="noCameras">Nessuna telecamera Blink configurata.</p>
   <a class="button primary" href="/config/integrations/dashboard" data-i18n="configureProvider">Configura Blink</a></section>
-<section class="card system" id="system"><div><strong id="system-name"><span data-copy="Sistema Blink">Sistema Blink</span></strong>
-  <div class="muted" id="system-state"><span data-copy="Stato non disponibile">Stato non disponibile</span></div></div>
-  <div class="actions"><button id="disarm"><ha-icon icon="mdi:shield-off-outline"></ha-icon>
-    <span data-i18n="disarm">Disarma</span></button><button class="primary" id="arm">
-    <ha-icon icon="mdi:shield-lock-outline"></ha-icon><span data-i18n="arm">Arma</span></button></div></section>
 <section class="card media-card" id="gallery">
   <div class="stage" id="stage"><div class="placeholder" id="placeholder"><ha-icon
     icon="mdi:cctv"></ha-icon><span data-i18n="noSnapshot">Snapshot non disponibile</span></div><img id="snapshot" alt="">
     <video id="live-video" autoplay playsinline muted hidden></video>
     <div id="legacy-live" hidden></div>
+    <div id="live-message" role="status" hidden></div>
+    <button id="continue" class="primary" hidden data-copy="Continua?">Continua?</button>
     <button id="fullscreen" hidden aria-label="Schermo intero" title="Schermo intero"
       data-copy-aria-label="Schermo intero" data-copy-title="Schermo intero" aria-pressed="false">
-      <ha-icon icon="mdi:fullscreen"></ha-icon></button></div>
+      <ha-icon icon="mdi:fullscreen"></ha-icon></button>
+    <div class="stage-actions"><button class="primary" id="live" title="Apri live">
+      <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span data-copy="Apri live">Apri live</span></button>
+      <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera" data-i18n-title="refreshSnapshot">
+      <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span data-i18n="refreshSnapshot">Aggiorna snapshot</span></button>
+      <button id="motion"><ha-icon id="motion-icon" icon="mdi:motion-sensor"></ha-icon>
+      <span id="motion-label"><span data-copy="Movimento">Movimento</span></span></button>
+      <button id="speaker" hidden><ha-icon id="speaker-icon" icon="mdi:volume-off"></ha-icon>
+      <span id="speaker-label" data-copy="Attiva audio">Attiva audio</span></button>
+      <button id="microphone" hidden aria-describedby="live-message">
+      <ha-icon id="microphone-icon" icon="mdi:microphone-off"></ha-icon>
+      <span id="microphone-label" data-copy="Tieni premuto per parlare">Tieni premuto per parlare</span></button></div></div>
   <div class="media-body"><div class="media-title"><div><h3 id="camera-name"><span data-copy="Telecamera">Telecamera</span></h3>
     <div class="muted" id="camera-position"></div><div class="muted" id="snapshot-time"></div>
     </div><span class="badge off" id="camera-state"><span data-copy="Non disponibile">Non disponibile</span></span></div>
@@ -47,21 +73,15 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
       <strong id="temperature">—</strong></div></div>
       <div class="fact"><ha-icon icon="mdi:video-box"></ha-icon><div><span data-i18n="recentClips">Clip recenti</span>
       <strong id="clips">0</strong></div></div></div>
-    <div class="actions"><button class="primary" id="live" title="Apri il live in Home Assistant" data-i18n-title="openLive">
-      <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span><span data-copy="Apri live">Apri live</span></span></button>
-      <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera" data-i18n-title="refreshSnapshot">
-      <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span data-i18n="refreshSnapshot">Aggiorna snapshot</span></button>
-      <button id="motion"><ha-icon id="motion-icon" icon="mdi:motion-sensor"></ha-icon>
-      <span id="motion-label"><span data-copy="Movimento">Movimento</span></span></button><button id="details">
+    <div class="actions"><button id="details">
       <ha-icon icon="mdi:cog-outline"></ha-icon><span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
-      <button id="speaker" hidden><ha-icon id="speaker-icon" icon="mdi:volume-off"></ha-icon>
-      <span id="speaker-label"><span data-copy="Attiva audio">Attiva audio</span></span></button><button id="microphone" hidden aria-describedby="microphone-unavailable">
-      <ha-icon id="microphone-icon" icon="mdi:microphone-off"></ha-icon>
-      <span id="microphone-label"><span data-copy="Attiva microfono">Attiva microfono</span></span></button></div>
+      </div>
     <p class="muted" id="microphone-unavailable" hidden data-copy="Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.">Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.</p>
     <div class="muted" id="message" role="status"></div>
-    <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></div>
+    <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
+    <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details></div>
 </section>
+<dialog id="mobile-live-dialog" aria-label="Live Blink"><div id="mobile-stage-slot"></div></dialog>
 <nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect"><button data-i18n-aria-label="cameraPrevious" id="previous"
   aria-label="Telecamera precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
   <div class="dots" id="dots"></div><button data-i18n-aria-label="cameraNext" id="next" aria-label="Telecamera successiva">

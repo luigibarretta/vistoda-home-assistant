@@ -7,6 +7,7 @@ import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { blinkStorageActions } from "./blink-storage-actions.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
+import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 
 class VistodaBlinkStorage extends HTMLElement {
   constructor() {
@@ -35,6 +36,10 @@ class VistodaBlinkStorage extends HTMLElement {
       PROVIDER_LIST_TEMPLATE, PROVIDER_BULK_LIST_TEMPLATE); localizeCopy(this.shadowRoot, this);
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("reload").addEventListener("click", () => this.reload());
+    bindPageSize(this.shadowRoot, async (size) => {
+      if (this._busy) return;
+      this._pageSize = size; await this._go(1);
+    });
     this.$("backup-all").addEventListener("click", () => this._backupAll());
     this.$("close-player").addEventListener("click", () => this._closePlayer());
     this.$("delete-selected").addEventListener("click", () => this._deleteSelected());
@@ -69,6 +74,7 @@ class VistodaBlinkStorage extends HTMLElement {
   _render() {
     if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("reload").disabled = this._busy || !this._hass;
+    renderPageSize(this.shadowRoot, this._pageSize, this._busy);
     this.$("backup-all").disabled = this._busy || !this._hass;
     const nodes = this._storages.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {

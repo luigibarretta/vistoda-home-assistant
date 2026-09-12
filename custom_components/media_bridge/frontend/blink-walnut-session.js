@@ -1,6 +1,7 @@
 import { WalnutMicrophone } from "./blink-walnut-microphone.js";
 import { findLiveVideo } from "./live-fullscreen.js";
 import { copy } from "./panel-copy.js";
+import { blinkAudioError } from "./blink-audio-errors.js";
 
 // Voice-only companion to the existing HA player. It never replaces the video.
 export class BlinkWalnutSession {
@@ -8,12 +9,15 @@ export class BlinkWalnutSession {
     this.hass = hass; this.host = host; this.onState = onState;
     this.generation = 0; this.handle = null; this.capture = null;
     this.microphone = false; this.pending = false; this.supported = false;
-    this.speaker = false; this.micRequest = 0; this.closed = true;
+    this.speaker = true; this.micRequest = 0; this.closed = true;
   }
   get video() { return findLiveVideo(this.host); }
 
   async start(alias) {
     const generation = ++this.generation; this.closed = false;
+    this._watchVideo();
+    this.visibility = () => { if (document.hidden) this._disableMicrophone(); };
+    document.addEventListener("visibilitychange", this.visibility);
     try {
       const unsubscribe = await this.hass.connection.subscribeMessage(
         (event) => this._event(event, generation).catch(() => this._fail(generation)),
@@ -21,33 +25,42 @@ export class BlinkWalnutSession {
       if (generation !== this.generation) { await unsubscribe(); return; }
       this.unsubscribe = unsubscribe;
       this.ping = setInterval(() => this._control("ping").catch(() => this._fail(generation)), 8000);
-      this.watch = setInterval(() => {
+    } catch { await this._fail(generation); }
+  }
+
+  _watchVideo() {
+    this.watch = setInterval(() => {
+        const video = this.video;
+        if (video && video !== this.initializedVideo) {
+          this.initializedVideo = video;
+          if (!this.capture) this._applySpeaker();
+        }
         if (this.capture && this.video !== this.mutedVideo) {
           this._disableMicrophone(copy(this, "Player audio cambiato: riattiva il microfono"));
         }
         this._state();
       }, 250);
-      this.visibility = () => { if (document.hidden) this._disableMicrophone(); };
-      document.addEventListener("visibilitychange", this.visibility);
-    } catch { await this._fail(generation); }
   }
 
   async _event(event, generation) {
     if (generation !== this.generation) return;
     if (event.type === "ready") this.handle = event.session_id;
     else if (event.type === "audio_offer") {
+      this.onState({ sessionTiming: event.session_timing });
+      this.streamAec = event.stream_aec === true;
       this.sentFrames = Number.isSafeInteger(event.sent_frames) ? event.sent_frames : 0;
       this.supported = event.connected === true && event.supported === true;
-      if (!this.supported && this.capture) await this._disableMicrophone();
+      if ((!this.supported && this.capture) || (this.duplex && !this.streamAec)) await this._disableMicrophone();
     } else if (event.type === "microphone") {
       if (event.request_id !== this.micRequest) return;
       const ack = this.micAck; this.micAck = null;
       if (event.enabled === true) ack?.resolve();
       else {
         const unexpected = Boolean(this.capture || ack);
-        ack?.reject(new Error(copy(this, "Microfono non disponibile")));
+        const reason = blinkAudioError(this, event.reason);
+        ack?.reject(new Error(reason));
         this._releaseCapture();
-        if (unexpected) this.message = copy(this, "Microfono fermato: connessione lenta o sessione occupata");
+        if (unexpected) this.message = reason;
       }
     } else if (["error", "closed"].includes(event.type)) {
       await this._fail(generation); return;
@@ -59,11 +72,29 @@ export class BlinkWalnutSession {
     const video = this.video; if (!video) return;
     this.speaker = !this.speaker;
     if (this.capture) this.restoreMuted = !this.speaker;
-    else {
-      video.muted = !this.speaker;
-      if (this.speaker) { try { await video.play(); } catch { video.muted = true; this.speaker = false; } }
-    }
+    if (!this.capture || this.duplex) await this._applySpeaker();
     this._state();
+  }
+
+  async _applySpeaker() {
+    const video = this.video; if (!video) return;
+    const generation = this.generation;
+    video.muted = !this.speaker;
+    if (this.speaker) {
+      try { await video.play(); }
+      catch {
+        if (generation !== this.generation || this.video !== video || this.closed) return;
+        video.muted = true; this.speaker = false;
+        this.message = copy(this, "Il browser ha bloccato l’audio automatico. Premi Attiva audio per ascoltare.");
+      }
+    }
+    if (generation === this.generation && this.video === video && !this.closed) this._state();
+  }
+
+  setMicrophone(enabled) {
+    if (!enabled) return this._disableMicrophone();
+    if (this.pending || this.microphone) return;
+    return this.toggleMicrophone();
   }
 
   async toggleMicrophone() {
@@ -72,12 +103,12 @@ export class BlinkWalnutSession {
     const generation = this.generation;
     this.pending = true; this.message = "";
     this.mutedVideo = this.video; this.restoreMuted = this.mutedVideo.muted;
-    this.enforceMute = () => { if (this.capture && this.mutedVideo && !this.mutedVideo.muted) this.mutedVideo.muted = true; };
+    this.enforceMute = () => { if (this.capture && !this.duplex && this.mutedVideo && !this.mutedVideo.muted) this.mutedVideo.muted = true; };
     this.mutedVideo.addEventListener("volumechange", this.enforceMute);
     this._state();
     const capture = new WalnutMicrophone(this, (data) => {
       if (generation !== this.generation || this.capture !== capture || document.hidden ||
-          this.video !== this.mutedVideo || !this.mutedVideo?.muted) {
+          this.video !== this.mutedVideo || (!this.duplex && !this.mutedVideo?.muted)) {
         throw new Error(copy(this, "Player audio cambiato: riattiva il microfono"));
       }
       return this._control("pcm", { data });
@@ -88,9 +119,10 @@ export class BlinkWalnutSession {
       if (!await capture.prepare() || generation !== this.generation || this.capture !== capture) {
         capture.stop(); return;
       }
+      this.duplex = this.streamAec === true && capture.echoCancellation === true;
       if (this.video !== this.mutedVideo) throw new Error(copy(this, "Player audio cambiato: riattiva il microfono"));
       this.enforceMute();
-      if (!this.mutedVideo.muted) throw new Error(copy(this, "Impossibile sospendere l’ascolto"));
+      if (!this.duplex && !this.mutedVideo.muted) throw new Error(copy(this, "Impossibile sospendere l’ascolto"));
       const requestId = this._nextRequest();
       const acknowledged = new Promise((resolve, reject) => { this.micAck = { resolve, reject }; });
       let timeout;
@@ -103,7 +135,7 @@ export class BlinkWalnutSession {
       if (generation !== this.generation || this.capture !== capture) { capture.stop(); return; }
       if (this.video !== this.mutedVideo) throw new Error(copy(this, "Player audio cambiato: riattiva il microfono"));
       this.enforceMute();
-      if (!this.mutedVideo.muted) throw new Error(copy(this, "Impossibile sospendere l’ascolto"));
+      if (!this.duplex && !this.mutedVideo.muted) throw new Error(copy(this, "Impossibile sospendere l’ascolto"));
       capture.enable(); this.microphone = true;
     } catch (error) {
       capture.stop();
@@ -114,6 +146,7 @@ export class BlinkWalnutSession {
 
   _releaseCapture() {
     this.capture?.stop(); this.capture = null; this.microphone = false; this.pending = false;
+    this.duplex = false;
     this.micAck?.reject(new Error(copy(this, "Microfono disattivato"))); this.micAck = null;
     if (this.mutedVideo) {
       this.mutedVideo.removeEventListener("volumechange", this.enforceMute);
@@ -123,23 +156,24 @@ export class BlinkWalnutSession {
   }
 
   async _disableMicrophone(message) {
+    const generation = this.generation;
     const hadCapture = Boolean(this.capture); this._releaseCapture();
     this.message = message || ""; this._state();
     if (hadCapture && this.handle) {
       await this._control("microphone", { enabled: false, request_id: this._nextRequest() })
-        .catch(() => this._fail(this.generation));
+        .catch(() => this._fail(generation));
     }
   }
   _nextRequest() { this.micRequest = (this.micRequest + 1) >>> 0; return this.micRequest; }
   _state() {
     if (this.closed) return;
     const video = this.video;
-    if (!this.capture && video) this.speaker = !video.muted;
+    if (!this.capture && video && video === this.initializedVideo) this.speaker = !video.muted;
     const supported = this.supported && Boolean(this.handle && video);
     this.onState({ microphone: this.microphone, microphonePending: this.pending,
-      microphoneSupported: supported, speaker: this.speaker,
+      microphoneSupported: supported, speaker: this.speaker, duplex: Boolean(this.duplex),
       message: this.message || copy(this, this.microphone
-        ? "Microfono attivo · ascolto sospeso. Disattiva il microfono per ascoltare."
+        ? this.duplex ? "Microfono e ascolto simultanei attivi" : "Microfono attivo · ascolto sospeso. Disattiva il microfono per ascoltare."
         : supported ? "Live Blink attivo · microfono disponibile" : "Live Blink attivo · microfono non disponibile") });
   }
   _control(action, extra = {}) {
@@ -148,15 +182,16 @@ export class BlinkWalnutSession {
   }
   async _fail(generation) {
     if (generation !== this.generation) return;
-    await this.stop();
-    this.onState({ microphone: false, microphonePending: false, microphoneSupported: false,
-      message: copy(this, "Canale microfono non disponibile. Controlla la connessione e riapri il live.") });
+    await this.stop(true);
+    this.message = copy(this, "Canale microfono non disponibile. Controlla la connessione e riapri il live.");
+    this._state();
   }
-  async stop() {
+  async stop(preserveVideo = false) {
     if (this.closed) return;
-    this.closed = true; ++this.generation; this._releaseCapture();
-    clearInterval(this.watch); clearInterval(this.ping);
-    if (this.visibility) document.removeEventListener("visibilitychange", this.visibility);
+    this.closed = !preserveVideo; ++this.generation; this._releaseCapture(); this.supported = false;
+    if (!preserveVideo) clearInterval(this.watch);
+    clearInterval(this.ping);
+    if (!preserveVideo && this.visibility) document.removeEventListener("visibilitychange", this.visibility);
     const handle = this.handle; this.handle = null;
     const unsubscribe = this.unsubscribe; this.unsubscribe = null;
     await Promise.race([Promise.allSettled([

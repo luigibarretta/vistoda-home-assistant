@@ -3,6 +3,7 @@ import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import { ezvizViewNavigation } from "./ezviz-view-navigation.js";
 import "./provider-recordings.js";
+import "./system-arm-control.js";
 import {
   devicesWithDomain,
   entityState,
@@ -44,16 +45,24 @@ class VistodaEzvizView extends HTMLElement {
         .loader ha-icon { --mdc-icon-size:42px; margin:auto; animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         #message { min-height:21px; margin-top:12px; }
+        #recording-section > summary { padding:12px 0; cursor:pointer; font-weight:600; }
+        #system { display:block; }
       </style>
-      <section class="provider-head"><div><div class="eyebrow">Vistoda · EZVIZ</div>
+      <section class="card system" id="system"><div class="provider-head"><div><div class="eyebrow">Vistoda · EZVIZ</div>
         <h2 data-i18n="ezvizTitle">Telecamere EZVIZ</h2><div class="muted" data-i18n="ezvizIntro">Consulta l’ultima immagine salvata.
         Live e nuove immagini partono quando li richiedi.</div></div>
-        <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></section>
+        <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></div>
+        <vistoda-system-arm-control id="system-control"></vistoda-system-arm-control>
+        <div class="muted" id="system-scope"></div><div class="muted" id="camera-room"></div></section>
       <section class="card media-card" id="camera-card"><div class="stage" id="stage">
         <div class="placeholder" id="placeholder"><ha-icon icon="mdi:doorbell-video"></ha-icon>
           <span data-i18n="noSnapshot">Snapshot non disponibile</span></div><div class="loader" id="loader" hidden>
           <ha-icon icon="mdi:loading"></ha-icon><strong data-i18n="snapshotLoading">Caricamento snapshot…</strong></div>
-          <img id="snapshot" alt="Snapshot spioncino EZVIZ" data-copy-alt="Snapshot spioncino EZVIZ" hidden></div>
+          <img id="snapshot" alt="Snapshot spioncino EZVIZ" data-copy-alt="Snapshot spioncino EZVIZ" hidden>
+          <div class="stage-actions"><button class="primary" id="live"
+            title="Apri il live in Home Assistant" data-i18n-title="openLive"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
+            <span data-i18n="openLive">Apri live</span></button><button id="refresh" title="Ricarica lo snapshot EZVIZ" data-i18n-title="refreshSnapshot">
+            <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span data-i18n="refreshSnapshot">Aggiorna snapshot</span></button></div></div>
         <div class="media-body"><div class="media-title"><div><h3 id="camera-name"><span data-copy="Ingresso">Ingresso</span></h3>
           <div class="muted" id="camera-position"></div>
           <div class="muted" data-i18n="savedImage">Ultima immagine salvata in Home Assistant</div>
@@ -65,12 +74,9 @@ class VistodaEzvizView extends HTMLElement {
             <div><span>Live</span><strong data-i18n="onRequest">Su richiesta</strong></div></div>
             <div class="fact"><ha-icon icon="mdi:camera-outline"></ha-icon>
             <div><span>Snapshot</span><strong id="snapshot-state"><span data-copy="Verifica…">Verifica…</span></strong></div></div></div>
-          <div class="actions"><button class="primary" id="live"
-            title="Apri il live in Home Assistant" data-i18n-title="openLive"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
-            <span data-i18n="openLive"><span data-copy="Apri live">Apri live</span></span></button><button id="refresh" title="Ricarica lo snapshot EZVIZ" data-i18n-title="refreshSnapshot">
-            <ha-icon icon="mdi:camera-retake-outline"></ha-icon><span data-i18n="refreshSnapshot">Aggiorna snapshot</span></button></div>
           <div class="muted" id="message" role="status"></div>
-          <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings>
+          <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
+          <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details>
           <div class="notice muted"><span data-copy="Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.">Questo archivio è standalone e separato da SceneTrove:
             registra soltanto quando lo richiedi qui.</span></div></div></section>
       <nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect">
@@ -132,6 +138,12 @@ class VistodaEzvizView extends HTMLElement {
     ));
     const connectivityState = entityState(this._hass, connectivity);
     const entry = this._cameraEntry();
+    this.$("system-control").configure(this._hass, entry?.alarm_entity_id, entry?.device_name || device?.name || "EZVIZ");
+    setText(this.shadowRoot, "system-scope", copy(this, entry?.alarm_entity_id
+      ? "Il comando Arma/Disarma si applica all’account EZVIZ associato."
+      : "Collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema."));
+    setText(this.shadowRoot, "camera-room", entry?.room_name
+      ? copy(this, "Area Home Assistant: {p0}", { p0: entry.room_name }) : "");
     const providerAvailable = entry?.available ?? provider?.available;
     this.$("availability").textContent = localize(this._hass, providerAvailable ? "ready" : "unavailable");
     this.$("availability").classList.toggle("off", !providerAvailable);
@@ -142,7 +154,7 @@ class VistodaEzvizView extends HTMLElement {
       this.$("recordings").configure(this._hass, null);
       return;
     }
-    setText(this.shadowRoot, "camera-name", device.name);
+    setText(this.shadowRoot, "camera-name", entry?.device_name || device.name);
     setText(this.shadowRoot, "camera-position", copy(this, "{p0} di {p1}", {
       p0: this._cameraIndex + 1, p1: cameras.length,
     }));

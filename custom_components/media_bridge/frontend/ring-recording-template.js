@@ -1,4 +1,5 @@
 import { BASE_STYLES } from "./panel-styles.js";
+import { PAGE_SIZE_TEMPLATE } from "./archive-page-size.js";
 
 export function recordingArchiveTemplate() {
   return `
@@ -61,7 +62,7 @@ export function recordingArchiveTemplate() {
       <button id="reload"><ha-icon icon="mdi:refresh"></ha-icon><span data-copy="Aggiorna">Aggiorna</span></button>
       <button class="danger" id="delete-all" disabled><ha-icon icon="mdi:delete-sweep-outline">
       </ha-icon><span data-copy="Elimina tutte">Elimina tutte</span></button></div></div>
-    <div class="archive-controls"><div class="view-switch" role="group" aria-label="Vista archivio" data-copy-aria-label="Vista archivio">
+    <div class="archive-controls"><div>${PAGE_SIZE_TEMPLATE}</div><div class="view-switch" role="group" aria-label="Vista archivio" data-copy-aria-label="Vista archivio">
       <button id="view-cards" aria-pressed="false"><ha-icon icon="mdi:view-grid-outline"></ha-icon><span data-copy="Schede">Schede</span></button>
       <button id="view-rows" aria-pressed="false"><ha-icon icon="mdi:view-list-outline"></ha-icon><span data-copy="Tabella">Tabella</span></button>
       </div><div class="list-controls"><select id="list-filter" aria-label="Filtra per lista" data-copy-aria-label="Filtra per lista"></select>

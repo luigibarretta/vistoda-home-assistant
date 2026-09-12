@@ -1,3 +1,4 @@
+import { PAGE_SIZE_TEMPLATE } from "./archive-page-size.js";
 export const blinkStorageTemplate = (styles, listTemplate, bulkListTemplate) => `<style>${styles}</style>
   <section class="card storage"><header><div><div class="eyebrow">Sync Module</div>
     <h3><span data-copy="Archivio Blink su chiavetta USB">Archivio Blink su chiavetta USB</span></h3><div class="muted"><span data-copy="File presenti sul supporto collegato al bridge Blink.">File presenti sul supporto
@@ -6,6 +7,7 @@ export const blinkStorageTemplate = (styles, listTemplate, bulkListTemplate) => 
     <ha-icon icon="mdi:cloud-upload"></ha-icon><span data-copy="Backup archivio">Backup archivio</span></button><button id="reload"
     title="Rileggi chiavetta" data-copy-title="Rileggi chiavetta" data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink" data-copy-data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink">
     <ha-icon icon="mdi:refresh"></ha-icon><span data-copy="Rileggi chiavetta">Rileggi chiavetta</span></button></div></header>
+    ${PAGE_SIZE_TEMPLATE}
     ${listTemplate}${bulkListTemplate}
     <section class="player" id="player" hidden><div class="player-head"><strong
     id="player-title"><span data-copy="Riproduzione clip">Riproduzione clip</span></strong><button class="icon-action" id="close-player"

@@ -19,9 +19,19 @@ export class WalnutMicrophone {
     // Each capture owns a distinct fallback lease, even when sessions are reused.
     this.lease = await claimMicrophone({ hass: this.owner.hass });
     if (this.closed) { this.lease.release(); return false; }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: {
-      echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1,
-    }, video: false });
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1,
+      }, video: false });
+    } catch (error) {
+      const messages = {
+        NotAllowedError: "Accesso al microfono negato. Consenti il microfono nelle impostazioni del browser o dell’app Companion.",
+        NotFoundError: "Nessun microfono rilevato. Collega o seleziona un dispositivo di ingresso.",
+        NotReadableError: "Microfono occupato o non leggibile dal browser. Chiudi le altre app che lo usano e riprova.",
+      };
+      throw new Error(copy(this.owner, messages[error.name] || "Dispositivo audio non disponibile"));
+    }
     if (this.closed) { stream.getTracks().forEach((track) => track.stop()); return false; }
     this.stream = stream;
     this.echoCancellation = stream.getAudioTracks()[0]?.getSettings().echoCancellation === true;
@@ -38,16 +48,19 @@ export class WalnutMicrophone {
           || data.samples.byteLength !== 1024) { this.onError(new Error(copy(this.owner, "Campione microfono non valido"))); return; }
       if (data.capturedAt - 0.032 < this.activeSince) return;
       const age = this.context.currentTime - data.capturedAt;
-      if (age < -0.02 || age > 0.1) { this.onError(new Error(copy(this.owner, "Campioni microfono scaduti"))); return; }
-      // Never queue microphone frames behind a slow HA connection.
-      if (this.sending >= 4) { this.onError(new Error(copy(this.owner, "Connessione troppo lenta per il microfono"))); return; }
+      if (age < -0.02 || age > 0.1) return;
+      // Drop, never queue or replay stale voice. A transient RTT spike is not a
+      // revoked microphone lease. Sustained stalls still hit the send timeout.
+      if (this.sending >= 4) return;
       this.sending++;
       const samples = new Int16Array(data.samples); const bytes = new Uint8Array(1024);
       const view = new DataView(bytes.buffer);
       samples.forEach((value, index) => view.setInt16(index * 2, value, true));
+      let timeout;
       Promise.race([Promise.resolve().then(() => this.onFrame(btoa(String.fromCharCode(...bytes)))),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(copy(this.owner, "Invio microfono scaduto"))), 500))])
-        .catch((error) => { if (!this.closed) this.onError(error); }).finally(() => { this.sending--; });
+        new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error(copy(this.owner, "Invio microfono scaduto"))), 500); })])
+        .catch((error) => { if (!this.closed && error?.code !== "busy") this.onError(error); })
+        .finally(() => { clearTimeout(timeout); this.sending--; });
     };
     return true;
   }

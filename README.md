@@ -33,7 +33,7 @@ users.
 | Provider | Released functions | Boundary |
 | --- | --- | --- |
 | Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings | Experimental consumer APIs; Ring does not support this third-party use. Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
-| Blink | Multiple cameras, stored/manual snapshots, Walnut live and conditional talk/listen controls, supported settings and zones, cloud/USB/local archives and NFS backup | Talk needs Blink engine 0.15.0+, a supported audio offer, HTTPS and microphone permission. Transport verified on Mini; speaker audibility requires device validation. Not simultaneous full duplex. Cayuga remains disabled by provider policy. Settings vary by model. |
+| Blink | Multiple cameras, snapshots, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, archives and NFS backup | Use Blink 0.16.0+. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
 | EZVIZ | Multiple cameras, stored/manual snapshots, compatible live streams, local recordings and NFS backup | Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
 | Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
@@ -81,6 +81,15 @@ a page uses the latest stored snapshot; a new capture happens only after an
 explicit action. Provider settings and actions reflect reported capabilities.
 
 For fullscreen and microphone availability, see [Blink live controls](docs/blink-live-controls.md).
+
+Blink and EZVIZ keep local recording controls in a closed accordion. Recording
+archives share a 10/25/50/100 page-size selector; Blink/EZVIZ request that page
+size from the backend, while Ring pages its local archive metadata in the UI.
+System cards share one Arm/Disarm button, updated only after the state is
+confirmed, with a success toast. EZVIZ system control requires the native HA
+EZVIZ integration, matched by camera identity; it controls the associated
+account. Its camera name comes from that integration. An HA area is explicitly
+labeled as such, not presented as the room name from the vendor app.
 
 In **Blink → Camera detail → General settings**, supported battery cameras expose
 their native temperature alert switch and cold/hot thresholds. Temperatures use
