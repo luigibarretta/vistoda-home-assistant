@@ -74,13 +74,14 @@ export const MEDIA_STYLES = `
   .fact strong { font-size:14px; }
   .pager { display:flex; justify-content:center; align-items:center; gap:9px; margin-top:14px; }
   .pager button { min-width:44px; padding:8px; }
-  .dots { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:1px; min-width:0; }
+  .dots { display:flex; align-items:center; justify-content:center; flex-wrap:nowrap; gap:1px; min-width:0; }
   .pager button.dot { display:grid; place-items:center; width:44px; height:44px;
     min-width:44px; min-height:44px; flex:0 0 44px; padding:0; border-radius:50%;
     background:transparent; }
   .dot::before { content:""; width:8px; height:8px; border-radius:50%;
-    background:var(--divider-color); transition:transform .16s ease,background .16s ease; }
-  .dot.active::before { background:var(--primary-color); transform:scale(1.25); }
+    background:var(--divider-color); transition:transform .16s ease,background .16s ease,opacity .16s ease; }
+  .dot.edge::before { opacity:.42; transform:scale(.8); }
+  .dot.active::before { background:var(--primary-color); opacity:1; transform:scale(1.25); }
   .system { padding:18px; margin-bottom:16px; display:flex; align-items:center;
     justify-content:space-between; gap:18px; }
   @media (max-width:650px) {

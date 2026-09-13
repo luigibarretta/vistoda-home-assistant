@@ -12,6 +12,7 @@ import { blinkViewNavigation } from "./blink-view-navigation.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import {
+  availableDeviceVariants,
   devicesWithDomain,
   entityState,
   firstEntity,
@@ -124,7 +125,11 @@ class VistodaBlinkView extends HTMLElement {
     this._renderLive();
   }
 
-  _cameras() { return devicesWithDomain(this._info, "blink", "camera"); }
+  _cameras() {
+    return availableDeviceVariants(
+      devicesWithDomain(this._info, "blink", "camera"), this._hass, "camera",
+    );
+  }
 
   _renderCamera(device, count) {
     const entry = this._info?.providers?.blink?.entries?.[0] || null;

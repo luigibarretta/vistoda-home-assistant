@@ -59,6 +59,24 @@ export function devicesWithDomain(info, provider, domain) {
   return providerDevices(info, provider).filter((device) => device.entities?.[domain]?.length);
 }
 
+export function availableDeviceVariants(devices, hass, domain) {
+  const groups = new Map();
+  for (const device of devices) {
+    const key = String(device?.name || "").trim().toLocaleLowerCase();
+    const variants = groups.get(key) || [];
+    variants.push(device); groups.set(key, variants);
+  }
+  return [...groups.values()].flatMap((variants) => {
+    if (variants.length < 2) return variants;
+    const available = variants.filter((device) => {
+      const entity = firstEntity(device, domain);
+      const state = entityState(hass, entity)?.state;
+      return state && !["unknown", "unavailable"].includes(state);
+    });
+    return available.length === 1 ? available : variants;
+  });
+}
+
 export function firstEntity(device, domain, predicate = () => true) {
   return (device?.entities?.[domain] || []).find(predicate) || null;
 }
@@ -113,6 +131,15 @@ export function snapshotTimeText(state, locale = "it-IT", observedAt = null) {
 export function wrappedIndex(index, step, count) {
   if (count <= 0) return 0;
   return ((index + step) % count + count) % count;
+}
+
+export function circularPagerIndexes(index, count) {
+  if (count <= 0) return [];
+  if (count <= 3) {
+    if (count < 3) return Array.from({ length: count }, (_, offset) => offset);
+    return [wrappedIndex(index, -1, count), index, wrappedIndex(index, 1, count)];
+  }
+  return [wrappedIndex(index, -1, count), index, wrappedIndex(index, 1, count)];
 }
 
 export function swipeStep(start, end, threshold = 48) {

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  availableDeviceVariants,
+  circularPagerIndexes,
   HOME_ASSISTANT_PATH,
   homeAssistantPath,
   canonicalVistodaPath,
@@ -55,6 +57,23 @@ test("inventory helpers select provider devices and entity domains", () => {
   assert.equal(firstEntity(cameras[0], "sensor", (item) => item.device_class === "battery"), null);
 });
 
+test("an available camera replaces only its unavailable same-name legacy variant", () => {
+  const devices = [
+    { name: "Cucina", entities: { camera: [{ entity_id: "camera.legacy" }] } },
+    { name: "Cucina", entities: { camera: [{ entity_id: "camera.current" }] } },
+    { name: "Balcone", entities: { camera: [{ entity_id: "camera.balcone" }] } },
+  ];
+  const hass = { states: {
+    "camera.legacy": { state: "unavailable" },
+    "camera.current": { state: "idle" },
+    "camera.balcone": { state: "idle" },
+  } };
+  assert.deepEqual(
+    availableDeviceVariants(devices, hass, "camera").map((item) => item.entities.camera[0].entity_id),
+    ["camera.current", "camera.balcone"],
+  );
+});
+
 test("picture URLs remain HA-local and receive a refresh nonce", () => {
   const hass = {
     hassUrl: (path) => `https://ha.example${path}`,
@@ -97,6 +116,13 @@ test("horizontal swipes wrap forever and ignore short or vertical gestures", () 
   assert.equal(swipeStep({ x: 180, y: 20 }, { x: 80, y: 25 }), 1);
   assert.equal(swipeStep({ x: 80, y: 20 }, { x: 180, y: 25 }), -1);
   assert.equal(swipeStep({ x: 80, y: 20 }, { x: 100, y: 150 }), 0);
+});
+
+test("circular camera pager exposes at most previous, current and next", () => {
+  assert.deepEqual(circularPagerIndexes(0, 6), [5, 0, 1]);
+  assert.deepEqual(circularPagerIndexes(5, 6), [4, 5, 0]);
+  assert.deepEqual(circularPagerIndexes(1, 3), [0, 1, 2]);
+  assert.deepEqual(circularPagerIndexes(0, 1), [0]);
 });
 
 test("mobile exit fallback uses the user's HA dashboard without private paths", () => {

@@ -118,6 +118,9 @@ def test_blink_paginator_draws_round_dots_inside_touch_targets() -> None:
     assert ".pager button.dot" in styles
     assert '.dot::before { content:""; width:8px; height:8px; border-radius:50%' in styles
     assert 'button.setAttribute("aria-current", "true")' in view
+    assert "circularPagerIndexes" in view
+    assert ".dot.edge::before { opacity:.42" in styles
+    assert "flex-wrap:nowrap" in styles
 
 
 def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:

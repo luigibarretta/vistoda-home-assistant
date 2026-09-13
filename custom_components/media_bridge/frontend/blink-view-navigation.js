@@ -1,6 +1,6 @@
 import { copy } from "./panel-copy.js";
 import { dragStart, dragMove, dragReset } from "./page-drag.js";
-import { entityState, firstEntity, providerDevices, swipeStep,
+import { circularPagerIndexes, entityState, firstEntity, providerDevices, swipeStep,
   wrappedIndex } from "./panel-helpers.js";
 
 export const blinkViewNavigation = {
@@ -25,9 +25,11 @@ export const blinkViewNavigation = {
   },
 
   _renderDots(count) {
-    const dots = Array.from({ length: count }, (_, index) => {
+    const indexes = circularPagerIndexes(this._index, count);
+    const dots = indexes.map((index, position) => {
       const button = document.createElement("button");
-      button.className = `dot${index === this._index ? " active" : ""}`;
+      const edge = indexes.length === 3 && position !== 1 ? " edge" : "";
+      button.className = `dot${index === this._index ? " active" : ""}${edge}`;
       button.setAttribute("aria-label", copy(this, "Apri telecamera {p0}", { p0: index + 1 }));
       button.title = copy(this, "Apri telecamera {p0}", { p0: index + 1 });
       if (index === this._index) button.setAttribute("aria-current", "true");
