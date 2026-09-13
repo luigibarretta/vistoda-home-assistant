@@ -52,11 +52,17 @@ export class BlinkLiveControls {
   open() {
     this.loading = setInterval(() => {
       const video = findLiveVideo(this.view.$("stage"));
-      this.view.$("live-loader").hidden = Boolean(video && video.readyState >= 2);
+      const ready = Boolean(video && video.readyState >= 2);
+      this.view.$("live-loader").hidden = ready;
+      if (ready && !this.mediaReady) {
+        this.mediaReady = true;
+        if (this.activeState) this._startTimer();
+      }
     }, 250);
     this.view.$("live-loader").hidden = false;
-    this.started = performance.now(); this.deadline = Infinity; this.interval = 30000; this.warning = 10000;
-    this.extend();
+    this.mediaReady = false; this.activeState = false;
+    this.started = null; this.deadline = Infinity; this.remainingMs = null; this.interval = 30000; this.warning = 10000;
+    this.view.$("continue").hidden = true;
     this.mobile = matchMedia("(max-width: 767px)").matches ||
       matchMedia("(pointer: coarse) and (max-height: 767px)").matches;
     if (!this.mobile) return;
@@ -66,17 +72,22 @@ export class BlinkLiveControls {
     this.view.$("mobile-live-dialog").showModal();
   }
   update(state) {
-    if (state.phase !== "active") return;
+    this.activeState = state.phase === "active";
+    if (!this.activeState) { this.view.$("continue").hidden = true; return; }
     const timing = state.sessionTiming;
     if (timing && Number.isFinite(timing.remaining_ms)) {
-      this.deadline = Math.min(this.deadline, performance.now() + Math.max(0, timing.remaining_ms));
+      this.remainingMs = Math.max(0, timing.remaining_ms);
       if (Number.isFinite(timing.continue_interval) && timing.continue_interval > 0) this.interval = timing.continue_interval * 1000;
       if (Number.isFinite(timing.continue_warning) && timing.continue_warning >= 0) this.warning = Math.min(this.interval, timing.continue_warning * 1000);
     }
-    if (!this.timer) {
-      this.extend();
-      this.timer = setInterval(() => this.tick(), 250);
-    }
+    if (this.mediaReady) this._startTimer();
+  }
+  _startTimer() {
+    if (this.timer || !this.activeState || !this.mediaReady) return;
+    this.started = performance.now();
+    this.deadline = Number.isFinite(this.remainingMs) ? this.started + this.remainingMs : Infinity;
+    this.extend();
+    this.timer = setInterval(() => this.tick(), 250);
   }
   extend() { this.promptDeadline = performance.now() + (this.interval || 30000); this.view.$("continue").hidden = true; }
   tick() {
@@ -102,6 +113,7 @@ export class BlinkLiveControls {
     clearInterval(this.loading); this.loading = null;
     this.view.$("live-loader").hidden = true;
     this.held = false; clearInterval(this.timer); this.timer = null;
+    this.mediaReady = false; this.activeState = false; this.started = null; this.remainingMs = null;
     this.view.$("continue").hidden = true;
     if (this.mobile) {
       this.mobile = false;

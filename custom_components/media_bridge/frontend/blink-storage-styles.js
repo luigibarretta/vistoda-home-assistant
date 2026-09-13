@@ -56,6 +56,18 @@ export const BLINK_STORAGE_STYLES = `
   .archive-pager { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
     gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--divider-color); }
   .archive-pager span { text-align:center; color:var(--secondary-text-color); font-size:13px; }
+  .camera-filter { position:relative; width:min(100%,320px); margin:10px 0; overflow:visible; }
+  .camera-filter > summary { min-height:44px; box-sizing:border-box; display:flex; align-items:center;
+    padding:8px 38px 8px 12px; border:1px solid var(--divider-color); border-radius:12px;
+    background:var(--secondary-background-color); cursor:pointer; list-style:none; }
+  .camera-filter > summary::-webkit-details-marker { display:none; }
+  .camera-filter > summary::after { content:"⌄"; position:absolute; right:14px; font-size:18px; }
+  .camera-filter[open] > summary::after { transform:rotate(180deg); }
+  #camera-filter-options { position:absolute; z-index:30; left:0; right:0; top:48px; display:grid;
+    max-height:260px; overflow:auto; padding:8px; border:1px solid var(--divider-color);
+    border-radius:12px; background:var(--card-background-color); box-shadow:0 12px 30px #0008; }
+  #camera-filter-options label { display:flex; align-items:center; gap:9px; min-height:44px; padding:0 6px; }
+  #camera-filter-options input { width:20px; height:20px; }
   .readonly-note { margin-top:14px; padding:11px; border-radius:12px;
     background:color-mix(in srgb,var(--primary-color) 10%,transparent); }
   dialog { width:min(460px,calc(100vw - 28px)); box-sizing:border-box; padding:0;
@@ -77,7 +89,12 @@ export const BLINK_STORAGE_STYLES = `
     .select-clip { display:none; position:absolute; right:0; top:7px; z-index:2;
       width:36px; min-height:36px; border-radius:50%; background:var(--card-background-color); }
     :host([selection-mode]) .select-clip { display:grid; }
-    :host([selection-mode]) .clip { padding-right:48px; touch-action:pan-x; }
+    :host([selection-mode]) .clip { touch-action:pan-x; }
+    :host([selection-mode]) .clip > div:nth-child(2) { padding:0 42px 0 8px; }
+    .clip[aria-selected="true"] { padding-left:0; box-shadow:none; }
+    .clip[aria-selected="true"]::before { content:""; position:absolute; left:-10px; top:8px;
+      bottom:8px; width:3px; border-radius:3px; background:var(--primary-color); }
+    .clip-actions { flex-wrap:nowrap; gap:3px; }
     .bulk-actions { position:sticky; bottom:max(8px,env(safe-area-inset-bottom)); z-index:12;
       box-shadow:0 6px 24px #0008; }
     .archive-pager { grid-template-columns:1fr 1fr; }

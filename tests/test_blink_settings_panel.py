@@ -131,6 +131,7 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
             "blink-storage-actions.js",
             "blink-storage-template.js",
             "blink-storage-ui.js",
+            "blink-storage-filter.js",
         )
     )
     template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
@@ -140,6 +141,8 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
     assert "Riproduci" in storage and "Backup archivio Blink" in storage
     assert "media_bridge/blink/usb/backup" in storage
     assert "page_size" in storage and "Pagina" in storage
+    assert "cameras = [...this._cameraFilter]" in storage and "page_size: pageSize, cameras" in storage
+    assert 'id="camera-filter-options"' in storage
     assert "vistoda-blink-storage" in template
     assert "local_storage/delete" in storage and "local_storage/format" in storage
     assert "FORMATTA ${storage.network_id}/${storage.sync_module_id}" in storage

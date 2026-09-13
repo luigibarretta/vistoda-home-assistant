@@ -108,7 +108,8 @@ try {
               network_id: 1, sync_module_id: 2, manifest_id: 3, sync_module_serial: "TEST-1",
               sync_module_firmware: "4.5.40", sync_module_status: "online",
               status: { can_format_usb: true, can_delete_clips: true, usb_state: "active",
-                usb_storage_available_percentage: 99 },
+                usb_storage_available_percentage: 99, last_backup_completed: "2026-09-12T22:06:40Z" },
+              camera_names: ["Balcone", "Cucina", "Corridoio"],
               clips: [{ id: 4, device_name: "Elimina", created_at: 1789120800000, media_available: true }],
               pagination: { page: 1, total_pages: 1, total_items: 1 } }] };
             if (/\/recordings\/list$/.test(request.type)) {
@@ -190,7 +191,7 @@ try {
         await check(`history@${width}`);
       }
       if (provider === "blink") {
-        assert.equal(await page.locator("vistoda-blink-view .dot").count(), 5);
+        assert.equal(await page.locator("vistoda-blink-view .dot").count(), 3);
         const dot = await page.locator("vistoda-blink-view .dot").first().evaluate((element) => {
           const style = getComputedStyle(element, "::before"); return [style.width, style.height];
         });

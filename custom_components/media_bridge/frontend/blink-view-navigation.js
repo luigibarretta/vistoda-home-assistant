@@ -37,11 +37,18 @@ export const blinkViewNavigation = {
       return button;
     });
     this.$("dots").replaceChildren(...dots);
+    const direction = this._pagerDirection;
+    this._pagerDirection = 0;
+    if (direction) {
+      const className = direction > 0 ? "pager-next" : "pager-previous";
+      this.$("dots").classList.add(className);
+      setTimeout(() => this.$("dots")?.classList.remove(className), 240);
+    }
   },
 
   _move(step) {
     const count = this._cameras().length;
-    if (count) this._selectCamera(wrappedIndex(this._index, step, count));
+    if (count) { this._pagerDirection = Math.sign(step); this._selectCamera(wrappedIndex(this._index, step, count)); }
   },
 
   _selectCamera(index) {

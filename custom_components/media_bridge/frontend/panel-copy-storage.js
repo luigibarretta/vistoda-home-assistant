@@ -14,6 +14,8 @@ export const STORAGE_COPY = {
   "Lettura indice USB Blink…": "Reading Blink USB index…",
   "Archivio USB non disponibile o Sync Module senza supporto.": "USB archive unavailable or no storage attached to the Sync Module.",
   "Nessuna chiavetta USB Blink disponibile.": "No Blink USB drive available.", "{p0} clip": "{p0} clips",
+  "Tutte le telecamere": "All cameras", "{p0} telecamere selezionate": "{p0} cameras selected",
+  "Filtra per telecamera": "Filter by camera",
   "stato sconosciuto": "unknown status", "Stato USB": "USB status",
   "Spazio disponibile: {p0}%": "Available space: {p0}%", "Spazio utilizzato: {p0}%": "Storage used: {p0}%",
   "Ultimo backup Blink": "Last Blink backup", "Ultimo backup Blink: {p0}": "Last Blink backup: {p0}",

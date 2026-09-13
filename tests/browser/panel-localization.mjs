@@ -72,6 +72,22 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     assert.match(await usb.locator(".sync-module-info").textContent(), /4\.5\.40/);
     assert.match(await usb.locator(".storage-gauge").getAttribute("aria-label"), en ? /Storage used: 1%/ : /Spazio utilizzato: 1%/);
     assert.equal(await usb.locator('.module-actions button[aria-disabled="true"]').count(), 3);
+    assert.equal(await usb.locator("#camera-filter-options input").count(), 3);
+    await usb.locator("#selection-mode").click();
+    await usb.locator(".select-clip input").check();
+    const clipLayout = await usb.locator(".clip").first().evaluate((clip) => {
+      const actions = [...clip.querySelectorAll(".clip-actions button")].map((button) => button.getBoundingClientRect());
+      const marker = getComputedStyle(clip, "::before");
+      return { compact: matchMedia("(max-width:650px)").matches,
+        rows: new Set(actions.map((box) => Math.round(box.top))).size,
+        markerLeft: parseFloat(marker.left), titleLeft: clip.querySelector("strong").getBoundingClientRect().left,
+        clipLeft: clip.getBoundingClientRect().left, paddingLeft: parseFloat(getComputedStyle(clip).paddingLeft) };
+    });
+    assert.equal(clipLayout.rows, 1, "selected clip actions must remain on one row");
+    assert.ok(clipLayout.compact
+      ? clipLayout.markerLeft < 0 && clipLayout.titleLeft > clipLayout.clipLeft
+      : clipLayout.paddingLeft >= 12,
+      "selection marker must remain in its own gutter");
     assert.doesNotMatch(await usb.locator(".storage-fact").first().textContent(), /USB|Stato/,
       "compact storage facts expose the label through accessible help, not permanent mobile text");
     await usb.locator(".format-action").click();

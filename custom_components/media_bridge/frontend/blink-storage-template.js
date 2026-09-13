@@ -8,6 +8,8 @@ export const blinkStorageTemplate = (styles, listTemplate, bulkListTemplate) => 
     title="Rileggi chiavetta" data-copy-title="Rileggi chiavetta" data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink" data-copy-data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink">
     <ha-icon icon="mdi:refresh"></ha-icon><span data-copy="Rileggi chiavetta">Rileggi chiavetta</span></button></div></header>
     ${PAGE_SIZE_TEMPLATE}
+    <details class="camera-filter" id="camera-filter"><summary id="camera-filter-label"><span data-copy="Tutte le telecamere">Tutte le telecamere</span></summary>
+      <div id="camera-filter-options" role="group" aria-label="Filtra per telecamera" data-copy-aria-label="Filtra per telecamera"></div></details>
     ${listTemplate}${bulkListTemplate}
     <section class="player" id="player" hidden><div class="player-head"><strong
     id="player-title"><span data-copy="Riproduzione clip">Riproduzione clip</span></strong><button class="icon-action" id="close-player"

@@ -8,29 +8,20 @@ class VistodaPageSize extends (globalThis.HTMLElement || class {}) {
     this.shadowRoot.innerHTML = `<style>
       :host { display:flex; align-items:center; gap:9px; margin:12px 0; min-width:0; }
       span { color:var(--secondary-text-color); font-size:12px; font-weight:650; }
-      div { display:inline-flex; padding:3px; border:1px solid var(--divider-color);
-        border-radius:12px; background:var(--secondary-background-color); }
-      button { min-width:44px; min-height:44px; padding:6px 9px; border:0; border-radius:9px;
-        color:var(--secondary-text-color); background:transparent; font:inherit; font-weight:700;
-        cursor:pointer; }
-      button[aria-pressed="true"] { color:#fff; background:var(--primary-color,#6246ea); }
-      button:focus-visible { outline:3px solid var(--primary-color,#6246ea); outline-offset:2px; }
-      button:disabled { opacity:.45; cursor:not-allowed; }
-      @media(max-width:420px) { :host { align-items:flex-start; flex-direction:column; }
-        div { display:grid; grid-template-columns:repeat(2,minmax(44px,1fr)); width:100%; }
-        button { min-width:44px; } }
-    </style><span id="label">Clip per pagina</span><div role="group" aria-labelledby="label"></div>`;
-    const group = this.shadowRoot.querySelector("div");
+      select { min-width:96px; min-height:44px; box-sizing:border-box; padding:8px 36px 8px 12px;
+        border:1px solid var(--divider-color); border-radius:12px; color:var(--primary-text-color);
+        background:var(--secondary-background-color); font:inherit; font-weight:700; color-scheme:dark; }
+      select:focus-visible { outline:3px solid var(--primary-color,#6246ea); outline-offset:2px; }
+      select:disabled { opacity:.45; cursor:not-allowed; }
+    </style><label for="picker"><span id="label">Clip per pagina</span></label><select id="picker"></select>`;
+    const picker = this.shadowRoot.getElementById("picker");
     for (const size of PAGE_SIZES) {
-      const button = document.createElement("button");
-      button.type = "button"; button.dataset.size = String(size); button.textContent = String(size);
-      button.addEventListener("click", () => {
-        if (this.disabled || this.value === size) return;
-        this.value = size; this.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      button.addEventListener("keydown", (event) => this._key(event, size));
-      group.append(button);
+      const option = document.createElement("option"); option.value = String(size); option.textContent = String(size);
+      picker.append(option);
     }
+    picker.addEventListener("change", () => {
+      this.value = Number(picker.value); this.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     this._render();
   }
   get value() { return this._value; }
@@ -44,24 +35,10 @@ class VistodaPageSize extends (globalThis.HTMLElement || class {}) {
     this.shadowRoot.getElementById("label").textContent = String(language || "").startsWith("it")
       ? "Clip per pagina" : "Clips per page";
   }
-  _key(event, current) {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    let index = PAGE_SIZES.indexOf(current);
-    if (event.key === "Home") index = 0;
-    else if (event.key === "End") index = PAGE_SIZES.length - 1;
-    else index = (index + (event.key === "ArrowRight" ? 1 : -1) + PAGE_SIZES.length) % PAGE_SIZES.length;
-    const next = PAGE_SIZES[index]; this.value = next;
-    this.shadowRoot.querySelector(`[data-size="${next}"]`).focus();
-    this.dispatchEvent(new Event("change", { bubbles: true }));
-  }
   _render() {
     if (!this.shadowRoot) return;
-    for (const button of this.shadowRoot.querySelectorAll("button")) {
-      const active = Number(button.dataset.size) === this._value;
-      button.setAttribute("aria-pressed", String(active));
-      button.tabIndex = active ? 0 : -1; button.disabled = this._disabled;
-    }
+    const picker = this.shadowRoot.getElementById("picker");
+    picker.value = String(this._value); picker.disabled = this._disabled;
   }
 }
 

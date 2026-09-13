@@ -6,7 +6,7 @@ export const PROVIDER_LIST_TEMPLATE = `
       <span><span data-copy="Gestisci liste">Gestisci liste</span></span><span class="count" id="manage-count">0</span></button></div>
   <form class="list-form" id="list-form" hidden><input id="list-name" maxlength="64"
     autocomplete="off" placeholder="Nome della lista" data-copy-placeholder="Nome della lista" aria-label="Nome della nuova lista" data-copy-aria-label="Nome della nuova lista">
-    <button type="submit"><span data-copy="Crea">Crea</span></button><button type="button" id="cancel-list"><span data-copy="Annulla">Annulla</span></button></form>
+    <button type="submit" class="list-icon" aria-label="Crea" title="Crea" data-copy-aria-label="Crea" data-copy-title="Crea"><ha-icon icon="mdi:check"></ha-icon></button><button type="button" class="list-icon" id="cancel-list" aria-label="Annulla" title="Annulla" data-copy-aria-label="Annulla" data-copy-title="Annulla"><ha-icon icon="mdi:close"></ha-icon></button></form>
   <section class="list-manager" id="list-manager" hidden><div class="muted" id="list-empty">
     <span data-copy="Non hai ancora creato liste.">Non hai ancora creato liste.</span></div><div id="list-items"></div></section>`;
 

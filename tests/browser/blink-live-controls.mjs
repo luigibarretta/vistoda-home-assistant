@@ -70,6 +70,8 @@ try {
         assert.equal(await stage.locator("#rotate").getAttribute("data-rotation"), "rotate");
         assert.match(await stage.locator("#legacy-live").getAttribute("style"), /rotate\(90deg\)/);
         assert.equal(await stage.locator("#live-loader").isVisible(), true);
+        assert.equal(await stage.locator("#continue").isVisible(), false,
+          "Continue must not run while live media is still loading");
         assert.equal(await stage.locator("#live-message").isVisible(), false);
         await stage.locator("#live-debug").click();
         assert.equal(await stage.locator("#live-message").isVisible(), true);
@@ -85,6 +87,9 @@ try {
         await mic.focus(); await page.keyboard.down("Space"); await page.keyboard.up("Space");
         assert.deepEqual(await page.evaluate(() => actions.slice(-2)), ["talk", "release"]);
         await page.evaluate(() => {
+          view._liveControls.mediaReady = true;
+          view._liveControls.activeState = true;
+          view._liveControls._startTimer();
           view._liveControls.promptDeadline = performance.now() + 1000;
           view._liveControls.tick();
         });

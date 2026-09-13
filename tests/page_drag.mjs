@@ -25,6 +25,7 @@ test("vertical scroll, controls and mismatched pointers never navigate", () => {
   const view = { $: () => node };
   const start = { pointerId: 1, clientX: 0, clientY: 0, composedPath: () => [] };
   assert.equal(dragStart(view, { ...start, composedPath: () => [{ localName: "button" }] }), false);
+  assert.equal(dragStart(view, { ...start, composedPath: () => [{ id: "recording-section" }] }), false);
   dragStart(view, start);
   dragMove(view, { ...start, pointerId: 2, clientX: 60 });
   assert.equal(node.style.transform, "");

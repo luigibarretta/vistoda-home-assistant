@@ -1,9 +1,11 @@
-// Shared snapshot-page gesture feedback. Controls and live players never move.
-const target = (view) => view.$("snapshot");
+// Shared camera-page gesture feedback. The whole camera card follows the finger.
+const target = (view) => view.$("gallery") || view.$("snapshot");
 const reduced = () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 export function dragStart(view, event) {
-  if (event.button > 0 || (event.composedPath?.() || []).some((node) =>
-    ["button", "input", "a", "video"].includes(node.localName))) return false;
+  const path = event.composedPath?.() || [];
+  if (event.button > 0 || path.some((node) =>
+    ["button", "input", "select", "a", "video", "summary"].includes(node.localName) ||
+      node.id === "recording-section" || node.localName === "vistoda-provider-recordings")) return false;
   target(view)?.getAnimations?.().forEach((animation) => animation.cancel());
   view._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
   return true;
@@ -17,8 +19,8 @@ export function dragMove(view, event) {
   }
   if (!start.horizontal && Math.abs(dx) < 12) return;
   start.horizontal = true;
-  const stage = view.$("stage");
-  if (event.isTrusted) stage.setPointerCapture?.(event.pointerId);
+  const card = target(view);
+  if (event.isTrusted) card?.setPointerCapture?.(event.pointerId);
   if (!reduced()) target(view).style.transform = `translateX(${dx}px)`;
 }
 export function dragReset(view, step = 0) {

@@ -1,6 +1,6 @@
 # Blink live controls
 
-Requires Vistoda HA 0.31.0 and Blink 0.17.0 for the complete control contract.
+Requires Vistoda HA 0.31.4 and Blink 0.17.1 for the complete control contract.
 
 The mobile refinement adds a loading spinner over the HA player placeholder,
 a compact 44 px-high hold-to-talk control with status outside the finger area, and shared
@@ -65,7 +65,7 @@ Audio controls never change volume, motion, privacy or alarm settings.
 
 ## Italiano
 
-Il contratto completo richiede Vistoda HA 0.31.0 e Blink 0.17.0.
+Il contratto completo richiede Vistoda HA 0.31.4 e Blink 0.17.1.
 
 Il miglioramento mobile aggiunge uno spinner sopra il placeholder del player HA,
 un pulsante premi-per-parlare compatto alto 44 px con stato fuori dall'area coperta dal dito,

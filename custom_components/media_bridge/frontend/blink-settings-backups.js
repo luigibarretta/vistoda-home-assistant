@@ -8,7 +8,7 @@ class VistodaBlinkSettingsBackups extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${BASE_STYLES}
       :host{display:block;margin-top:14px}details{border-top:1px solid var(--divider-color)}
       summary{display:flex;align-items:center;gap:9px;min-height:48px;cursor:pointer;font-weight:750}
-      summary ha-icon{color:var(--primary-color)}.create{display:flex;gap:8px;flex-wrap:wrap;margin:5px 0 12px}
+      summary ha-icon{color:var(--primary-color)}summary .chevron{margin-left:auto;color:var(--secondary-text-color);transition:transform .18s ease}details[open] summary .chevron{transform:rotate(180deg)}.create{display:flex;gap:8px;flex-wrap:wrap;margin:5px 0 12px}
       input{flex:1;min-width:180px;padding:9px 11px;border:1px solid var(--divider-color);border-radius:11px;
         color:var(--primary-text-color);background:var(--secondary-background-color);font:inherit}.list{display:grid;gap:8px}
       .backup{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px;
@@ -16,7 +16,7 @@ class VistodaBlinkSettingsBackups extends HTMLElement {
         color:var(--secondary-text-color)}.actions{display:flex;gap:6px}.actions button{width:42px;min-width:42px;padding:8px}
       #status{min-height:20px;margin-top:8px}@media(max-width:520px){.backup{grid-template-columns:1fr}
         .actions{justify-content:flex-end}.create>*{flex:1 1 100%}}
-    </style><details><summary><ha-icon icon="mdi:backup-restore"></ha-icon><span data-copy="Backup impostazioni telecamere">Backup impostazioni telecamere</span></summary>
+    </style><details><summary><ha-icon icon="mdi:backup-restore"></ha-icon><span data-copy="Backup impostazioni telecamere">Backup impostazioni telecamere</span><ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon></summary>
       <p class="muted" data-copy="Salva insieme le impostazioni di tutte le telecamere Blink e ripristina una versione precedente.">Salva insieme le impostazioni di tutte le telecamere Blink e ripristina una versione precedente.</p>
       <form class="create" id="create"><input id="name" maxlength="64" autocomplete="off" placeholder="Nome backup" data-copy-placeholder="Nome backup"
         aria-label="Nome backup" data-copy-aria-label="Nome backup"><button class="primary" id="save"><ha-icon icon="mdi:content-save-outline"></ha-icon><span data-copy="Crea backup">Crea backup</span></button></form>

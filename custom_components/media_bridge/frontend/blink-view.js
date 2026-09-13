@@ -62,10 +62,10 @@ class VistodaBlinkView extends HTMLElement {
       this._liveSession?.stop(); this._detailOpen = true; this._render();
     });
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
-    this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
-    this.$("stage").addEventListener("pointerup", (event) => this._finishSwipe(event));
-    this.$("stage").addEventListener("pointermove", (event) => this._dragSwipe(event));
-    this.$("stage").addEventListener("pointercancel", () => this._cancelSwipe());
+    this.$("gallery").addEventListener("pointerdown", (event) => this._startSwipe(event));
+    this.$("gallery").addEventListener("pointerup", (event) => this._finishSwipe(event));
+    this.$("gallery").addEventListener("pointermove", (event) => this._dragSwipe(event));
+    this.$("gallery").addEventListener("pointercancel", () => this._cancelSwipe());
     this.$("snapshot").draggable = false;
     this.$("snapshot").addEventListener("error", (event) => {
       this._failedImage = event.currentTarget.src;

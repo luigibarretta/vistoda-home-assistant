@@ -7,6 +7,7 @@ import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { blinkStorageActions } from "./blink-storage-actions.js";
 import { blinkStorageUi } from "./blink-storage-ui.js";
+import { blinkStorageFilter } from "./blink-storage-filter.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import { MobileCardSelection } from "./mobile-card-selection.js";
@@ -17,6 +18,7 @@ class VistodaBlinkStorage extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._storages = []; this._busy = false; this._loaded = false;
     this._page = 1; this._pageSize = 10; this._selected = new Set();
+    this._cameraFilter = new Set(); this._cameraNames = [];
     this._listManager = new ProviderRecordingListManager(this);
     this._bulkListManager = new ProviderRecordingBulkLists(this, this._listManager,
       () => [...this._selected].map((id) => `usb:${id}`));
@@ -62,9 +64,9 @@ class VistodaBlinkStorage extends HTMLElement {
     this._render();
   }
 
-  async _fetch(page, pageSize = this._pageSize) {
+  async _fetch(page, pageSize = this._pageSize, cameras = [...this._cameraFilter]) {
     return this._hass.callWS({ type: "blink_live_bridge/local_storage/list",
-      page, page_size: pageSize });
+      page, page_size: pageSize, cameras });
   }
 
   async reload() {
@@ -73,6 +75,9 @@ class VistodaBlinkStorage extends HTMLElement {
     try {
       const result = await this._fetch(this._page);
       this._storages = Array.isArray(result.storages) ? result.storages : [];
+      this._cameraNames = [...new Set(this._storages.flatMap((storage) => storage.camera_names || []))]
+        .sort((left, right) => left.localeCompare(right, this._hass?.locale?.language));
+      for (const name of [...this._cameraFilter]) if (!this._cameraNames.includes(name)) this._cameraFilter.delete(name);
       this._loaded = true; this._setMessage("");
     } catch (_error) {
       this._setMessage(copy(this, "Archivio USB non disponibile o Sync Module senza supporto."));
@@ -83,6 +88,7 @@ class VistodaBlinkStorage extends HTMLElement {
     if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("reload").disabled = this._busy || !this._hass;
     renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._hass?.locale?.language);
+    this._renderCameraFilter();
     this.$("backup-all").disabled = this._busy || !this._hass;
     const nodes = this._storages.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {
@@ -234,7 +240,7 @@ class VistodaBlinkStorage extends HTMLElement {
   }
 }
 
-Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions, blinkStorageUi);
+Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions, blinkStorageUi, blinkStorageFilter);
 
 if (!customElements.get("vistoda-blink-storage")) {
   customElements.define("vistoda-blink-storage", VistodaBlinkStorage);

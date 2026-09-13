@@ -56,14 +56,14 @@ export const blinkStorageActions = {
     if (!this._hass || this._busy) return;
     this._busy = true; this._render();
     try {
-      const first = await this._fetch(1, 50); const storages = first.storages || [];
+      const first = await this._fetch(1, 50, []); const storages = first.storages || [];
       const total = storages.reduce((sum, item) => sum + (item.pagination?.total_items || 0), 0);
       if (!total) { this._setMessage(copy(this, "Nessuna clip Blink da copiare.")); return; }
       if (!globalThis.confirm(copy(this, "Copiare e verificare {p0} clip Blink sul backup NFS?", { p0: total }))) return;
       const pages = Math.max(1, ...storages.map((item) => item.pagination?.total_pages || 1));
       let completed = 0;
       for (let page = 1; page <= pages; page += 1) {
-        const batch = page === 1 ? first : await this._fetch(page, 50);
+        const batch = page === 1 ? first : await this._fetch(page, 50, []);
         for (const storage of batch.storages || []) {
           for (const clip of (storage.clips || []).filter((item) => item.media_available)) {
             await this._backup(storage, clip, true); completed += 1;
