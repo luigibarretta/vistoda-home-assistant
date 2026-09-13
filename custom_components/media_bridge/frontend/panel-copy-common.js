@@ -22,6 +22,8 @@ export const COMMON_COPY = {
   "Telecamere": "Cameras", "Batteria": "Battery", "Temperatura": "Temperature", "Ingresso": "Entrance",
   "Dettaglio camera": "Camera details", "Apri live": "Open live video", "Chiudi live": "Close live video",
   "Attiva audio": "Enable audio", "Disattiva audio": "Disable audio",
+  "Ruota visualizzazione": "Rotate view",
+  "Telecamere Ring": "Ring cameras",
   "Attiva microfono": "Enable microphone", "Disattiva microfono": "Disable microphone",
   "Attivata": "Enabled", "Disattivata": "Disabled", "Automatica": "Automatic",
   "Attivo": "Enabled", "Disattivo": "Disabled", "attiva": "enabled", "disattiva": "disabled",

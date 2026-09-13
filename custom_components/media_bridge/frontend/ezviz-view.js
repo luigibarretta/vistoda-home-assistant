@@ -2,13 +2,13 @@ import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import { ezvizViewNavigation } from "./ezviz-view-navigation.js";
+import { CameraLiveDialog } from "./camera-live-dialog.js";
 import "./provider-recordings.js";
 import "./system-arm-control.js";
 import {
   devicesWithDomain,
   entityState,
   firstEntity,
-  openMoreInfo,
   pictureUrl,
   setText,
   snapshotTimeText,
@@ -191,7 +191,8 @@ class VistodaEzvizView extends HTMLElement {
   }
 
   _openLive() {
-    openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")?.entity_id);
+    this._liveDialog ||= new CameraLiveDialog(this);
+    this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")?.entity_id);
   }
 
   async _refresh() {

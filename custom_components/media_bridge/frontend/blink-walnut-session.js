@@ -2,6 +2,7 @@ import { WalnutMicrophone } from "./blink-walnut-microphone.js";
 import { findLiveVideo } from "./live-fullscreen.js";
 import { copy } from "./panel-copy.js";
 import { blinkAudioError } from "./blink-audio-errors.js";
+import { setPlayerMuted } from "./live-speaker.js";
 
 // Voice-only companion to the existing HA player. It never replaces the video.
 export class BlinkWalnutSession {
@@ -70,7 +71,7 @@ export class BlinkWalnutSession {
 
   async toggleSpeaker() {
     const video = this.video; if (!video) return;
-    this.speaker = !this.speaker;
+    this.speaker = this.capture ? !this.speaker : video.muted || video.volume === 0;
     if (this.capture) this.restoreMuted = !this.speaker;
     if (!this.capture || this.duplex) await this._applySpeaker();
     this._state();
@@ -79,12 +80,12 @@ export class BlinkWalnutSession {
   async _applySpeaker() {
     const video = this.video; if (!video) return;
     const generation = this.generation;
-    video.muted = !this.speaker;
+    setPlayerMuted(this.host, !this.speaker);
     if (this.speaker) {
       try { await video.play(); }
       catch {
         if (generation !== this.generation || this.video !== video || this.closed) return;
-        video.muted = true; this.speaker = false;
+        setPlayerMuted(this.host, true); this.speaker = false;
         this.message = copy(this, "Il browser ha bloccato l’audio automatico. Premi Attiva audio per ascoltare.");
       }
     }

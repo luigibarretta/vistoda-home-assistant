@@ -63,6 +63,7 @@ export const blinkViewLive = {
       this._liveState.microphoneSupported === true);
     this._liveControls?.update(this._liveState);
     this.$("fullscreen").hidden = !connected && !this._liveControls?.mobile;
+    this.$("rotate").hidden = !connected;
     if (this._liveControls?.mobile) {
       this.$("fullscreen").title = copy(this, "Chiudi live");
       this.$("fullscreen").setAttribute("aria-label", copy(this, "Chiudi live"));

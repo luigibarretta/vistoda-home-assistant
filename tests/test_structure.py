@@ -205,7 +205,7 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     assert "await this.waitForIce(pc)" in live and "OFFER_ICE_HEADSTART_MS" not in live
     assert "Aggiorna snapshot" in blink_template
     assert "SceneTrove" in ezviz and "standalone e separato" in ezviz
-    assert 'openMoreInfo(this, firstEntity(this._cameraDevice(), "camera")' in ezviz
+    assert 'this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")' in ezviz
     assert "api_token" not in blink + ezviz
 
 

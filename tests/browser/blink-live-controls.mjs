@@ -58,7 +58,12 @@ try {
         }
         const mic = stage.locator("#microphone");
         const micBox = await mic.boundingBox();
-        assert.ok(micBox.width >= 76 && micBox.height >= 76, JSON.stringify(micBox));
+        assert.ok(micBox.width >= 100 && micBox.height >= 44 && micBox.height <= 64, JSON.stringify(micBox));
+        await stage.locator("#rotate").click();
+        assert.equal(await stage.locator("#rotate").getAttribute("aria-pressed"), "true");
+        assert.match(await stage.locator("#legacy-live").getAttribute("style"), /rotate\(90deg\)/);
+        await stage.locator("#rotate").click();
+        assert.equal(await stage.locator("#rotate").getAttribute("aria-pressed"), "false");
         assert.equal(await stage.locator("#live-loader").isVisible(), true);
         assert.equal(await stage.locator("#talk-status").isVisible(), true);
         await mic.focus(); await page.keyboard.down("Space"); await page.keyboard.up("Space");
@@ -85,6 +90,27 @@ try {
         assert.match(await stage.locator("#live-message").textContent(), /Snapshot not updated/);
         assert.doesNotMatch(await stage.locator("#live-message").textContent(), /502/);
         await page.evaluate(() => view._liveControls.close());
+        const sharedViewer = await page.evaluate(async () => {
+          const { CameraLiveDialog } = await import("/camera-live-dialog.js");
+          const host = document.createElement("div"); host.attachShadow({ mode:"open" }); document.body.append(host);
+          const requested = [];
+          window.loadCardHelpers = async () => ({ createCardElement: async config => {
+            requested.push(config.entity); const card = document.createElement("div");
+            card.append(document.createElement("video")); return card;
+          } });
+          const viewer = new CameraLiveDialog(host);
+          await viewer.open({ states:{ "camera.ezviz": { attributes:{} } }, locale:{language:"en"} }, "camera.ezviz");
+          const dialog = viewer.dialog; const root = dialog.firstElementChild.shadowRoot;
+          root.getElementById("rotate").click();
+          const rotated = root.getElementById("rotate").getAttribute("aria-pressed") === "true";
+          root.getElementById("close").click();
+          const closed = !dialog.isConnected && viewer.timer === null;
+          await viewer.open({ states:{ "camera.ring": { attributes:{} } }, locale:{language:"en"} }, "camera.ring");
+          viewer.close(); host.remove();
+          return { requested, rotated, closed };
+        });
+        assert.deepEqual(sharedViewer.requested, ["camera.ezviz", "camera.ring"]);
+        assert.equal(sharedViewer.rotated, true); assert.equal(sharedViewer.closed, true);
         const alarm = await page.evaluate(async () => {
           const control = document.createElement("vistoda-system-arm-control"); document.body.append(control);
           const calls = []; const toasts = [];

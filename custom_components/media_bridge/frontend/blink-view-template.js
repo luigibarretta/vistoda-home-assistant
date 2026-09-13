@@ -9,10 +9,13 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     z-index:4; color:#fff; background:#181818e8; padding:6px 10px; border-radius:8px; font-size:13px; }
   #continue { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:6; }
   #microphone { touch-action:none; user-select:none; -webkit-user-select:none;
-    flex:0 0 76px; min-width:76px; width:76px; min-height:76px; height:76px; border:2px solid #fff; }
-  #microphone ha-icon { --mdc-icon-size:32px; }
-  #microphone[aria-pressed="true"] { box-shadow:0 0 0 8px #00bcd466; }
-  #talk-status { position:absolute; bottom:112px; left:12px; right:12px; z-index:5;
+    flex:0 1 auto; min-width:108px; width:auto; max-width:calc(100% - 104px);
+    min-height:44px; height:auto; border:2px solid #fff; border-radius:24px; gap:8px; padding:8px 14px; }
+  #microphone ha-icon { --mdc-icon-size:24px; flex-shrink:0; }
+  #microphone span { position:static; width:auto; height:auto; margin:0; overflow:visible;
+    clip-path:none; white-space:normal; line-height:1.2; font-size:13px; }
+  #microphone[aria-pressed="true"] { box-shadow:0 0 0 4px #00bcd466; }
+  #talk-status { position:absolute; bottom:88px; left:12px; right:12px; z-index:5;
     text-align:center; color:#fff; background:#181818e8; border-radius:12px; padding:10px;
     pointer-events:none; }
   #live-loader { position:absolute; inset:0; z-index:3; display:grid; place-items:center; background:#000; }
@@ -46,6 +49,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #fullscreen { position:absolute; top:max(8px, env(safe-area-inset-top));
     right:max(8px, env(safe-area-inset-right)); z-index:5; width:44px; height:44px;
     padding:8px; min-width:44px; background:#181818; color:#fff; }
+  #rotate { position:absolute; right:8px; top:64px; z-index:5;
+    width:44px; height:44px; min-width:44px; padding:8px; background:#181818; color:#fff; }
 </style>
 <section class="card system" id="system"><div class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
@@ -66,6 +71,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     <button id="fullscreen" hidden aria-label="Schermo intero" title="Schermo intero"
       data-copy-aria-label="Schermo intero" data-copy-title="Schermo intero" aria-pressed="false">
       <ha-icon icon="mdi:fullscreen"></ha-icon></button>
+    <button id="rotate" hidden aria-label="Ruota visualizzazione" title="Ruota visualizzazione" aria-pressed="false"
+      data-copy-aria-label="Ruota visualizzazione" data-copy-title="Ruota visualizzazione"><ha-icon icon="mdi:screen-rotation"></ha-icon></button>
     <div class="stage-actions"><button class="primary" id="live" title="Apri live">
       <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span data-copy="Apri live">Apri live</span></button>
       <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera" data-i18n-title="refreshSnapshot">

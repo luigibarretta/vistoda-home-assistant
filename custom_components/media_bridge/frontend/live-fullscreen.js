@@ -1,9 +1,11 @@
 // Keep the current player mounted: entering fullscreen must not restart a stream.
 export function findLiveVideo(root) {
-  if (root?.hidden) return null;
+  if (!root || root.hidden || root.classList?.contains("hidden")) return null;
   if (root?.localName === "video") return root;
+  const nested = findLiveVideo(root?.shadowRoot);
+  if (nested) return nested;
   for (const child of root?.children || []) {
-    const video = findLiveVideo(child.shadowRoot) || findLiveVideo(child);
+    const video = findLiveVideo(child);
     if (video) return video;
   }
   return null;

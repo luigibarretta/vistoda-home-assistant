@@ -1,10 +1,13 @@
 import { copy } from "./panel-copy.js";
 import { findLiveVideo } from "./live-fullscreen.js";
+import { LiveRotation } from "./live-rotation.js";
 
 // A viewer owns its overlay and timers, never another viewer's shared publisher.
 export class BlinkLiveControls {
   constructor(view) {
     this.view = view; this.held = false; this.deadline = Infinity;
+    this.rotation = new LiveRotation(view.$("stage"),
+      [view.$("live-video"), view.$("legacy-live")], view.$("rotate"));
     const button = view.$("microphone");
     const release = () => {
       if (!this.held) return;
@@ -86,6 +89,7 @@ export class BlinkLiveControls {
     this.view._renderLive(); this.view._showImage(Boolean(this.view.$("snapshot").src));
   }
   reset() {
+    this.rotation.reset();
     clearInterval(this.loading); this.loading = null;
     this.view.$("live-loader").hidden = true;
     this.held = false; clearInterval(this.timer); this.timer = null;
@@ -98,6 +102,7 @@ export class BlinkLiveControls {
     }
   }
   dispose() {
+    this.rotation.dispose();
     this.release(); this.reset(); document.removeEventListener("visibilitychange", this.visibility);
     window.removeEventListener("blur", this.release); window.removeEventListener("pagehide", this.release);
   }

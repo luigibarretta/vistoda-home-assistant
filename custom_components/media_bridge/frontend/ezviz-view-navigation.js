@@ -37,6 +37,7 @@ export const ezvizViewNavigation = {
       devicesWithDomain(this._info, "ezviz", "camera")[index], "camera",
     )?.entity_id || "";
     if (cameraId === this._selectedCameraId) return;
+    this._liveDialog?.close();
     this._cameraGeneration += 1; this._cameraIndex = index; this._selectedCameraId = cameraId;
     this._snapshotPending = false; this._imageUrl = ""; this._imageState = "empty";
     this._render();
@@ -55,6 +56,7 @@ export const ezvizViewNavigation = {
 
   _dragSwipe(event) { dragMove(this, event); },
   _cancelSwipe() { dragReset(this); },
+  disconnectedCallback() { this._liveDialog?.close(); },
 
   _finishSwipe(event) {
     const start = this._swipeStart;
