@@ -6,6 +6,7 @@ import "./provider-recordings.js";
 import "./system-arm-control.js";
 import { blinkViewLive } from "./blink-view-live.js";
 import { BlinkLiveControls } from "./blink-live-controls.js";
+import { LiveRecordingMenu } from "./live-recording-menu.js";
 import { blinkViewNavigation } from "./blink-view-navigation.js";
 import { BLINK_VIEW_TEMPLATE } from "./blink-view-template.js";
 import { localize, localizeElements } from "./panel-localize.js";
@@ -48,6 +49,7 @@ class VistodaBlinkView extends HTMLElement {
     this.$("fullscreen").addEventListener("click", () => this._toggleFullscreen());
     this.$("speaker").addEventListener("click", () => this._liveSession?.toggleSpeaker());
     this._liveControls = new BlinkLiveControls(this);
+    this._recordingMenu = new LiveRecordingMenu(this);
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("details").addEventListener("click", () => {

@@ -51,6 +51,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     padding:8px; min-width:44px; background:#181818; color:#fff; }
   #rotate { position:absolute; right:8px; top:64px; z-index:5;
     width:44px; height:44px; min-width:44px; padding:8px; background:#181818; color:#fff; }
+  #record-live { position:absolute; right:60px; top:64px; z-index:5;
+    width:44px; height:44px; min-width:44px; padding:8px; background:#181818; color:#fff; }
 </style>
 <section class="card system" id="system"><div class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
@@ -73,6 +75,9 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
       <ha-icon icon="mdi:fullscreen"></ha-icon></button>
     <button id="rotate" hidden aria-label="Ruota visualizzazione" title="Ruota visualizzazione" aria-pressed="false"
       data-copy-aria-label="Ruota visualizzazione" data-copy-title="Ruota visualizzazione"><ha-icon icon="mdi:screen-rotation"></ha-icon></button>
+    <button id="record-live" hidden aria-label="Registrazione live" title="Registrazione live"
+      data-copy-aria-label="Registrazione live" data-copy-title="Registrazione live" aria-expanded="false">
+      <ha-icon icon="mdi:record-rec"></ha-icon></button>
     <div class="stage-actions"><button class="primary" id="live" title="Apri live">
       <ha-icon icon="mdi:video-wireless-outline"></ha-icon><span data-copy="Apri live">Apri live</span></button>
       <button id="refresh" title="Richiedi un nuovo snapshot alla telecamera" data-i18n-title="refreshSnapshot">

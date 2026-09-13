@@ -34,8 +34,15 @@ export class BlinkLiveControls {
     const dialog = view.$("mobile-live-dialog");
     dialog.addEventListener("cancel", (event) => { event.preventDefault(); this.close(); });
     dialog.addEventListener("close", () => { if (this.mobile) this.close(); });
-    this.visibility = () => { if (document.hidden && this.mobile) this.close(); };
+    this.visibility = () => { if (document.hidden) this.close(); };
     document.addEventListener("visibilitychange", this.visibility);
+    this.leave = () => {
+      if (!["/vistoda/blink", "/vistoda-blink"].includes(location.pathname.replace(/\/$/, ""))) this.close();
+    };
+    this.pagehide = () => this.close();
+    window.addEventListener("location-changed", this.leave);
+    window.addEventListener("popstate", this.leave);
+    window.addEventListener("pagehide", this.pagehide);
   }
   hold() {
     if (this.held) return;
@@ -89,6 +96,7 @@ export class BlinkLiveControls {
     this.view._renderLive(); this.view._showImage(Boolean(this.view.$("snapshot").src));
   }
   reset() {
+    this.view._recordingMenu?.close();
     this.rotation.reset();
     clearInterval(this.loading); this.loading = null;
     this.view.$("live-loader").hidden = true;
@@ -105,5 +113,8 @@ export class BlinkLiveControls {
     this.rotation.dispose();
     this.release(); this.reset(); document.removeEventListener("visibilitychange", this.visibility);
     window.removeEventListener("blur", this.release); window.removeEventListener("pagehide", this.release);
+    window.removeEventListener("location-changed", this.leave);
+    window.removeEventListener("popstate", this.leave);
+    window.removeEventListener("pagehide", this.pagehide);
   }
 }

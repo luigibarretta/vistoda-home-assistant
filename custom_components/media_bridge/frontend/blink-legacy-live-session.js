@@ -1,5 +1,6 @@
 import { copy } from "./panel-copy.js";
 import { loadHaCardHelpers } from "./ha-card-helpers.js";
+import { stopLiveMedia } from "./stop-live-media.js";
 export class BlinkLegacyLiveSession {
   constructor(hass, host) {
     this._hass = hass;
@@ -39,6 +40,7 @@ export class BlinkLegacyLiveSession {
 
   stop() {
     ++this.request;
+    stopLiveMedia(this.host);
     this.card = null;
     this.host.replaceChildren();
     this.host.hidden = true;

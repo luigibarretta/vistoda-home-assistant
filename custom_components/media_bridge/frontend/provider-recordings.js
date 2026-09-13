@@ -118,6 +118,14 @@ class VistodaProviderRecordings extends HTMLElement {
     this._pagination.page = page; this.$("player").close(); await this.reload();
   }
 
+  async startRecording(duration) {
+    if (![15, 30, 60].includes(duration) || this._busy || !this._config) return "";
+    this.$("duration").value = String(duration);
+    this._setMessage("");
+    await this._start();
+    return this.$("message").textContent;
+  }
+
   _message(action, config = this._config) { return recordingCommand(config, action); }
 
   _requestContext() {

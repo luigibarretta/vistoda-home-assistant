@@ -38,6 +38,7 @@ try {
           }, hassUrl: (path) => path,
           callWS: async (request) => {
             if (request.type === "call_service") actions.push("snapshot");
+            if (request.type.endsWith("recordings/create")) actions.push(`record:${request.duration_seconds}`);
             return { recordings: [], lists: [], storages: [] };
           },
           callService: async () => { actions.push("snapshot"); },
@@ -67,6 +68,15 @@ try {
         assert.equal(await stage.locator("#rotate").getAttribute("aria-pressed"), "false");
         assert.equal(await stage.locator("#live-loader").isVisible(), true);
         assert.equal(await stage.locator("#talk-status").isVisible(), true);
+        await stage.locator("#record-live").click();
+        assert.equal(await stage.locator('option[value="usb"]').isDisabled(), true);
+        assert.equal(await stage.locator('select#duration').inputValue(), "30");
+        page.once("dialog", dialog => dialog.accept());
+        await stage.locator("#start").click();
+        await page.waitForFunction(() => actions.includes("record:30"));
+        await page.waitForFunction(() => !view._recordingMenu.root.getElementById("start").disabled);
+        await stage.locator('select#duration').focus();
+        await page.keyboard.press("Escape");
         await mic.focus(); await page.keyboard.down("Space"); await page.keyboard.up("Space");
         assert.deepEqual(await page.evaluate(() => actions.slice(-2)), ["talk", "release"]);
         await page.evaluate(() => {
@@ -75,8 +85,11 @@ try {
         });
         await stage.locator("#continue").click();
         assert.ok(await page.evaluate(() => view._liveControls.promptDeadline - performance.now() > 28000));
-        if (width < 768) await page.keyboard.press("Escape");
-        else await stage.locator("#live").click();
+        // HA can retain the panel in DOM while navigation changes its route.
+        await page.evaluate(() => {
+          history.pushState(null, "", "/vistoda");
+          window.dispatchEvent(new Event("location-changed"));
+        });
         await page.waitForFunction(() => view._liveSession === null);
         assert.equal(await page.locator("#mobile-live-dialog").evaluate((node) => node.open), false);
         assert.equal(await page.locator("#gallery #stage").count(), 1);

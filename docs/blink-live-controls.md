@@ -3,7 +3,7 @@
 Requires Vistoda HA 0.29.0 and Blink 0.16.0 for the complete control contract.
 
 The mobile refinement adds a loading spinner over the HA player placeholder,
-a 76 px hold-to-talk target with status outside the finger area, and shared
+a compact 44 px-high hold-to-talk control with status outside the finger area, and shared
 Blink/EZVIZ drag feedback (disabled for reduced-motion preferences). A failed
 opening snapshot displays a separate warning; it is not a failed live session.
 
@@ -24,6 +24,13 @@ Close or Back/Escape ends that viewer's session and restores the snapshot.
 Desktop keeps inline playback and optional browser fullscreen. Closing desktop
 fullscreen alone does not stop playback. Other viewers retain their sessions;
 HA Stream may retain its shared source briefly after the last viewer leaves.
+
+From HA 0.30.3, leaving the Blink route or hiding the app stops that viewer,
+even when HA keeps the panel cached. Teardown explicitly pauses media and
+releases receiving tracks. Continue does not override navigation cleanup.
+The floating recording button opens duration and destination controls using
+the same local archive action. USB is visibly disabled: direct live recording
+to the Sync Module drive is not implemented, and local recording is not USB.
 
 Camera audio is enabled by default where the browser permits it. If autoplay
 with sound is blocked, use the speaker button. Opening live never requests
@@ -61,7 +68,7 @@ Audio controls never change volume, motion, privacy or alarm settings.
 Il contratto completo richiede Vistoda HA 0.29.0 e Blink 0.16.0.
 
 Il miglioramento mobile aggiunge uno spinner sopra il placeholder del player HA,
-un pulsante premi-per-parlare da 76 px con stato fuori dall'area coperta dal dito,
+un pulsante premi-per-parlare compatto alto 44 px con stato fuori dall'area coperta dal dito,
 e trascinamento condiviso Blink/EZVIZ (disattivato con animazioni ridotte).
 Il fallimento dello snapshot iniziale è un avviso distinto dall'esito del live.
 
@@ -80,6 +87,13 @@ Indietro/Escape termina la sessione dello spettatore e ripristina lo snapshot.
 Sul desktop resta il live nella pagina, con fullscreen facoltativo: uscire dal
 fullscreen non lo interrompe. Gli altri spettatori restano collegati; HA Stream
 può mantenere brevemente la sorgente condivisa dopo l'ultimo spettatore.
+
+Da HA 0.30.3 uscire dalla pagina Blink o mettere l'app in background ferma
+lo spettatore anche quando HA conserva il pannello in cache. La chiusura
+mette in pausa i media e rilascia le tracce ricevute: Continua non annulla
+questa protezione. Il pulsante flottante apre durata e destinazione usando
+la stessa azione dell'archivio locale. USB è visibile ma disabilitato:
+la registrazione live diretta sulla chiavetta non è implementata.
 
 L'audio parte attivo se il browser lo consente; altrimenti premi l'altoparlante.
 Il microfono richiede HTTPS, autorizzazione e pressione esplicita del pulsante.
