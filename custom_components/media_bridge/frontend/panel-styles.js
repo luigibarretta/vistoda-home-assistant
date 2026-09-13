@@ -27,7 +27,7 @@ export const BASE_STYLES = `
     box-shadow:var(--ha-card-box-shadow); font-size:12px; font-weight:500; line-height:1.35;
     text-align:left; white-space:normal; opacity:0; visibility:hidden; pointer-events:none;
     transform:translateY(-3px); transition:opacity .14s ease,transform .14s ease; }
-  [data-tooltip]:hover::after, [data-tooltip]:focus-visible::after {
+  [data-tooltip]:hover::after, [data-tooltip]:focus::after {
     opacity:1; visibility:visible; transform:translateY(0); }
   .eyebrow { color:var(--primary-text-color); font-size:12px; font-weight:750;
     letter-spacing:.08em; text-transform:uppercase; }

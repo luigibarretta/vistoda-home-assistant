@@ -52,6 +52,7 @@ export const BLINK_STORAGE_STYLES = `
   .bulk-actions[hidden] { display:none !important; }
   .bulk-buttons { display:flex; align-items:center; gap:7px; margin-left:auto; }
   .format-action { width:36px; height:36px; min-width:36px; border-radius:999px; }
+  .format-action::after { left:0; right:auto; max-width:min(260px,calc(100vw - 32px)); }
   .archive-pager { display:grid; grid-template-columns:auto 1fr auto; align-items:center;
     gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--divider-color); }
   .archive-pager span { text-align:center; color:var(--secondary-text-color); font-size:13px; }

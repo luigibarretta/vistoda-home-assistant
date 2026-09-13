@@ -35,6 +35,7 @@ def test_usb_facts_are_vertically_centered_icon_labels() -> None:
     assert "_storageGauge" in storage and 'className = "storage-gauge"' in storage
     assert ".module-facts { display:flex; align-items:center" in styles
     assert ".storage-fact { display:inline-flex; align-items:center" in styles
+    assert ".format-action::after { left:0; right:auto" in styles
 
 
 def test_ezviz_and_archive_actions_keep_labels_with_icons() -> None:
