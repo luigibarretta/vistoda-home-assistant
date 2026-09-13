@@ -1,4 +1,5 @@
 import json
+import tomllib
 from pathlib import Path
 
 from scripts.check_loc import ROOT, maintained_files
@@ -18,7 +19,8 @@ def test_manifest_and_hacs_metadata_are_consistent() -> None:
     assert manifest["domain"] == "media_bridge"
     assert manifest["name"] == hacs["name"] == "Vistoda"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.29.0"
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert manifest["version"] == project["project"]["version"]
     assert f'INTEGRATION_VERSION = "{manifest["version"]}"' in constants
     assert 'STATIC_ROOT = f"/vistoda_static/{INTEGRATION_VERSION}"' in panel
     assert 'STATIC_URL = f"{STATIC_ROOT}/vistoda-panel.js"' in panel
