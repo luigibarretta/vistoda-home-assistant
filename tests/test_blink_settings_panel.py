@@ -152,6 +152,7 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
     assert '.clip[aria-selected="true"] { padding-left:12px' in (
         FRONTEND / "blink-storage-styles.js"
     ).read_text(encoding="utf-8")
+    assert "button.disabled = true" in storage
     assert "sync_module/delete" not in storage and "change_wifi" not in storage
 
 

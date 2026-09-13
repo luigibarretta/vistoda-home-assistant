@@ -19,6 +19,7 @@ export const blinkStorageUi = {
   },
   _moduleAction(icon, label, reason, danger = false) {
     const button = this._icon(icon, label, () => {}, false, danger);
+    button.disabled = true;
     button.setAttribute("aria-disabled", "true");
     button.dataset.tooltip = reason; button.removeAttribute("title"); return button;
   },
