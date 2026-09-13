@@ -33,8 +33,8 @@ def resolve(hass, entry_id):
 @websocket_api.websocket_command(
     {vol.Required("type"): "media_bridge/ring/cameras", vol.Required("entry_id"): str}
 )
-@websocket_api.async_response
 @websocket_api.require_admin
+@websocket_api.async_response
 async def inventory(hass, connection, msg):
     try:
         result = await camera.cameras(resolve(hass, msg["entry_id"]))
@@ -54,8 +54,8 @@ async def inventory(hass, connection, msg):
         vol.Required("ice_gathering_ms"): vol.All(int, vol.Range(min=0, max=60000)),
     }
 )
-@websocket_api.async_response
 @websocket_api.require_admin
+@websocket_api.async_response
 async def create(hass, connection, msg):
     sessions = hass.data.setdefault(LEDGER, {})
     # Reserve before awaiting: concurrent requests cannot bypass the global cap.
@@ -126,8 +126,8 @@ async def create(hass, connection, msg):
         vol.Optional("reason"): str,
     }
 )
-@websocket_api.async_response
 @websocket_api.require_admin
+@websocket_api.async_response
 async def delete(hass, connection, msg):
     leases = list(hass.data.get(LEDGER, {}).values())
     for lease in leases:

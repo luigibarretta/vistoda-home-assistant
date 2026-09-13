@@ -1,11 +1,14 @@
 """Camera-only accounts must never set up Intercom entities or status polling."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from homeassistant.config_entries import current_entry
+from homeassistant.exceptions import Unauthorized
 
 from custom_components import media_bridge
+from custom_components.media_bridge import ring_camera_websocket as camera_ws
 from custom_components.media_bridge.config_flow import ConfigFlow
 from custom_components.media_bridge.const import DOMAIN
 
@@ -60,3 +63,25 @@ async def test_empty_intercom_inventory_can_enroll_camera_account(hass):
     assert flow._bridge_data["ring_camera_account"] is True
     assert flow._bridge_data["alias"] == "camera-account"
     assert "ring_device_id" not in flow._bridge_data
+
+
+async def test_real_websocket_admin_guard_schedules_async_inventory(hass):
+    connection = SimpleNamespace(
+        user=SimpleNamespace(is_admin=True), send_result=Mock(), async_handle_exception=Mock()
+    )
+    with (
+        patch.object(camera_ws, "resolve", return_value=object()),
+        patch.object(camera_ws.camera, "cameras", AsyncMock(return_value=[])) as inventory,
+    ):
+        camera_ws.inventory(hass, connection, {"id": 41, "entry_id": "fixture"})
+        await hass.async_block_till_done(wait_background_tasks=True)
+    inventory.assert_awaited_once()
+    connection.send_result.assert_called_once_with(41, {"cameras": []})
+    connection.async_handle_exception.assert_not_called()
+
+
+@pytest.mark.parametrize("handler", [camera_ws.inventory, camera_ws.create, camera_ws.delete])
+async def test_real_websocket_rejects_non_admin_before_scheduling(hass, handler):
+    connection = SimpleNamespace(user=SimpleNamespace(is_admin=False))
+    with pytest.raises(Unauthorized):
+        handler(hass, connection, {"id": 41})
