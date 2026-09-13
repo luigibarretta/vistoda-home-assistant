@@ -1,5 +1,6 @@
 import { copy } from "./panel-copy.js";
 import { createRingAudioMedia } from "./ring-audio-media.js";
+import { configureRingMedia, ringSessionRequest } from "./ring-session-protocol.js";
 const STUN = "stun:stun.kinesisvideo.us-east-1.amazonaws.com:443";
 const COOLDOWN_MS = 10_500;
 
@@ -41,16 +42,7 @@ export class RingAudioSession {
         if (generation === this.generation && this.pc === pc) this.play(event, generation);
       };
       pc.onconnectionstatechange = () => this.connectionChanged(pc, generation);
-      const transceiver = pc.addTransceiver(this.localMedia.stream.getAudioTracks()[0], {
-        direction: "sendrecv",
-        streams: [this.localMedia.stream],
-      });
-      this.sender = transceiver.sender;
-      const pcmu = RTCRtpSender.getCapabilities("audio")?.codecs.filter(
-        (codec) => codec.mimeType.toLowerCase() === "audio/pcmu",
-      );
-      if (!pcmu?.length) throw new Error(copy(this, "PCMU non supportato dal browser"));
-      transceiver.setCodecPreferences(pcmu);
+      this.sender = configureRingMedia(this, pc);
       await pc.setLocalDescription(await pc.createOffer());
       if (generation !== this.generation) return;
       const iceStarted = performance.now();
@@ -59,8 +51,7 @@ export class RingAudioSession {
       const iceGatheringMs = Math.min(60_000, Math.max(0, Math.round(performance.now() - iceStarted)));
       this.onState({ phase: "connecting", mode });
       const result = await this.hass.callWS({
-        type: "media_bridge/ring/session/create",
-        entry_id: this.entry.entry_id,
+        ...ringSessionRequest(this.entry, "create"),
         offer_sdp: pc.localDescription.sdp,
         mode,
         ice_gathering_ms: iceGatheringMs,
@@ -159,7 +150,10 @@ export class RingAudioSession {
   createMedia(mode) { return createRingAudioMedia(mode, this); }
 
   async play(event, generation) {
-    this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+    if (this.entry.camera_id) {
+      this.audio.srcObject ||= new MediaStream();
+      if (!this.audio.srcObject.getTracks().includes(event.track)) this.audio.srcObject.addTrack(event.track);
+    } else this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
     this.onMedia(this.audio.srcObject, this.localMedia?.stream, this.mode || "listen");
     try { await this.audio.play(); } catch (_error) {
       if (generation !== this.generation) return;
@@ -200,8 +194,7 @@ export class RingAudioSession {
     if (!id) return;
     try {
       await this.hass.callWS({
-        type: "media_bridge/ring/session/delete",
-        entry_id: this.entry.entry_id,
+        ...ringSessionRequest(this.entry, "delete"),
         session_id: id,
         reason,
       });

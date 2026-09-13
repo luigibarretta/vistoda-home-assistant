@@ -147,8 +147,9 @@ def test_unified_panel_has_private_authenticated_boundaries() -> None:
     assert 'callService("number", "set_value"' in controls
     assert "getUserMedia" in media
     assert "replaceTrack" in session
-    assert 'direction: "sendrecv"' in session
-    assert "media_bridge/ring/session/delete" in session
+    protocol = (COMPONENT / "frontend" / "ring-session-protocol.js").read_text()
+    assert 'direction:"sendrecv"' in protocol
+    assert 'ringSessionRequest(this.entry, "delete")' in session
     assert "COOLDOWN_MS" in session
     assert "api_token" not in panel + ring_view
     assert "Authorization" not in panel + ring_view

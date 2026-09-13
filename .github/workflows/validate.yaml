@@ -102,6 +102,7 @@ jobs:
           node tests/browser/ha-card-helpers.mjs
           node tests/browser/live-fullscreen.mjs
           node tests/browser/blink-microphone.mjs
+          node tests/browser/blink-live-controls.mjs
   hassfest:
     runs-on: ubuntu-latest
     steps:

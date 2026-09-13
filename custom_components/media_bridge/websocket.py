@@ -40,6 +40,9 @@ STOP_REASONS = ("user_stop", "panel_closed", "client_expired", "connection_ended
 @callback
 def async_register(hass: HomeAssistant) -> None:
     """Register the bounded browser commands once for the integration."""
+    from .ring_camera_websocket import async_register as register_cameras
+
+    register_cameras(hass)
     async_register_panel_info(hass)
     websocket_api.async_register_command(hass, ws_ring_info)
     websocket_api.async_register_command(hass, ws_ring_start)
@@ -66,6 +69,8 @@ def ws_ring_info(
     registry = er.async_get(hass)
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.data.get(CONF_PROVIDER) != PROVIDER_RING:
+            continue
+        if entry.data.get("ring_camera_account"):
             continue
         if not can_access_entry(hass, connection.user, entry.entry_id):
             continue

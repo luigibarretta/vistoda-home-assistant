@@ -6,6 +6,7 @@ import "./ring-controls.js";
 import "./ring-recordings.js";
 import "./ring-history.js";
 import "./ring-device-identity.js";
+import "./ring-camera-gallery.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { localizeElements } from "./panel-localize.js";
 import { mountRingDeviceSelector, renderRingDeviceSelector, RING_DEVICE_SELECTOR_STYLES,
@@ -39,7 +40,10 @@ class VistodaRingView extends HTMLElement {
     if (this._audio) this._audio.hass = value;
     if (this.$?.("controls")) this.$("controls").hass = value;
     if (this.$?.("recordings")) this.$("recordings").hass = value;
+    this.$?.("cameras")?.configure(value, this._info);
   }
+
+  set info(value) { this._info = value; this.$?.("cameras")?.configure(this._hass, value); }
 
   async _mount() {
     this._mounted = true;
@@ -67,6 +71,7 @@ class VistodaRingView extends HTMLElement {
         @media (max-width:600px) { .call{padding:18px} .device{flex-wrap:wrap}
           .device-copy{flex-basis:100%} }
       </style>
+      <vistoda-ring-camera-gallery id="cameras" hidden></vistoda-ring-camera-gallery>
       <section class="card empty" id="connection-state" hidden><p id="connection-message" role="status"></p>
         <button id="retry" data-i18n="retry">Riprova</button>
         <a class="button" href="/config/integrations/dashboard" data-i18n="reconnect">Gestisci collegamento</a></section>
@@ -142,9 +147,7 @@ class VistodaRingView extends HTMLElement {
     setRingDeviceSelectorDisabled(this, false);
   }
 
-  _renderEntrySelector() {
-    renderRingDeviceSelector(this);
-  }
+  _renderEntrySelector() { renderRingDeviceSelector(this); }
 
   _renderAvailability() {
     const badge = this.$("availability");
@@ -206,9 +209,7 @@ class VistodaRingView extends HTMLElement {
     else this._audio?.start(this._answerMode ? "talk" : "listen");
   }
 
-  _toggleMicrophone() {
-    this._audio?.switchMode(this._audio.mode === "talk" ? "listen" : "talk");
-  }
+  _toggleMicrophone() { this._audio?.switchMode(this._audio.mode === "talk" ? "listen" : "talk"); }
 
   async _acknowledgeCall() {
     if (this._acknowledged || this._ackPending || !this._entry) return;

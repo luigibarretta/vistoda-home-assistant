@@ -14,6 +14,16 @@ class RingInventoryFlowMixin:
         if not getattr(self, "_ring_candidates", None):
             try:
                 inventory = await self._require_client().ring_intercoms()
+                if not inventory:
+                    from .client_ring_camera import cameras
+
+                    if await cameras(self._require_client()):
+                        self._bridge_data.update(
+                            {CONF_ALIAS: "camera-account", "ring_camera_account": True}
+                        )
+                        self._bridge_data.pop(CONF_RING_DEVICE_ID, None)
+                        self._ring_inventory_complete = True
+                        return await self._finish()
                 candidates = []
                 for item in inventory:
                     alias = item["alias"]

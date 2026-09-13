@@ -115,7 +115,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ring_status = None
     ring_events = None
     ring_history = None
-    if provider == PROVIDER_RING:
+    if provider == PROVIDER_RING and not entry.data.get("ring_camera_account"):
         from .ring_binding import async_bind_native, async_migrate_registry
         from .ring_facade import async_bind_official
 
@@ -150,7 +150,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         snapshots=snapshots,
         snapshot_updated_at=snapshot_updated_at,
     )
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if not entry.data.get("ring_camera_account"):
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if ring_history:
         entry.async_create_background_task(
             hass,
@@ -167,7 +168,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = hass.data[DOMAIN].get(entry.entry_id)
     if runtime and runtime.ring_events:
         await runtime.ring_events.stop()
-    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+    if not entry.data.get(
+        "ring_camera_account"
+    ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
+    from .ring_camera_websocket import async_close_entry
+
+    await async_close_entry(hass, entry.entry_id)
     hass.data[DOMAIN].pop(entry.entry_id, None)
     return True

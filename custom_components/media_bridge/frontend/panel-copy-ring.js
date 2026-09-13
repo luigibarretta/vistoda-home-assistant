@@ -1,4 +1,9 @@
 export const RING_COPY = {
+  "Telecamere Ring": "Ring cameras",
+  "Aggiorna elenco telecamere": "Refresh camera list",
+  "Inventario telecamere Ring non disponibile. Riprova.": "Ring camera inventory unavailable. Try again.",
+  "Supporto sperimentale: live e audio da verificare sul tuo modello Ring. Massimo 2 minuti per sessione.": "Experimental support: verify live video and audio on your Ring model. Sessions last up to 2 minutes.",
+  "H264 non supportato dal browser": "H264 is not supported by this browser",
   "Sorgente {p0}": "Source for {p0}",
   "Citofono": "Intercom", "Nome dispositivo": "Device name", "Nome Location": "Location name", "Città": "City",
   "Identità Ring": "Ring identity", "Personalizzato": "Custom", "Non impostato": "Not set",

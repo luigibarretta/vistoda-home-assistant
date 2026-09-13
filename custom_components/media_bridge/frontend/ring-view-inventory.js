@@ -2,6 +2,11 @@ import { chooseRingEntry, storedRingEntry } from "./ring-entry-selection.js";
 import { localize } from "./panel-localize.js";
 
 export async function loadRingEntry(view) {
+  if (view._cameraLoaded) view.$("cameras").removeEventListener("ring-cameras-loaded", view._cameraLoaded);
+  view._cameraLoaded = event => {
+    if (event.detail.count && !view._entry) view.$("connection-state").hidden = true;
+  };
+  view.$("cameras").addEventListener("ring-cameras-loaded", view._cameraLoaded);
   view.$("connection-state").hidden = false;
   view.$("connection-message").textContent = localize(view._hass, "loading");
   view.$("retry").disabled = true;
@@ -14,7 +19,7 @@ export async function loadRingEntry(view) {
       view._answerMode = false;
     }
     view._available = Boolean(view._entry?.available);
-    view.$("connection-state").hidden = Boolean(view._entry);
+    view.$("connection-state").hidden = Boolean(view._entry || view.$("cameras").cameras?.length);
     view.$("ring-main").hidden = !view._entry;
     if (!view._entry) view.$("connection-message").textContent = localize(view._hass, "noIntercom");
     view._renderEntrySelector();

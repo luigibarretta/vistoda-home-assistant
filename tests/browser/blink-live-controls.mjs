@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { checkRingCameras } from "./ring-camera-fixture.mjs";
 const playwright = createRequire(import.meta.url)("playwright");
 const frontend = new URL("../../custom_components/media_bridge/frontend/", import.meta.url);
 const server = createServer(async (request, response) => {
@@ -15,7 +16,7 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 try {
-  for (const engine of ["chromium", "firefox", "webkit"]) {
+  for (const engine of process.env.BROWSER_ENGINE ? [process.env.BROWSER_ENGINE] : ["chromium", "firefox", "webkit"]) {
     const browser = await playwright[engine].launch({ headless: true });
     try {
       for (const width of [390, 1280]) {
@@ -111,6 +112,7 @@ try {
         });
         assert.deepEqual(sharedViewer.requested, ["camera.ezviz", "camera.ring"]);
         assert.equal(sharedViewer.rotated, true); assert.equal(sharedViewer.closed, true);
+        await checkRingCameras(page);
         const alarm = await page.evaluate(async () => {
           const control = document.createElement("vistoda-system-arm-control"); document.body.append(control);
           const calls = []; const toasts = [];
