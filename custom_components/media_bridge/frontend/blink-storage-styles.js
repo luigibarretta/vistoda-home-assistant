@@ -28,12 +28,12 @@ export const BLINK_STORAGE_STYLES = `
   .storage-gauge::before { content:""; position:absolute; inset:7px; border-radius:50%;
     background:var(--card-background-color); }
   .storage-gauge strong { position:relative; z-index:1; font-size:12px; }
-  .module-actions { display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 10px; }
+  .module-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:7px; margin:4px 0 10px; }
   .module-actions button { width:42px; min-width:42px; padding:0; }
   .module-actions [aria-disabled="true"] { opacity:.48; cursor:not-allowed; }
   .clip { position:relative; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px;
     min-height:62px; padding:10px 0; border-top:1px solid var(--divider-color); }
-  .clip[aria-selected="true"] { box-shadow:inset 3px 0 var(--primary-color); }
+  .clip[aria-selected="true"] { padding-left:12px; box-shadow:inset 3px 0 var(--primary-color); }
   .clip strong, .clip small { display:block; }
   .clip small { margin-top:3px; color:var(--secondary-text-color); }
   .player { margin:14px 0; padding:12px; border:1px solid var(--divider-color);

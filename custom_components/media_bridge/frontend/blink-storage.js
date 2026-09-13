@@ -118,8 +118,6 @@ class VistodaBlinkStorage extends HTMLElement {
       "Firmware: {p0}", { p0: storage.sync_module_firmware || "—" });
     syncText.append(syncTitle, firmware); sync.append(syncIcon, syncText);
     const facts = document.createElement("div"); facts.className = "module-facts";
-    facts.append(this._fact("mdi:usb-flash-drive", copy(this, "Stato USB"),
-      storage.status?.usb_state || copy(this, "stato sconosciuto")));
     const used = Number.isFinite(storage.status?.usb_storage_used)
       ? storage.status.usb_storage_used
       : Number.isFinite(storage.status?.usb_storage_available_percentage)
@@ -131,11 +129,6 @@ class VistodaBlinkStorage extends HTMLElement {
       facts.append(this._fact("mdi:cloud-check-outline", copy(this, "Ultimo backup Blink"),
         this._date(storage.status.last_backup_completed)));
     }
-    if (storage.status?.can_format_usb) {
-      const format = this._icon("mdi:format-page-break", copy(this, "Formatta chiavetta"),
-        () => this._openFormat(storage), false, true);
-      format.classList.add("format-action"); format.removeAttribute("title"); facts.append(format);
-    }
     const moduleActions = document.createElement("div"); moduleActions.className = "module-actions";
     moduleActions.append(this._moduleAction("mdi:wifi-cog", copy(this, "Cambia rete Wi-Fi"),
       copy(this, "Procedura non ancora verificata: usa l’app Blink.")),
@@ -143,6 +136,12 @@ class VistodaBlinkStorage extends HTMLElement {
       copy(this, "Espulsione non ancora verificata: usa l’app Blink.")),
     this._moduleAction("mdi:delete-outline", copy(this, "Elimina Sync Module"),
       copy(this, "Rimozione non disponibile in Vistoda per proteggere la configurazione."), true));
+    if (storage.status?.can_format_usb) {
+      const format = this._icon("mdi:format-page-break", copy(this, "Formatta chiavetta"),
+        () => this._openFormat(storage), false, true);
+      format.classList.add("format-action"); format.removeAttribute("title");
+      moduleActions.append(format);
+    }
     const clips = this._listManager.filtered(storage.clips || [], (clip) => this._mediaId(storage, clip));
     const rows = clips.map((clip) => this._clip(storage, clip));
     if (!rows.length) {

@@ -145,6 +145,13 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
     assert "FORMATTA ${storage.network_id}/${storage.sync_module_id}" in storage
     assert "Spazio utilizzato:" in storage and "Spazio occupato:" not in storage
     assert "local_storage/eject" not in storage and "local_storage/mount" not in storage
+    assert 'facts.append(this._fact("mdi:usb-flash-drive"' not in storage
+    assert ".module-actions { display:flex; flex-wrap:nowrap" in (
+        FRONTEND / "blink-storage-styles.js"
+    ).read_text(encoding="utf-8")
+    assert '.clip[aria-selected="true"] { padding-left:12px' in (
+        FRONTEND / "blink-storage-styles.js"
+    ).read_text(encoding="utf-8")
     assert "sync_module/delete" not in storage and "change_wifi" not in storage
 
 
