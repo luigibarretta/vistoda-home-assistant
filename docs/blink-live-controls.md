@@ -25,7 +25,7 @@ Desktop keeps inline playback and optional browser fullscreen. Closing desktop
 fullscreen alone does not stop playback. Other viewers retain their sessions;
 HA Stream may retain its shared source briefly after the last viewer leaves.
 
-From HA 0.30.3, leaving the Blink route or hiding the app stops that viewer,
+From HA 0.30.4, leaving the Blink route or hiding the app stops that viewer,
 even when HA keeps the panel cached. Teardown explicitly pauses media and
 releases receiving tracks. Continue does not override navigation cleanup.
 The floating recording button opens duration and destination controls using
@@ -88,7 +88,7 @@ Sul desktop resta il live nella pagina, con fullscreen facoltativo: uscire dal
 fullscreen non lo interrompe. Gli altri spettatori restano collegati; HA Stream
 può mantenere brevemente la sorgente condivisa dopo l'ultimo spettatore.
 
-Da HA 0.30.3 uscire dalla pagina Blink o mettere l'app in background ferma
+Da HA 0.30.4 uscire dalla pagina Blink o mettere l'app in background ferma
 lo spettatore anche quando HA conserva il pannello in cache. La chiusura
 mette in pausa i media e rilascia le tracce ricevute: Continua non annulla
 questa protezione. Il pulsante flottante apre durata e destinazione usando
