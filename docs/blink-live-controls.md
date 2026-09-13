@@ -2,6 +2,19 @@
 
 Requires Vistoda HA 0.29.0 and Blink 0.16.0 for the complete control contract.
 
+The mobile refinement adds a loading spinner over the HA player placeholder,
+a 76 px hold-to-talk target with status outside the finger area, and shared
+Blink/EZVIZ drag feedback (disabled for reduced-motion preferences). A failed
+opening snapshot displays a separate warning; it is not a failed live session.
+
+Home Wi-Fi does not exempt microphone capture from HTTPS. In Companion's server
+connection settings, use a valid HTTPS URL for the internal connection too.
+The same hostname can work internally using local DNS and a trusted certificate.
+Vistoda cannot read or edit Companion's trusted-network/SSID preferences, nor
+override the browser secure-context requirement. Changing the HA server's URL
+alone does not rewrite a URL already saved in the phone. See
+[Companion networking](https://companion.home-assistant.io/docs/troubleshooting/networking/#setting-up-the-app).
+
 Open live requests a snapshot first, then starts video. This avoids overlapping
 provider commands; a failed snapshot does not prevent viewing. Merely opening
 the Blink page still uses the existing image, without waking a camera.
@@ -46,6 +59,19 @@ Audio controls never change volume, motion, privacy or alarm settings.
 ## Italiano
 
 Il contratto completo richiede Vistoda HA 0.29.0 e Blink 0.16.0.
+
+Il miglioramento mobile aggiunge uno spinner sopra il placeholder del player HA,
+un pulsante premi-per-parlare da 76 px con stato fuori dall'area coperta dal dito,
+e trascinamento condiviso Blink/EZVIZ (disattivato con animazioni ridotte).
+Il fallimento dello snapshot iniziale è un avviso distinto dall'esito del live.
+
+Il Wi-Fi di casa non esenta il microfono da HTTPS. Nelle impostazioni di connessione
+del server Companion usa un URL HTTPS valido anche per la connessione interna.
+Lo stesso hostname può funzionare in LAN con DNS locale e certificato attendibile.
+Vistoda non può leggere o modificare le preferenze SSID/reti fidate di Companion,
+né aggirare il requisito del browser. Modificare l'URL del server HA non riscrive
+un URL già salvato nel telefono. Consulta la
+[guida di rete Companion](https://companion.home-assistant.io/docs/troubleshooting/networking/#setting-up-the-app).
 Apri live richiede prima uno snapshot e poi avvia il video; il fallimento dello
 snapshot non impedisce il live. Entrare nella pagina non risveglia le camere.
 

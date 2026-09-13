@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { dragStart, dragMove, dragReset } from "./page-drag.js";
 import { devicesWithDomain, firstEntity, swipeStep, wrappedIndex } from "./panel-helpers.js";
 
 export const ezvizViewNavigation = {
@@ -49,8 +50,11 @@ export const ezvizViewNavigation = {
   _startSwipe(event) {
     if (event.isPrimary === false
         || devicesWithDomain(this._info, "ezviz", "camera").length < 2) return;
-    this._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    dragStart(this, event);
   },
+
+  _dragSwipe(event) { dragMove(this, event); },
+  _cancelSwipe() { dragReset(this); },
 
   _finishSwipe(event) {
     const start = this._swipeStart;
@@ -58,5 +62,6 @@ export const ezvizViewNavigation = {
     if (!start || start.id !== event.pointerId) return;
     const step = swipeStep(start, { x: event.clientX, y: event.clientY });
     if (step) this._move(step);
+    dragReset(this, step);
   },
 };

@@ -35,7 +35,10 @@ try {
           view.hass = { locale: { language: "en" }, user: { is_admin: true }, states: {
             "camera.test": { state: "idle", attributes: { alias: "test" } },
           }, hassUrl: (path) => path,
-          callWS: async () => ({ recordings: [], lists: [], storages: [] }),
+          callWS: async (request) => {
+            if (request.type === "call_service") actions.push("snapshot");
+            return { recordings: [], lists: [], storages: [] };
+          },
           callService: async () => { actions.push("snapshot"); },
           };
           view.info = { providers: { blink: { available: true, entries: [{ entry_id: "test" }],
@@ -54,6 +57,10 @@ try {
           assert.ok(box.width >= 389 && box.height >= 843, JSON.stringify(box));
         }
         const mic = stage.locator("#microphone");
+        const micBox = await mic.boundingBox();
+        assert.ok(micBox.width >= 76 && micBox.height >= 76, JSON.stringify(micBox));
+        assert.equal(await stage.locator("#live-loader").isVisible(), true);
+        assert.equal(await stage.locator("#talk-status").isVisible(), true);
         await mic.focus(); await page.keyboard.down("Space"); await page.keyboard.up("Space");
         assert.deepEqual(await page.evaluate(() => actions.slice(-2)), ["talk", "release"]);
         await page.evaluate(() => {
@@ -67,6 +74,17 @@ try {
         await page.waitForFunction(() => view._liveSession === null);
         assert.equal(await page.locator("#mobile-live-dialog").evaluate((node) => node.open), false);
         assert.equal(await page.locator("#gallery #stage").count(), 1);
+        await page.evaluate(() => {
+          view._hass.callWS = async (request) => {
+            if (request.type === "call_service") throw new Error("provider HTTP 502");
+            return { recordings: [], lists: [], storages: [] };
+          };
+        });
+        await stage.locator("#live").click();
+        await page.waitForFunction(() => view._liveState.phase === "active");
+        assert.match(await stage.locator("#live-message").textContent(), /Snapshot not updated/);
+        assert.doesNotMatch(await stage.locator("#live-message").textContent(), /502/);
+        await page.evaluate(() => view._liveControls.close());
         const alarm = await page.evaluate(async () => {
           const control = document.createElement("vistoda-system-arm-control"); document.body.append(control);
           const calls = []; const toasts = [];

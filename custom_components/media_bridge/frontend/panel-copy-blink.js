@@ -1,4 +1,6 @@
 export const BLINK_COPY = {
+  "Il microfono richiede HTTPS anche sul Wi-Fi di casa. Nelle impostazioni Companion usa un URL interno HTTPS valido.": "The microphone requires HTTPS even on home Wi-Fi. Set a valid HTTPS internal URL in Companion settings.",
+  "Snapshot non aggiornato. Il video live è indipendente; riprova lo snapshot dopo averlo chiuso.": "Snapshot not updated. Live video is independent; retry the snapshot after closing it.",
   "Clip per pagina": "Clips per page",
   "Microfono e ascolto simultanei attivi": "Microphone and listening active simultaneously",
   "Tieni premuto per parlare": "Hold to talk",

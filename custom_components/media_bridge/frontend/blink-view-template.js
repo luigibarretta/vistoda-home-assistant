@@ -8,7 +8,18 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #live-message { position:absolute; left:8px; right:8px; top:8px; max-width:calc(100% - 68px);
     z-index:4; color:#fff; background:#181818e8; padding:6px 10px; border-radius:8px; font-size:13px; }
   #continue { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:6; }
-  #microphone { touch-action:none; user-select:none; -webkit-user-select:none; }
+  #microphone { touch-action:none; user-select:none; -webkit-user-select:none;
+    flex:0 0 76px; min-width:76px; width:76px; min-height:76px; height:76px; border:2px solid #fff; }
+  #microphone ha-icon { --mdc-icon-size:32px; }
+  #microphone[aria-pressed="true"] { box-shadow:0 0 0 8px #00bcd466; }
+  #talk-status { position:absolute; bottom:112px; left:12px; right:12px; z-index:5;
+    text-align:center; color:#fff; background:#181818e8; border-radius:12px; padding:10px;
+    pointer-events:none; }
+  #live-loader { position:absolute; inset:0; z-index:3; display:grid; place-items:center; background:#000; }
+  #live-loader::after { content:""; width:40px; height:40px; border:4px solid #ffffff40;
+    border-top-color:#fff; border-radius:50%; animation:live-spin 1s linear infinite; }
+  @keyframes live-spin { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion:reduce) { #live-loader::after { animation:none; } }
   #mobile-live-dialog { border:0; padding:0; margin:0; width:100vw; max-width:none;
     height:100dvh; max-height:none; background:#000; color:#fff; }
   #mobile-live-dialog::backdrop { background:#000; }
@@ -48,6 +59,8 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     icon="mdi:cctv"></ha-icon><span data-i18n="noSnapshot">Snapshot non disponibile</span></div><img id="snapshot" alt="">
     <video id="live-video" autoplay playsinline muted hidden></video>
     <div id="legacy-live" hidden></div>
+    <div id="live-loader" hidden aria-hidden="true"></div>
+    <div id="talk-status" role="status" hidden></div>
     <div id="live-message" role="status" hidden></div>
     <button id="continue" class="primary" hidden data-copy="Continua?">Continua?</button>
     <button id="fullscreen" hidden aria-label="Schermo intero" title="Schermo intero"

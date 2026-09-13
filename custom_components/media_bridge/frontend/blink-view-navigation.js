@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { dragStart, dragMove, dragReset } from "./page-drag.js";
 import { entityState, firstEntity, providerDevices, swipeStep,
   wrappedIndex } from "./panel-helpers.js";
 
@@ -62,10 +63,13 @@ export const blinkViewNavigation = {
   },
 
   _startSwipe(event) {
-    if (this._liveSession?.active || event.composedPath().some((node) => node.localName === "button")) return;
+    if (this._liveSession?.active || this._liveOpening) return;
     if (event.isPrimary === false || this._cameras().length < 2) return;
-    this._swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    dragStart(this, event);
   },
+
+  _dragSwipe(event) { dragMove(this, event); },
+  _cancelSwipe() { dragReset(this); },
 
   _finishSwipe(event) {
     const start = this._swipeStart;
@@ -73,5 +77,6 @@ export const blinkViewNavigation = {
     if (!start || start.id !== event.pointerId) return;
     const step = swipeStep(start, { x: event.clientX, y: event.clientY });
     if (step) this._move(step);
+    dragReset(this, step);
   },
 };

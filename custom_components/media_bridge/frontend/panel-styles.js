@@ -49,7 +49,7 @@ export const MEDIA_STYLES = `
   .provider-head h2 { margin:4px 0 5px; font-size:23px; }
   .media-card { overflow:hidden; }
   .stage { position:relative; aspect-ratio:16/9; min-height:220px;
-    display:grid; place-items:center; background:#111; touch-action:pan-y; user-select:none; }
+    display:grid; place-items:center; background:#111; touch-action:pan-y; user-select:none; overflow:hidden; }
   .stage img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
   .stage-actions { position:absolute; left:8px; bottom:8px; z-index:5; display:flex; gap:8px; flex-wrap:wrap; }
   .stage-actions button { display:inline-flex; align-items:center; justify-content:center;

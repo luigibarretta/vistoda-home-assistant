@@ -30,6 +30,7 @@ export const blinkViewLive = {
     if (!camera?.attributes?.alias) return;
     this._liveControls.open();
     this._liveOpening = true;
+    this._liveSnapshotWarning = "";
     this._liveState = { phase: "starting", message: copy(this, "Apertura live Blink…") };
     this._renderLive();
     let session;
@@ -43,8 +44,10 @@ export const blinkViewLive = {
     this._liveSession = session;
     // One explicit action, serialized provider commands: Blink may reject a
     // snapshot while live is already busy. Failure does not block viewing.
-    await this._refreshSnapshot();
+    const refreshed = await this._refreshSnapshot(true);
     if (this._liveSession !== session || !this._liveOpening) return;
+    if (!refreshed) this._liveSnapshotWarning = copy(this,
+      "Snapshot non aggiornato. Il video live è indipendente; riprova lo snapshot dopo averlo chiuso.");
     this._liveOpening = false;
     const preferredTransport = camera.attributes.preferred_live_transport === "cayuga"
       ? "cayuga" : "walnut";
@@ -83,6 +86,9 @@ export const blinkViewLive = {
     this.$("speaker").setAttribute("aria-pressed", String(Boolean(this._liveState.speaker)));
     this.$("microphone").setAttribute("aria-pressed", String(Boolean(this._liveState.microphone)));
     this.$("microphone").setAttribute("aria-busy", String(Boolean(this._liveState.microphonePending)));
+    this.$("talk-status").hidden = !interactive;
+    setText(this.shadowRoot, "talk-status", copy(this, this._liveState.microphone
+      ? "Microfono attivo" : "Tieni premuto per parlare"));
     this.$("microphone").setAttribute("aria-describedby", "live-message");
     this.$("microphone").title = copy(this, this._liveState.transport === "walnut"
       ? this._liveState.microphone ? "Disattiva il microfono per riprendere l’ascolto"
@@ -99,7 +105,8 @@ export const blinkViewLive = {
     this.$("speaker").title = this.$("speaker-label").textContent;
     this.$("microphone").title = copy(this, "Tieni premuto per parlare");
     this.$("live-message").hidden = !active;
-    setText(this.shadowRoot, "live-message", this._liveState.message || "");
+    setText(this.shadowRoot, "live-message", [this._liveState.message,
+      this._liveSnapshotWarning].filter(Boolean).join(" · "));
     if (this._liveState.message) setText(this.shadowRoot, "message", this._liveState.message);
   },
 

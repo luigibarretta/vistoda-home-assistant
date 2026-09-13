@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { findLiveVideo } from "./live-fullscreen.js";
 
 // A viewer owns its overlay and timers, never another viewer's shared publisher.
 export class BlinkLiveControls {
@@ -39,6 +40,11 @@ export class BlinkLiveControls {
     this.view._liveSession?.setMicrophone(true);
   }
   open() {
+    this.loading = setInterval(() => {
+      const video = findLiveVideo(this.view.$("stage"));
+      this.view.$("live-loader").hidden = Boolean(video && video.readyState >= 2);
+    }, 250);
+    this.view.$("live-loader").hidden = false;
     this.started = performance.now(); this.deadline = Infinity; this.interval = 30000; this.warning = 10000;
     this.extend();
     this.mobile = matchMedia("(max-width: 767px)").matches ||
@@ -80,6 +86,8 @@ export class BlinkLiveControls {
     this.view._renderLive(); this.view._showImage(Boolean(this.view.$("snapshot").src));
   }
   reset() {
+    clearInterval(this.loading); this.loading = null;
+    this.view.$("live-loader").hidden = true;
     this.held = false; clearInterval(this.timer); this.timer = null;
     this.view.$("continue").hidden = true;
     if (this.mobile) {

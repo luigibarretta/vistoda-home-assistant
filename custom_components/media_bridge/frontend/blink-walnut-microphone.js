@@ -8,6 +8,8 @@ export class WalnutMicrophone {
   }
   async prepare() {
     const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (globalThis.isSecureContext === false) throw new Error(copy(this.owner,
+      "Il microfono richiede HTTPS anche sul Wi-Fi di casa. Nelle impostazioni Companion usa un URL interno HTTPS valido."));
     if (!Context || !navigator.mediaDevices?.getUserMedia) throw new Error(copy(this.owner, "Microfono non disponibile: usare HTTPS e un browser aggiornato"));
     this.context = new Context();
     let resumeTimeout;

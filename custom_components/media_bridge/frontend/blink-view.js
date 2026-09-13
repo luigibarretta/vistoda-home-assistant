@@ -56,7 +56,9 @@ class VistodaBlinkView extends HTMLElement {
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
     this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
     this.$("stage").addEventListener("pointerup", (event) => this._finishSwipe(event));
-    this.$("stage").addEventListener("pointercancel", () => { this._swipeStart = null; });
+    this.$("stage").addEventListener("pointermove", (event) => this._dragSwipe(event));
+    this.$("stage").addEventListener("pointercancel", () => this._cancelSwipe());
+    this.$("snapshot").draggable = false;
     this.$("snapshot").addEventListener("error", (event) => {
       this._failedImage = event.currentTarget.src;
       this._showImage(false);
@@ -169,8 +171,19 @@ class VistodaBlinkView extends HTMLElement {
 
   _current(domain) { return firstEntity(this._cameras()[this._index], domain); }
 
-  async _refreshSnapshot() {
+  async _refreshSnapshot(forLive = false) {
     const camera = this._current("camera");
+    if (forLive) {
+      try {
+        // Automatic companion action: report its failure locally, not through
+        // HA's service-call error toast. The live has a separate outcome.
+        await this._hass.callWS({ type: "call_service", domain: "blink_live_bridge",
+          service: "trigger_camera", service_data: { entity_id: camera.entity_id } });
+        this._snapshotTimes.set(camera.entity_id, Date.now());
+        this._nonce = Date.now();
+        return true;
+      } catch { return false; }
+    }
     await this._action("refresh", async () => {
       await this._hass.callService("blink_live_bridge", "trigger_camera", {
         entity_id: camera.entity_id,
