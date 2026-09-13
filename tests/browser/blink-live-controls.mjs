@@ -76,8 +76,12 @@ try {
         await stage.locator("#live-debug").click();
         assert.equal(await stage.locator("#live-message").isVisible(), true);
         await stage.locator("#record-live").click();
-        assert.equal(await stage.locator('option[value="usb"]').isDisabled(), true);
+        assert.equal(await stage.locator('select#destination').inputValue(), "provider");
+        assert.equal(await stage.locator('option[value="provider"]').isEnabled(), true);
+        assert.equal(await stage.locator('select#duration').isDisabled(), true);
+        await stage.locator('select#destination').selectOption("ha");
         assert.equal(await stage.locator('select#duration').inputValue(), "30");
+        assert.equal(await stage.locator('select#duration').isEnabled(), true);
         page.once("dialog", dialog => dialog.accept());
         await stage.locator("#start").click();
         await page.waitForFunction(() => actions.includes("record:30"));
