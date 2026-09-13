@@ -1,5 +1,6 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import "./blink-settings.js";
+import "./blink-settings-backups.js";
 import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
@@ -33,6 +34,7 @@ class VistodaBlinkView extends HTMLElement {
     this._swipeStart = null;
     this._detailOpen = false;
     this._liveState = { phase: "idle", microphone: false, speaker: false, message: "" };
+    this._liveDebugOpen = false;
     this._liveSession = null;
     this._mounted = false;
   }
@@ -48,6 +50,9 @@ class VistodaBlinkView extends HTMLElement {
     this.$("live").addEventListener("click", () => this._toggleLive());
     this.$("fullscreen").addEventListener("click", () => this._toggleFullscreen());
     this.$("speaker").addEventListener("click", () => this._liveSession?.toggleSpeaker());
+    this.$("live-debug").addEventListener("click", () => {
+      this._liveDebugOpen = !this._liveDebugOpen; this._renderLive();
+    });
     this._liveControls = new BlinkLiveControls(this);
     this._recordingMenu = new LiveRecordingMenu(this);
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
@@ -95,6 +100,8 @@ class VistodaBlinkView extends HTMLElement {
     this.$("availability").textContent = localize(this._hass, provider?.available ? "ready" : "unavailable");
     this.$("availability").classList.toggle("off", !provider?.available);
     this._renderAlarm();
+    this.$("settings-backups").configure(this._hass, cameras.map((device) =>
+      entityState(this._hass, firstEntity(device, "camera"))?.attributes?.alias).filter(Boolean));
     this.$("provider-head").hidden = this._detailOpen;
     this.$("gallery").hidden = this._detailOpen || cameras.length === 0;
     this.$("pager").hidden = this._detailOpen || cameras.length === 0;

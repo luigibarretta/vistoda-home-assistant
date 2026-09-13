@@ -7,7 +7,7 @@ export class BlinkLiveControls {
   constructor(view) {
     this.view = view; this.held = false; this.deadline = Infinity;
     this.rotation = new LiveRotation(view.$("stage"),
-      [view.$("live-video"), view.$("legacy-live")], view.$("rotate"));
+      [view.$("live-video"), view.$("legacy-live")], view.$("rotate"), (label) => copy(view, label));
     const button = view.$("microphone");
     const release = () => {
       if (!this.held) return;
@@ -97,6 +97,7 @@ export class BlinkLiveControls {
   }
   reset() {
     this.view._recordingMenu?.close();
+    this.view._liveDebugOpen = false;
     this.rotation.reset();
     clearInterval(this.loading); this.loading = null;
     this.view.$("live-loader").hidden = true;

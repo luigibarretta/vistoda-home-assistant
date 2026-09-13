@@ -100,7 +100,7 @@ class RingRecordingArchive extends HTMLElement {
     if (localizeCopy(this.shadowRoot, this)) this._lists.update(this._lists.lists);
     const filtered = this._lists.filtered(this._recordings);
     const page = recordingPage(filtered, this._page, this._pageSize);
-    renderPageSize(this.shadowRoot, this._pageSize, this._busy);
+    renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._hass?.locale?.language);
     this._page = page.page;
     if (this._view === "rows") {
       this.$("rows").replaceChildren(...page.items.flatMap(
@@ -222,7 +222,7 @@ class RingRecordingArchive extends HTMLElement {
     this._busy = busy;
     if (this.$) {
       this.$("reload").disabled = busy;
-      renderPageSize(this.shadowRoot, this._pageSize, busy);
+      renderPageSize(this.shadowRoot, this._pageSize, busy, this._hass?.locale?.language);
       if (message) this.status(message);
     }
   }

@@ -94,6 +94,7 @@ try {
                 { key: "temperature_alerts", kind: "boolean", value: true, writable: true },
                 { key: "temperature_min", kind: "integer", value: 32, min: -4, max: 113, step: 1, writable: true },
                 { key: "temperature_max", kind: "integer", value: 95, min: -4, max: 113, step: 1, writable: true }], revision: "fake" };
+            if (request.type === "blink_live_bridge/camera/settings/backups") return { backups: [] };
             if (request.type === "blink_live_bridge/camera/zones") return { activity_masks: Array(25).fill(4095),
               privacy_zones: [], privacy_supported: true, revision: "fake" };
             if (request.type === "media_bridge/ezviz/snapshot/refresh") return {
@@ -104,7 +105,10 @@ try {
               { recording_id: "r1", started_at: 1789120800, ended_at: 1789120860, bytes: 1024,
                 storage_path: "/media/Elimina/call.webm" }], storage: { directory: "/media/Elimina", kind: "media" } };
             if (request.type === "blink_live_bridge/local_storage/list") return { storages: [{ network_name: "Elimina",
-              network_id: 1, sync_module_id: 2, manifest_id: 3, status: { can_format_usb: true, can_delete_clips: true },
+              network_id: 1, sync_module_id: 2, manifest_id: 3, sync_module_serial: "TEST-1",
+              sync_module_firmware: "4.5.40", sync_module_status: "online",
+              status: { can_format_usb: true, can_delete_clips: true, usb_state: "active",
+                usb_storage_available_percentage: 99 },
               clips: [{ id: 4, device_name: "Elimina", created_at: 1789120800000, media_available: true }],
               pagination: { page: 1, total_pages: 1, total_items: 1 } }] };
             if (/\/recordings\/list$/.test(request.type)) {

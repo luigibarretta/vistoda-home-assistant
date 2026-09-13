@@ -127,6 +127,7 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
             "blink-storage.js",
             "blink-storage-actions.js",
             "blink-storage-template.js",
+            "blink-storage-ui.js",
         )
     )
     template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
@@ -139,8 +140,9 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
     assert "vistoda-blink-storage" in template
     assert "local_storage/delete" in storage and "local_storage/format" in storage
     assert "FORMATTA ${storage.network_id}/${storage.sync_module_id}" in storage
-    assert "Spazio disponibile:" in storage and "Spazio occupato:" not in storage
+    assert "Spazio utilizzato:" in storage and "Spazio occupato:" not in storage
     assert "local_storage/eject" not in storage and "local_storage/mount" not in storage
+    assert "sync_module/delete" not in storage and "change_wifi" not in storage
 
 
 def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:

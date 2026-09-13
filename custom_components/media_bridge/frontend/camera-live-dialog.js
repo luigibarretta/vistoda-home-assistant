@@ -44,7 +44,8 @@ export class CameraLiveDialog {
     this.host.shadowRoot.append(dialog); dialog.showModal();
     this.visibility = () => { if (doc.hidden) this.close(); };
     doc.addEventListener("visibilitychange", this.visibility);
-    this.rotation = new LiveRotation(get("stage"), [get("media")], get("rotate"));
+    this.rotation = new LiveRotation(get("stage"), [get("media")], get("rotate"),
+      (label) => copy({ hass }, label));
     get("speaker").onclick = async () => {
       const video = findLiveVideo(get("media")); if (!video) return;
       setPlayerMuted(get("media"), !video.muted);

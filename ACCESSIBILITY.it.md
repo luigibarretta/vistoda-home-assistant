@@ -1,6 +1,6 @@
 # Dichiarazione di accessibilità Vistoda
 
-Ultimo aggiornamento: 12 settembre 2026.
+Ultimo aggiornamento: 13 settembre 2026.
 
 Vistoda mira a rendere il proprio pannello Home Assistant utilizzabile dal maggior numero possibile di persone. L’obiettivo tecnico corrente è [WCAG 2.2 livello AA](https://www.w3.org/TR/WCAG22/).
 
@@ -21,13 +21,17 @@ Home Assistant, i siti dei produttori, i media forniti dai produttori, le richie
 - layout provati per il reflow senza scorrimento orizzontale della pagina a partire da 320 pixel CSS;
 - testo e icone che non affidano gli stati importanti al solo colore;
 - animazioni e scorrimento fluido disabilitati quando è richiesta la riduzione del movimento;
-- nomi accessibili e istruzioni in inglese e italiano.
+- nomi accessibili e istruzioni in inglese e italiano;
+- un pulsante visibile per la modalità selezione, equivalente accessibile ai
+  gesti mobile di pressione prolungata e trascinamento;
+- un controllo segmentato per 10/25/50/100 elementi, navigabile con
+  Sinistra/Destra/Home/End e focus mobile.
 
 ## Evidenze dell’audit interno
 
-L’audit interno del 12 settembre 2026 ha usato dati Home Assistant sintetici e Playwright. Ha coperto Chromium, Firefox e WebKit; larghezze da 320 a 1280 pixel CSS; inglese e italiano; navigazione tra provider; selezione telecamere; archivi; finestre; recupero dagli errori; dimensione dei target tattili e overflow della pagina. Combina controlli automatici e revisione visiva umana, come raccomandato dalle [linee guida W3C per la valutazione dell’accessibilità](https://www.w3.org/WAI/test-evaluate/).
+L’audit interno del 13 settembre 2026 ha usato dati Home Assistant sintetici e Playwright. Ha coperto Chromium, Firefox e WebKit; larghezze da 320 a 1280 pixel CSS; inglese e italiano; navigazione tra provider; selezione telecamere; archivi; finestre; recupero dagli errori; dimensione dei target tattili e overflow della pagina. Combina controlli automatici e revisione visiva umana, come raccomandato dalle [linee guida W3C per la valutazione dell’accessibilità](https://www.w3.org/WAI/test-evaluate/).
 
-L’audit ha incluso anche la revisione visiva delle schermate mobile e desktop e controlli da tastiera per apertura delle finestre, chiusura con Esc, ripristino del focus ed editor delle zone Blink. Durante la revisione di rilascio le evidenze sono conservate nella directory `artifacts/accessibility-audit-2026-09-12` del repository.
+L’audit ha incluso anche la revisione visiva delle schermate mobile e desktop e controlli da tastiera per apertura delle finestre, chiusura con Esc, ripristino del focus ed editor delle zone Blink. Le evidenze ripetibili sono la suite browser inclusa nel repository e i log CI; il progetto non dichiara un archivio permanente di screenshot che non pubblica.
 
 Questo documento segue la struttura raccomandata dalle [linee guida W3C per le dichiarazioni di accessibilità](https://www.w3.org/WAI/planning/statements/).
 
@@ -39,6 +43,10 @@ Questo documento segue la struttura raccomandata dalle [linee guida W3C per le d
 - I pulsanti di eliminazione delle zone privacy sono passati da 32 a 44 pixel CSS.
 - Il selettore Ring duplicato e nascosto è stato rimosso dall’ordine di tastiera e dall’albero di accessibilità; il listbox visibile ed etichettato resta il selettore interattivo.
 - Testi accentati piccoli e link ai documenti usano ora il colore principale del testo di Home Assistant, senza dipendere da un colore di accento del tema che potrebbe non raggiungere il contrasto minimo.
+- La selezione archivio non riserva più una colonna vuota alle checkbox su mobile;
+  gesto e controllo esplicito espongono lo stesso stato.
+- La rotazione live espone gli stati Auto, Disattivata e 90 gradi con nomi
+  accessibili; i dettagli diagnostici sono visibili solo su richiesta.
 
 ## Limiti noti e verifiche mancanti
 

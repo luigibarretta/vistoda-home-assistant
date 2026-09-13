@@ -12,6 +12,8 @@ function button(icon, label, action, busy, className = "") {
 
 export function recordingItem(item, context) {
   const row = document.createElement("article"); row.className = "item";
+  row.dataset.selectionKey = item.recording_id;
+  row.setAttribute("aria-selected", String(Boolean(context.selected)));
   const selector = document.createElement("label"); selector.className = "select-item";
   const checkbox = document.createElement("input"); checkbox.type = "checkbox";
   checkbox.checked = Boolean(context.selected); checkbox.disabled = context.busy || ["pending", "recording"].includes(item.status);

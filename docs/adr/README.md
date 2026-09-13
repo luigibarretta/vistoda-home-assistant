@@ -28,5 +28,6 @@
 | [0024](0024-provider-recording-archives-and-nfs.md) | Blink/EZVIZ standalone archives, NFS backup and gated vendor media |
 | [0025](0025-provider-archive-management-and-manual-snapshots.md) | Provider lists, guarded Blink USB management and manual EZVIZ snapshots |
 | [0026](0026-atomic-bulk-provider-list-membership.md) | Atomic bulk list membership for provider archives |
+| [0027](0027-mobile-archive-settings-backups-and-provider-themes.md) | Mobile archive selection, fail-closed Blink settings backups and selectable provider themes |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

@@ -9,6 +9,7 @@ import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
 import { providerRecordingActions } from "./provider-recordings-actions.js";
 import { providerRecordingsTemplate } from "./provider-recordings-template.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
+import { MobileCardSelection } from "./mobile-card-selection.js";
 import "./provider-recording-player.js";
 import {
   cameraRecordings,
@@ -53,6 +54,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this._clearTimer();
     this._items = [];
     this._selected.clear();
+    this._selection?.setMode(false);
     this._storage = null;
     this._pagination.page = 1;
     this.$?.("player")?.close();
@@ -78,10 +80,16 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("start").addEventListener("click", () => this._start());
     this.$("copy-archive-path").addEventListener("click", () => this._copyArchivePath());
     this.$("delete-selected").addEventListener("click", () => this._deleteSelected());
+    this.$("selection-mode").addEventListener("click", () =>
+      this._selection.setMode(!this._selection.mode));
     this.$("previous").addEventListener("click", () => this._go(this._pagination.page - 1));
     this.$("next").addEventListener("click", () => this._go(this._pagination.page + 1));
     this._listManager.mount(this.shadowRoot);
     this._bulkListManager.mount(this.shadowRoot);
+    this._selection = new MobileCardSelection(this.shadowRoot, ".item[data-selection-key]", {
+      selected: (key) => this._selected.has(key),
+      select: (key, selected) => this._select(key, selected), render: () => this._render(),
+    });
     this._render();
   }
 
@@ -160,7 +168,8 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("summary").textContent = copy(this, "Archivio locale ({p0})", { p0: this._pagination.total_items });
     this.$("page-label").textContent = copy(this, "Pagina {p0} di {p1}", { p0: this._pagination.page, p1: this._pagination.total_pages });
     this.$("previous").disabled = this._busy || !this._pagination.has_previous;
-    renderPageSize(this.shadowRoot, this._pagination.page_size, this._busy);
+    renderPageSize(this.shadowRoot, this._pagination.page_size, this._busy,
+      this._hass?.locale?.language);
     this.$("next").disabled = this._busy || !this._pagination.has_next;
     const visibleItems = this._listManager.filtered(this._items,
       (item) => `local:${item.recording_id}`);
@@ -171,8 +180,7 @@ class VistodaProviderRecordings extends HTMLElement {
       play: () => this._play(item), download: () => this._download(item),
       backup: () => this._backup(item), remove: () => this._delete(item),
       selected: this._selected.has(item.recording_id),
-      select: (selected) => { selected ? this._selected.add(item.recording_id)
-        : this._selected.delete(item.recording_id); this._render(); },
+      select: (selected) => this._select(item.recording_id, selected),
       lists: () => this._listManager.toggle(mediaId),
       tags: () => this._listManager.tags(mediaId),
       picker: this._listManager.openRecordingId === mediaId ? this._listManager.picker(mediaId) : null,
@@ -184,10 +192,17 @@ class VistodaProviderRecordings extends HTMLElement {
       nodes.push(empty);
     }
     this.$("list").replaceChildren(...nodes);
-    this.$("bulk-actions").hidden = this._selected.size === 0;
-    this.$("selected-count").textContent = copy(this, "{p0} selezionate", { p0: this._selected.size });
-    this.$("delete-selected").disabled = this._busy;
-    this.$("add-selected-to-lists").disabled = this._busy;
+    this.$("selected-count").textContent = copy(this, "{p0} registrazioni · {p1} selezionate", {
+      p0: this._pagination.total_items, p1: this._selected.size,
+    });
+    this.$("selection-mode").disabled = this._busy || !this._pagination.total_items;
+    this.$("selection-mode").setAttribute("aria-pressed", String(Boolean(this._selection?.mode)));
+    this.$("delete-selected").disabled = this._busy || !this._selected.size;
+    this.$("add-selected-to-lists").disabled = this._busy || !this._selected.size;
+  }
+
+  _select(key, selected) {
+    selected ? this._selected.add(key) : this._selected.delete(key); this._render();
   }
 
   _bulkListsApplied() { this._selected.clear(); this._render(); }

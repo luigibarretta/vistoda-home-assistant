@@ -6,18 +6,34 @@ export const BLINK_STORAGE_STYLES = `
   .header-actions button { display:inline-flex; align-items:center; gap:7px; }
   h3 { margin:3px 0 4px; font-size:20px; }
   .module { margin-top:14px; border:1px solid var(--divider-color); border-radius:15px;
-    overflow:hidden; }
+    overflow:visible; }
   .module summary { display:flex; align-items:center; justify-content:space-between; gap:12px;
     min-height:58px; padding:12px 14px; cursor:pointer; }
   .module-body { padding:0 14px 14px; }
+  .sync-module-info { display:flex; align-items:center; gap:12px; padding:12px 0;
+    border-top:1px solid var(--divider-color); }
+  .sync-module-info > ha-icon { --mdc-icon-size:34px; color:var(--success-color,#43a047); }
+  .sync-module-info small { display:block; margin-top:3px; color:var(--secondary-text-color); }
   .module-facts { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .module-facts .storage-fact { display:inline-flex; align-items:center; gap:6px; min-height:32px;
     padding:6px 9px; border-radius:999px; font-size:12px; line-height:1.2;
     background:var(--secondary-background-color); }
   .storage-fact ha-icon { --mdc-icon-size:17px; flex:0 0 auto; color:var(--primary-color); }
   .storage-fact span { display:inline-flex; align-items:center; min-height:18px; padding:0; }
-  .clip { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px;
+  .storage-fact:focus::after, .storage-gauge:focus::after { opacity:1; visibility:visible;
+    transform:translateY(0); }
+  .storage-gauge { position:relative; display:grid; place-items:center; width:54px; height:54px;
+    flex:0 0 54px; border-radius:50%; background:conic-gradient(var(--primary-color) var(--used),
+      var(--divider-color) 0); }
+  .storage-gauge::before { content:""; position:absolute; inset:7px; border-radius:50%;
+    background:var(--card-background-color); }
+  .storage-gauge strong { position:relative; z-index:1; font-size:12px; }
+  .module-actions { display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 10px; }
+  .module-actions button { width:42px; min-width:42px; padding:0; }
+  .module-actions [aria-disabled="true"] { opacity:.48; cursor:not-allowed; }
+  .clip { position:relative; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:10px;
     min-height:62px; padding:10px 0; border-top:1px solid var(--divider-color); }
+  .clip[aria-selected="true"] { box-shadow:inset 3px 0 var(--primary-color); }
   .clip strong, .clip small { display:block; }
   .clip small { margin-top:3px; color:var(--secondary-text-color); }
   .player { margin:14px 0; padding:12px; border:1px solid var(--divider-color);
@@ -55,8 +71,14 @@ export const BLINK_STORAGE_STYLES = `
     .storage { padding:15px; } header { align-items:stretch; flex-direction:column; }
     .header-actions { justify-content:stretch; }
     .header-actions button { flex:1 1 auto; }
-    .clip { grid-template-columns:auto minmax(0,1fr); align-items:start; }
-    .clip-actions { grid-column:2; justify-content:flex-start; }
+    .clip { grid-template-columns:minmax(0,1fr); align-items:start; }
+    .clip-actions { grid-column:1; justify-content:flex-start; }
+    .select-clip { display:none; position:absolute; right:0; top:7px; z-index:2;
+      width:36px; min-height:36px; border-radius:50%; background:var(--card-background-color); }
+    :host([selection-mode]) .select-clip { display:grid; }
+    :host([selection-mode]) .clip { padding-right:48px; touch-action:pan-x; }
+    .bulk-actions { position:sticky; bottom:max(8px,env(safe-area-inset-bottom)); z-index:12;
+      box-shadow:0 6px 24px #0008; }
     .archive-pager { grid-template-columns:1fr 1fr; }
     .archive-pager span { grid-column:1 / -1; grid-row:1; }
     .dialog-actions button { flex:1 1 auto; }

@@ -59,6 +59,7 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     const archive = page.locator("vistoda-provider-recordings");
     await archive.locator(".item").first().waitFor();
     assert.match(await archive.locator(".item .meta").textContent(), en ? /Ready/ : /Pronta/);
+    await archive.locator("#selection-mode").click();
     await archive.locator(".select-item input").check();
     await archive.locator("#add-selected-to-lists").click();
     assert.match(await archive.locator("#bulk-list-title").textContent(), en ? /Add clips/ : /Aggiungi clip/);
@@ -68,6 +69,11 @@ export async function checkAdvancedPanel(page, provider, language, check) {
   }
   if (provider === "blink") {
     const usb = page.locator("vistoda-blink-storage");
+    assert.match(await usb.locator(".sync-module-info").textContent(), /4\.5\.40/);
+    assert.match(await usb.locator(".storage-gauge").getAttribute("aria-label"), en ? /Storage used: 1%/ : /Spazio utilizzato: 1%/);
+    assert.equal(await usb.locator('.module-actions button[aria-disabled="true"]').count(), 3);
+    assert.doesNotMatch(await usb.locator(".storage-fact").first().textContent(), /USB|Stato/,
+      "compact storage facts expose the label through accessible help, not permanent mobile text");
     await usb.locator(".format-action").click();
     assert.match(await usb.locator("#format-target").textContent(), /Elimina/);
     assert.equal(await usb.locator("#confirm-format").isDisabled(), true);

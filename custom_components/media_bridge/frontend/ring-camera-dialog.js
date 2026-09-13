@@ -39,7 +39,8 @@ export class RingCameraDialog {
     get("close").onclick = () => this.close();
     dialog.addEventListener("cancel", event => { event.preventDefault(); this.close(); });
     this.host.shadowRoot.append(dialog); dialog.showModal();
-    this.rotation = new LiveRotation(get("stage"), [video], get("rotate"));
+    this.rotation = new LiveRotation(get("stage"), [video], get("rotate"),
+      (label) => copy(this.host, label));
     this.visibility = () => { if (doc.hidden) this.close(); };
     doc.addEventListener("visibilitychange", this.visibility);
     const session = new RingAudioSession(hass, { entry_id:camera.entry_id, camera_id:camera.device_id }, video, state => {

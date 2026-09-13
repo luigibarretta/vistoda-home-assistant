@@ -1,6 +1,6 @@
 # Vistoda accessibility statement
 
-Last updated: 12 September 2026.
+Last updated: 13 September 2026.
 
 Vistoda aims to make its Home Assistant panel usable by as many people as possible. The current engineering target is [WCAG 2.2 Level AA](https://www.w3.org/TR/WCAG22/).
 
@@ -21,13 +21,17 @@ Home Assistant itself, provider websites, provider media, browser permission pro
 - layouts tested for reflow without page-level horizontal scrolling from 320 CSS pixels;
 - color-independent text and icons for important states;
 - animation and smooth scrolling disabled when reduced motion is requested;
-- English and Italian accessible names and instructions.
+- English and Italian accessible names and instructions;
+- a visible selection-mode control as an equivalent alternative to mobile
+  long-press and drag gestures;
+- a segmented archive page-size control with roving keyboard focus and
+  Left/Right/Home/End navigation.
 
 ## Internal audit evidence
 
-The 12 September 2026 internal audit used synthetic Home Assistant data and Playwright. It covered Chromium, Firefox and WebKit; widths from 320 to 1280 CSS pixels; English and Italian; provider navigation; camera selection; archives; dialogs; error recovery; touch-target dimensions; and page overflow. It combines automated checks with human visual review, as recommended by the [W3C accessibility evaluation guidance](https://www.w3.org/WAI/test-evaluate/).
+The 13 September 2026 internal audit used synthetic Home Assistant data and Playwright. It covered Chromium, Firefox and WebKit; widths from 320 to 1280 CSS pixels; English and Italian; provider navigation; camera selection; archives; dialogs; error recovery; touch-target dimensions; and page overflow. It combines automated checks with human visual review, as recommended by the [W3C accessibility evaluation guidance](https://www.w3.org/WAI/test-evaluate/).
 
-The audit also included visual review of mobile and desktop captures and keyboard checks for dialog opening, closing with Escape, focus return and Blink’s zone editor. Evidence is stored in the repository’s `artifacts/accessibility-audit-2026-09-12` directory during release review.
+The audit also included visual review of mobile and desktop captures and keyboard checks for dialog opening, closing with Escape, focus return and Blink’s zone editor. The repeatable evidence is the checked-in browser test suite and its CI logs; the repository does not claim a permanent screenshot artifact that it does not publish.
 
 This document follows the structure recommended by the [W3C guidance for accessibility statements](https://www.w3.org/WAI/planning/statements/).
 
@@ -39,6 +43,10 @@ This document follows the structure recommended by the [W3C guidance for accessi
 - Privacy-zone delete controls increased from 32 to 44 CSS pixels.
 - The hidden Ring intercom mirror selector was removed from the keyboard and accessibility trees; the visible labelled listbox remains the interactive selector.
 - Small accent text and document links now use Home Assistant’s primary text color instead of depending on a theme accent color that could miss minimum contrast.
+- Archive selection no longer consumes a permanent checkbox column on mobile;
+  gesture selection and the explicit labelled control expose the same state.
+- Live rotation now exposes Auto, Off and 90-degree states through accessible
+  names, while diagnostic live text is opt-in through a labelled debug control.
 
 ## Known limitations and verification gaps
 

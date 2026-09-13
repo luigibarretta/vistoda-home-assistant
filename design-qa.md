@@ -45,11 +45,17 @@ types), never SDP addresses, ICE credentials or device identifiers.
 
 ## Blink USB and local archives
 
-The USB summary presents `USB: active`, `Spazio disponibile` and `Ultimo backup`
-on a vertically centered fact row. Server-side ten-item pages remain legible at
+The archived capture presented `USB: active`, `Spazio disponibile` and `Ultimo backup`.
+The current panel uses compact icon/value facts and a storage-used gauge; their
+full labels appear on hover or focus. Server-side pages remain legible at
 mobile width. Row actions use compact icon buttons with accessible labels for
 playback, download, NFS backup, list membership and deletion; destructive
 actions remain visually distinct and require confirmation.
+
+Current mobile archives use a custom 10/25/50/100 page-size control, an
+always-visible total/selection count and long-press plus drag selection without
+reserving an empty checkbox column. The explicit selection button remains the
+accessible alternative.
 
 The capture shows no horizontal overflow, clipped labels, overlapping controls
 or undersized action targets. Local archive paths are visible with their owning

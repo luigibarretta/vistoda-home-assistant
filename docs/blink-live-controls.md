@@ -1,6 +1,6 @@
 # Blink live controls
 
-Requires Vistoda HA 0.29.0 and Blink 0.16.0 for the complete control contract.
+Requires Vistoda HA 0.31.0 and Blink 0.17.0 for the complete control contract.
 
 The mobile refinement adds a loading spinner over the HA player placeholder,
 a compact 44 px-high hold-to-talk control with status outside the finger area, and shared
@@ -25,7 +25,7 @@ Desktop keeps inline playback and optional browser fullscreen. Closing desktop
 fullscreen alone does not stop playback. Other viewers retain their sessions;
 HA Stream may retain its shared source briefly after the last viewer leaves.
 
-From HA 0.30.4, leaving the Blink route or hiding the app stops that viewer,
+From HA 0.30.4 onward, leaving the Blink route or hiding the app stops that viewer,
 even when HA keeps the panel cached. Teardown explicitly pauses media and
 releases receiving tracks. Continue does not override navigation cleanup.
 The floating recording button opens duration and destination controls using
@@ -65,7 +65,7 @@ Audio controls never change volume, motion, privacy or alarm settings.
 
 ## Italiano
 
-Il contratto completo richiede Vistoda HA 0.29.0 e Blink 0.16.0.
+Il contratto completo richiede Vistoda HA 0.31.0 e Blink 0.17.0.
 
 Il miglioramento mobile aggiunge uno spinner sopra il placeholder del player HA,
 un pulsante premi-per-parlare compatto alto 44 px con stato fuori dall'area coperta dal dito,

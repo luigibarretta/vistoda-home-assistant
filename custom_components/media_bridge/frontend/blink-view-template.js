@@ -5,8 +5,9 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #system { display:block; }
   #system-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   #provider-head { margin-bottom:16px; }
-  #live-message { position:absolute; left:8px; right:8px; top:8px; max-width:calc(100% - 68px);
-    z-index:4; color:#fff; background:#181818e8; padding:6px 10px; border-radius:8px; font-size:13px; }
+  #live-message { position:absolute; left:8px; right:60px; top:60px; z-index:7; color:#fff;
+    background:#181818f2; padding:8px 10px; border-radius:8px; font-size:13px;
+    pointer-events:none; }
   #continue { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:6; }
   #microphone { touch-action:none; user-select:none; -webkit-user-select:none;
     flex:0 1 auto; min-width:108px; width:auto; max-width:calc(100% - 104px);
@@ -15,9 +16,6 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #microphone span { position:static; width:auto; height:auto; margin:0; overflow:visible;
     clip-path:none; white-space:normal; line-height:1.2; font-size:13px; }
   #microphone[aria-pressed="true"] { box-shadow:0 0 0 4px #00bcd466; }
-  #talk-status { position:absolute; bottom:88px; left:12px; right:12px; z-index:5;
-    text-align:center; color:#fff; background:#181818e8; border-radius:12px; padding:10px;
-    pointer-events:none; }
   #live-loader { position:absolute; inset:0; z-index:3; display:grid; place-items:center; background:#000; }
   #live-loader::after { content:""; width:40px; height:40px; border:4px solid #ffffff40;
     border-top-color:#fff; border-radius:50%; animation:live-spin 1s linear infinite; }
@@ -53,12 +51,15 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     width:44px; height:44px; min-width:44px; padding:8px; background:#181818; color:#fff; }
   #record-live { position:absolute; right:60px; top:64px; z-index:5;
     width:44px; height:44px; min-width:44px; padding:8px; background:#181818; color:#fff; }
+  #live-debug { position:absolute; left:8px; top:8px; z-index:8; width:44px; height:44px;
+    min-width:44px; padding:8px; border-radius:50%; background:#181818; color:#fff; }
 </style>
 <section class="card system" id="system"><div class="provider-head" id="provider-head"><div><div class="eyebrow">Vistoda · Blink</div>
   <h2 data-i18n="blinkTitle">Telecamere Blink</h2><div class="muted" data-i18n="blinkIntro">Gli snapshot esistenti non risvegliano
   le camere. Aggiornamento e live partono soltanto su richiesta.</div></div>
   <span class="badge off" id="availability"><span data-copy="Verifica…">Verifica…</span></span></div>
-<vistoda-system-arm-control id="system-controls"></vistoda-system-arm-control></section>
+<vistoda-system-arm-control id="system-controls"></vistoda-system-arm-control>
+<vistoda-blink-settings-backups id="settings-backups"></vistoda-blink-settings-backups></section>
 <section class="card empty" id="empty" hidden><p data-i18n="noCameras">Nessuna telecamera Blink configurata.</p>
   <a class="button primary" href="/config/integrations/dashboard" data-i18n="configureProvider">Configura Blink</a></section>
 <section class="card media-card" id="gallery">
@@ -67,8 +68,10 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
     <video id="live-video" autoplay playsinline muted hidden></video>
     <div id="legacy-live" hidden></div>
     <div id="live-loader" hidden aria-hidden="true"></div>
-    <div id="talk-status" role="status" hidden></div>
     <div id="live-message" role="status" hidden></div>
+    <button id="live-debug" hidden aria-label="Mostra dettagli diagnostici" title="Mostra dettagli diagnostici"
+      data-copy-aria-label="Mostra dettagli diagnostici" data-copy-title="Mostra dettagli diagnostici" aria-expanded="false">
+      <ha-icon icon="mdi:bug-outline"></ha-icon></button>
     <button id="continue" class="primary" hidden data-copy="Continua?">Continua?</button>
     <button id="fullscreen" hidden aria-label="Schermo intero" title="Schermo intero"
       data-copy-aria-label="Schermo intero" data-copy-title="Schermo intero" aria-pressed="false">

@@ -6,8 +6,10 @@ import { PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE } from "./provider-recordi
 import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { blinkStorageActions } from "./blink-storage-actions.js";
+import { blinkStorageUi } from "./blink-storage-ui.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
+import { MobileCardSelection } from "./mobile-card-selection.js";
 
 class VistodaBlinkStorage extends HTMLElement {
   constructor() {
@@ -43,6 +45,8 @@ class VistodaBlinkStorage extends HTMLElement {
     this.$("backup-all").addEventListener("click", () => this._backupAll());
     this.$("close-player").addEventListener("click", () => this._closePlayer());
     this.$("delete-selected").addEventListener("click", () => this._deleteSelected());
+    this.$("selection-mode").addEventListener("click", () =>
+      this._selection.setMode(!this._selection.mode));
     this.$("format-confirmation").addEventListener("input", () => {
       this.$("confirm-format").disabled = this.$("format-confirmation").value !== this._formatPhrase;
     });
@@ -51,6 +55,10 @@ class VistodaBlinkStorage extends HTMLElement {
     });
     this._listManager.mount(this.shadowRoot);
     this._bulkListManager.mount(this.shadowRoot);
+    this._selection = new MobileCardSelection(this.shadowRoot, ".clip[data-selection-key]", {
+      selected: (key) => this._selected.has(key),
+      select: (key, selected) => this._select(key, selected), render: () => this._render(),
+    });
     this._render();
   }
 
@@ -74,7 +82,7 @@ class VistodaBlinkStorage extends HTMLElement {
   _render() {
     if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("reload").disabled = this._busy || !this._hass;
-    renderPageSize(this.shadowRoot, this._pageSize, this._busy);
+    renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._hass?.locale?.language);
     this.$("backup-all").disabled = this._busy || !this._hass;
     const nodes = this._storages.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {
@@ -82,10 +90,14 @@ class VistodaBlinkStorage extends HTMLElement {
       empty.textContent = copy(this, "Nessuna chiavetta USB Blink disponibile."); nodes.push(empty);
     }
     this.$("content").replaceChildren(...nodes);
-    this.$("bulk-actions").hidden = this._selected.size === 0;
-    this.$("selected-count").textContent = copy(this, "{p0} selezionate", { p0: this._selected.size });
+    const total = this._storages.reduce((sum, storage) => sum + (storage.pagination?.total_items || 0), 0);
+    this.$("selected-count").textContent = copy(this, "{p0} clip · {p1} selezionate", {
+      p0: total, p1: this._selected.size,
+    });
+    this.$("selection-mode").disabled = this._busy || !total;
+    this.$("selection-mode").setAttribute("aria-pressed", String(Boolean(this._selection?.mode)));
     this.$("delete-selected").disabled = this._busy || !this._selectedDeletable();
-    this.$("add-selected-to-lists").disabled = this._busy;
+    this.$("add-selected-to-lists").disabled = this._busy || !this._selected.size;
   }
 
   _module(storage) {
@@ -96,22 +108,41 @@ class VistodaBlinkStorage extends HTMLElement {
     count.textContent = copy(this, "{p0} clip", { p0: storage.pagination?.total_items ?? storage.clips?.length ?? 0 });
     summary.append(title, count);
     const body = document.createElement("div"); body.className = "module-body";
+    const sync = document.createElement("section"); sync.className = "sync-module-info";
+    const syncIcon = document.createElement("ha-icon");
+    const online = ["online", "active", "available"].includes(String(storage.sync_module_status || "").toLowerCase());
+    syncIcon.setAttribute("icon", online ? "mdi:wifi" : "mdi:wifi-off");
+    const syncText = document.createElement("div"); const syncTitle = document.createElement("strong");
+    syncTitle.textContent = copy(this, online ? "Sync Module online" : "Stato Sync Module non confermato");
+    const firmware = document.createElement("small"); firmware.textContent = copy(this,
+      "Firmware: {p0}", { p0: storage.sync_module_firmware || "—" });
+    syncText.append(syncTitle, firmware); sync.append(syncIcon, syncText);
     const facts = document.createElement("div"); facts.className = "module-facts";
-    facts.append(this._fact("mdi:usb-flash-drive",
-      `USB: ${storage.status?.usb_state || copy(this, "stato sconosciuto")}`));
-    if (Number.isFinite(storage.status?.usb_storage_available_percentage)) {
-      facts.append(this._fact("mdi:harddisk",
-        copy(this, "Spazio disponibile: {p0}%", { p0: storage.status.usb_storage_available_percentage })));
+    facts.append(this._fact("mdi:usb-flash-drive", copy(this, "Stato USB"),
+      storage.status?.usb_state || copy(this, "stato sconosciuto")));
+    const used = Number.isFinite(storage.status?.usb_storage_used)
+      ? storage.status.usb_storage_used
+      : Number.isFinite(storage.status?.usb_storage_available_percentage)
+        ? 100 - storage.status.usb_storage_available_percentage : null;
+    if (Number.isFinite(used)) {
+      facts.append(this._storageGauge(used));
     }
     if (storage.status?.last_backup_completed) {
-      facts.append(this._fact("mdi:cloud-check-outline",
-        copy(this, "Ultimo backup Blink: {p0}", { p0: this._date(storage.status.last_backup_completed) })));
+      facts.append(this._fact("mdi:cloud-check-outline", copy(this, "Ultimo backup Blink"),
+        this._date(storage.status.last_backup_completed)));
     }
     if (storage.status?.can_format_usb) {
       const format = this._icon("mdi:format-page-break", copy(this, "Formatta chiavetta"),
         () => this._openFormat(storage), false, true);
-      format.classList.add("format-action"); facts.append(format);
+      format.classList.add("format-action"); format.removeAttribute("title"); facts.append(format);
     }
+    const moduleActions = document.createElement("div"); moduleActions.className = "module-actions";
+    moduleActions.append(this._moduleAction("mdi:wifi-cog", copy(this, "Cambia rete Wi-Fi"),
+      copy(this, "Procedura non ancora verificata: usa l’app Blink.")),
+    this._moduleAction("mdi:eject-outline", copy(this, "Espelli in sicurezza"),
+      copy(this, "Espulsione non ancora verificata: usa l’app Blink.")),
+    this._moduleAction("mdi:delete-outline", copy(this, "Elimina Sync Module"),
+      copy(this, "Rimozione non disponibile in Vistoda per proteggere la configurazione."), true));
     const clips = this._listManager.filtered(storage.clips || [], (clip) => this._mediaId(storage, clip));
     const rows = clips.map((clip) => this._clip(storage, clip));
     if (!rows.length) {
@@ -120,20 +151,19 @@ class VistodaBlinkStorage extends HTMLElement {
         ? copy(this, "Nessuna clip di questa pagina appartiene alla lista.") : copy(this, "Nessuna clip indicizzata in questa pagina.");
       rows.push(empty);
     }
-    body.append(facts, ...rows, this._pager(storage.pagination));
+    body.append(sync, facts, moduleActions, ...rows, this._pager(storage.pagination));
     details.append(summary, body); return details;
   }
 
   _clip(storage, clip) {
     const row = document.createElement("article"); row.className = "clip";
     const key = this._selectionKey(storage, clip); const mediaId = this._mediaId(storage, clip);
+    row.dataset.selectionKey = key; row.setAttribute("aria-selected", String(this._selected.has(key)));
     const selector = document.createElement("label"); selector.className = "select-clip";
     const checkbox = document.createElement("input"); checkbox.type = "checkbox";
     checkbox.checked = this._selected.has(key); checkbox.disabled = this._busy;
     checkbox.setAttribute("aria-label", copy(this, "Seleziona clip {p0}", { p0: clip.device_name || clip.id }));
-    checkbox.addEventListener("change", () => {
-      checkbox.checked ? this._selected.add(key) : this._selected.delete(key); this._render();
-    }); selector.append(checkbox);
+    checkbox.addEventListener("change", () => this._select(key, checkbox.checked)); selector.append(checkbox);
     const text = document.createElement("div"); const title = document.createElement("strong");
     title.textContent = clip.device_name || copy(this, "Telecamera Blink");
     const meta = document.createElement("small"); const duration = Number.isFinite(clip.clip_length_ms)
@@ -179,6 +209,7 @@ class VistodaBlinkStorage extends HTMLElement {
     return true;
   }
   _bulkListsApplied() { this._selected.clear(); this._render(); }
+  _select(key, selected) { selected ? this._selected.add(key) : this._selected.delete(key); this._render(); }
   _listsChanged(resetPage) {
     if (resetPage) { this._page = 1; this._selected.clear(); }
     this._render();
@@ -197,12 +228,6 @@ class VistodaBlinkStorage extends HTMLElement {
     button.addEventListener("click", action); return button;
   }
   _safeCamera(value) { return String(value || "Telecamera_Blink").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64) || "Telecamera_Blink"; }
-  _fact(icon, text) {
-    const node = document.createElement("span"); node.className = "storage-fact";
-    const glyph = document.createElement("ha-icon"); glyph.setAttribute("icon", icon);
-    const label = document.createElement("span"); label.textContent = text;
-    node.append(glyph, label); return node;
-  }
   _date(value) {
     const numeric = typeof value === "string" && /^\d{11,}$/.test(value) ? Number(value) : value;
     const date = new Date(numeric); return Number.isNaN(date.valueOf())
@@ -210,7 +235,7 @@ class VistodaBlinkStorage extends HTMLElement {
   }
 }
 
-Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions);
+Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions, blinkStorageUi);
 
 if (!customElements.get("vistoda-blink-storage")) {
   customElements.define("vistoda-blink-storage", VistodaBlinkStorage);

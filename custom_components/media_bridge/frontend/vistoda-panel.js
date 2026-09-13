@@ -82,6 +82,12 @@ class VistodaPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLES}
         main { width:min(1120px,100%); min-width:0; margin:0 auto; padding:26px 18px 48px; }
+        main.provider-theme[data-provider="blink"] { --primary-color:#00a97a;
+          --vistoda-primary-gradient:linear-gradient(135deg,#008f6a,#00b981); }
+        main.provider-theme[data-provider="ring"] { --primary-color:#008ecf;
+          --vistoda-primary-gradient:linear-gradient(135deg,#0077ad,#00a5df); }
+        main.provider-theme[data-provider="ezviz"] { --primary-color:#168bd2;
+          --vistoda-primary-gradient:linear-gradient(135deg,#df3158,#168bd2); }
         header { display:flex; align-items:center; justify-content:space-between; gap:20px;
           margin-bottom:20px; }
         .header-start { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
@@ -97,27 +103,36 @@ class VistodaPanel extends HTMLElement {
         nav a { min-height:44px; display:flex; align-items:center; justify-content:center; gap:7px;
           flex:1 0 auto; padding:8px 13px; border-radius:11px; color:var(--secondary-text-color);
           text-decoration:none; font-weight:650; }
-        nav a.active { color:#fff; background:linear-gradient(135deg,#6246ea,#4967e9); }
+        nav a.active { color:#fff; background:var(--vistoda-primary-gradient,linear-gradient(135deg,#6246ea,#4967e9)); }
         nav ha-icon { --mdc-icon-size:20px; }
         .header-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+        .theme-picker { display:flex; align-items:center; gap:5px; }
+        .theme-picker ha-icon { color:var(--primary-color); }
+        #theme { min-width:110px!important; padding:8px; border:1px solid var(--divider-color);
+          border-radius:12px; color:var(--primary-text-color); background:var(--card-background-color); }
         #back { display:none; } #reload, #about { flex:0 0 auto; }
         @media (max-width:600px) {
           nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
           nav a { min-width:0; padding:8px; }
-          main { padding:18px 12px 36px; } header { align-items:flex-start; gap:8px; }
+          main { padding:18px 12px 36px; } header { align-items:flex-start; gap:8px; flex-wrap:wrap; }
+          .header-start { width:100%; }
+          .header-actions { width:100%; justify-content:flex-end; }
           #back { display:grid; place-items:center; min-width:44px; padding:8px; }
           .mark { display:none; } .identity { gap:8px; } h1 { font-size:24px; }
           header p { white-space:normal; overflow:visible; line-height:1.35; }
           #reload, #about { min-width:44px; padding:8px; }
           #reload span, #about span { display:none; }
+          .theme-picker ha-icon { display:none; } #theme { min-width:92px!important; max-width:104px; }
         }
       </style>
-      <main><header><div class="header-start"><button id="back"
+      <main data-provider="${this._provider}"><header><div class="header-start"><button id="back"
         aria-label="Torna indietro, fuori da Vistoda" title="Torna alla pagina precedente"
         data-tooltip="Esce da Vistoda e torna alla pagina precedente"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
         <div class="identity"><div class="mark">
         <ha-icon icon="mdi:shield-home"></ha-icon></div><div><h1>Vistoda</h1>
-        <p class="muted"></p></div></div></div><div class="header-actions">
+        <p class="muted"></p></div></div></div><div class="header-actions"><label class="theme-picker"><ha-icon icon="mdi:palette-outline"></ha-icon>
+        <select id="theme" aria-label="Tema colori" data-copy-aria-label="Tema colori"><option value="vistoda" data-copy="Tema Vistoda">Tema Vistoda</option>
+        <option value="provider" data-copy="Tema provider">Tema provider</option></select></label>
         <button id="about" aria-label="Informazioni e supporto" title="Informazioni e supporto">
           <ha-icon icon="mdi:information-outline"></ha-icon><span>Info</span></button>
         <button id="reload" aria-label="Aggiorna inventario" title="Aggiorna inventario Vistoda">
@@ -141,7 +156,7 @@ class VistodaPanel extends HTMLElement {
     this.shadowRoot.querySelector("#about").dataset.i18nAriaLabel = "aboutButton";
     this.shadowRoot.querySelector("#about").dataset.i18nTitle = "aboutButton";
     this.shadowRoot.querySelector("nav").dataset.i18nAriaLabel = "navigation";
-    const overview = this.shadowRoot.querySelector('[data-provider="overview"]');
+    const overview = this.shadowRoot.querySelector('nav a[data-provider="overview"]');
     const label = document.createElement("span"); label.dataset.i18n = "overview";
     overview.lastChild.replaceWith(label);
     this._localize();
@@ -155,6 +170,9 @@ class VistodaPanel extends HTMLElement {
       });
     });
     this.shadowRoot.getElementById("back").addEventListener("click", () => this._leavePanel());
+    const theme = this.shadowRoot.getElementById("theme");
+    theme.value = this._themeMode(); this._applyTheme(theme.value);
+    theme.addEventListener("change", () => { this._saveThemeMode(theme.value); this._applyTheme(theme.value); });
     this.shadowRoot.getElementById("about").addEventListener("click", (event) => {
       this.shadowRoot.getElementById("about-dialog").open(event.currentTarget);
     });
@@ -188,6 +206,19 @@ class VistodaPanel extends HTMLElement {
   _navigate(path) {
     globalThis.history.pushState(null, "", path);
     globalThis.dispatchEvent(new CustomEvent("location-changed"));
+  }
+
+  _themeMode() {
+    try { return globalThis.localStorage?.getItem("vistoda-theme") === "provider" ? "provider" : "vistoda"; }
+    catch { return "vistoda"; }
+  }
+
+  _saveThemeMode(value) {
+    try { globalThis.localStorage?.setItem("vistoda-theme", value); } catch { /* private mode */ }
+  }
+
+  _applyTheme(value) {
+    this.shadowRoot.querySelector("main")?.classList.toggle("provider-theme", value === "provider");
   }
 
   async _loadInfo() {

@@ -88,9 +88,6 @@ export const blinkViewLive = {
     this.$("speaker").setAttribute("aria-pressed", String(Boolean(this._liveState.speaker)));
     this.$("microphone").setAttribute("aria-pressed", String(Boolean(this._liveState.microphone)));
     this.$("microphone").setAttribute("aria-busy", String(Boolean(this._liveState.microphonePending)));
-    this.$("talk-status").hidden = !interactive;
-    setText(this.shadowRoot, "talk-status", copy(this, this._liveState.microphone
-      ? "Microfono attivo" : "Tieni premuto per parlare"));
     this.$("microphone").setAttribute("aria-describedby", "live-message");
     this.$("microphone").title = copy(this, this._liveState.transport === "walnut"
       ? this._liveState.microphone ? "Disattiva il microfono per riprendere l’ascolto"
@@ -106,7 +103,10 @@ export const blinkViewLive = {
       ? copy(this, "Microfono attivo") : copy(this, "Tieni premuto per parlare"));
     this.$("speaker").title = this.$("speaker-label").textContent;
     this.$("microphone").title = copy(this, "Tieni premuto per parlare");
-    this.$("live-message").hidden = !active;
+    this.$("live-debug").hidden = !active;
+    this.$("live-debug").setAttribute("aria-expanded", String(this._liveDebugOpen));
+    this.$("live-debug").classList.toggle("primary", this._liveDebugOpen);
+    this.$("live-message").hidden = !active || !this._liveDebugOpen;
     setText(this.shadowRoot, "live-message", [this._liveState.message,
       this._liveSnapshotWarning].filter(Boolean).join(" · "));
     if (this._liveState.message) setText(this.shadowRoot, "message", this._liveState.message);

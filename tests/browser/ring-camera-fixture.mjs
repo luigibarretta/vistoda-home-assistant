@@ -20,7 +20,7 @@ export async function checkRingCameras(page) {
     selector.value = "1"; selector.dispatchEvent(new Event("change"));
     host.shadowRoot.getElementById("live").click();
     const root = host.live.dialog.firstElementChild.shadowRoot;
-    root.getElementById("rotate").click();
+    root.getElementById("rotate").click(); root.getElementById("rotate").click();
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const stage = root.getElementById("stage").getBoundingClientRect();
     const box = root.querySelector("video").getBoundingClientRect();

@@ -44,6 +44,19 @@ every cell at least 44 px without clipping its coordinate map to the image.
 Tab and Space toggle activity cells without a device write; Save remains an
 explicit, confirmed operation. Privacy and read-only cells cannot be toggled.
 
+Archive pagination uses the same custom 10/25/50/100 segmented control for
+Ring, Blink and EZVIZ. On mobile, checkboxes appear only after selection mode is
+entered. A 420 ms long press selects the first card, dragging selects additional
+cards and ordinary vertical movement cancels before selection so scrolling is
+not trapped. An explicit labelled selection button and live item count remain
+available without the gesture.
+
+Live viewers share Auto/Off/90-degree rotation without rotating their controls.
+Blink keeps routine technical session text hidden behind a debug button; errors
+remain in the panel status path. Storage facts show compact values while labels
+remain accessible on hover/focus. Permanently unsupported Sync Module actions
+use `aria-disabled` and no mutating callback.
+
 ## Automated verification
 
 Blink compatible live must also work on a cold direct `/vistoda/blink` entry,
@@ -58,17 +71,20 @@ engines with a synthetic loader; actual HA/media verification remains separate.
 ```sh
 node --test tests/*.mjs
 NODE_PATH=/path/to/node_modules node tests/browser/panel-responsive.mjs
+NODE_PATH=/path/to/node_modules node tests/browser/blink-live-controls.mjs
+NODE_PATH=/path/to/node_modules node tests/browser/mobile-card-selection.mjs
 ```
 
-The browser script requires Playwright and its Chromium installation. It serves
-the current checked-out modules from a loopback-only HTTP server and supplies a
-synthetic Home Assistant object. It checks overview, Ring, Blink, EZVIZ and Ring
+The browser scripts require Playwright and Chromium, Firefox and WebKit. They serve
+the current checked-out modules from a loopback-only HTTP server and supply a
+synthetic Home Assistant object. They check overview, Ring, Blink, EZVIZ and Ring
 history in English and Italian at 320, 360, 393, 600, 768 and 1280 px: document overflow, visible
 button/link/select/range dimensions, active navigation, 8 px Blink indicators,
 two same-named Ring entrances, history identity, inventory failure and recovery,
 and uncaught browser errors. It also opens Ring identity (including focus return),
 recording info and list dialogs, USB format confirmation, Blink settings/quality
-and zone editing. User values deliberately matching Italian UI copy remain
+and zone editing. Separate synthetic tests exercise live rotation/debug/teardown
+and mobile long-press/drag selection. User values deliberately matching Italian UI copy remain
 unchanged. Zone grid dimensions and keyboard editing are checked. Its service-call implementation always throws;
 only an allowlisted synthetic read contract is accepted.
 

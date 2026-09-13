@@ -1,6 +1,7 @@
 // Source-owned UI copy only; never look up device names or user-entered text.
 export const COMMON_COPY = {
   "Arma": "Arm", "Disarma": "Disarm",
+  "Tema colori": "Color theme", "Tema Vistoda": "Vistoda theme", "Tema provider": "Provider theme",
   "Area Home Assistant: {p0}": "Home Assistant area: {p0}",
   "Il comando Arma/Disarma si applica all’account EZVIZ associato.": "Arm/Disarm applies to the linked EZVIZ account.",
   "Collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema.": "Connect the EZVIZ integration in Home Assistant to control the system.",
@@ -23,6 +24,8 @@ export const COMMON_COPY = {
   "Dettaglio camera": "Camera details", "Apri live": "Open live video", "Chiudi live": "Close live video",
   "Attiva audio": "Enable audio", "Disattiva audio": "Disable audio",
   "Ruota visualizzazione": "Rotate view",
+  "Rotazione automatica": "Automatic rotation", "Rotazione disattivata": "Rotation off",
+  "Rotazione di 90 gradi": "90-degree rotation",
   "Telecamere Ring": "Ring cameras",
   "Attiva microfono": "Enable microphone", "Disattiva microfono": "Disable microphone",
   "Attivata": "Enabled", "Disattivata": "Disabled", "Automatica": "Automatic",
@@ -74,6 +77,9 @@ export const COMMON_COPY = {
   "Aggiungi selezionate alle liste": "Add selected to lists",
   "Aggiungi tutte le clip selezionate a una o più liste": "Add all selected clips to one or more lists",
   "0 selezionate": "0 selected", "{p0} selezionate": "{p0} selected",
+  "Seleziona registrazioni": "Select recordings", "Seleziona clip": "Select clips",
+  "{p0} registrazioni · {p1} selezionate": "{p0} recordings · {p1} selected",
+  "{p0} clip · {p1} selezionate": "{p0} clips · {p1} selected",
   "Chiudi player": "Close player", "Chiudi riproduzione": "Close playback", "Chiudi il video": "Close video",
   "Riproduzione registrazione": "Recording playback", "Riproduzione clip": "Clip playback",
   "Il browser non riesce a riprodurre questa registrazione.": "The browser cannot play this recording.",

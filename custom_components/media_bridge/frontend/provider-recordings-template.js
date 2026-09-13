@@ -22,7 +22,9 @@ export const providerRecordingsTemplate = (styles, listTemplate, bulkListTemplat
     <div class="message muted" id="message" role="status"></div>
     <vistoda-provider-recording-player id="player"></vistoda-provider-recording-player>
     <details open><summary id="summary"><span data-copy="Archivio locale">Archivio locale</span></summary>${PAGE_SIZE_TEMPLATE}${listTemplate}${bulkListTemplate}
-    <div class="bulk-actions" id="bulk-actions" hidden><strong id="selected-count"><span data-copy="0 selezionate">0 selezionate</span></strong>
+    <div class="bulk-actions" id="bulk-actions"><button class="icon-action" id="selection-mode" aria-pressed="false"
+      aria-label="Seleziona registrazioni" data-copy-aria-label="Seleziona registrazioni" title="Seleziona registrazioni" data-copy-title="Seleziona registrazioni">
+      <ha-icon icon="mdi:select-multiple"></ha-icon></button><strong id="selected-count"><span data-copy="0 selezionate">0 selezionate</span></strong>
       <div class="bulk-buttons">
       <button class="icon-action" id="add-selected-to-lists" aria-label="Aggiungi selezionate alle liste" data-copy-aria-label="Aggiungi selezionate alle liste"
       title="Aggiungi selezionate alle liste" data-copy-title="Aggiungi selezionate alle liste" data-tooltip="Aggiungi tutte le clip selezionate a una o più liste" data-copy-data-tooltip="Aggiungi tutte le clip selezionate a una o più liste">

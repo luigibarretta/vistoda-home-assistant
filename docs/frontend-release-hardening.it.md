@@ -37,17 +37,31 @@ Tab e Spazio modificano soltanto la bozza delle zone attività; l’invio richie
 il comando esplicito Salva e la conferma. Le celle privacy o in sola lettura
 non possono essere modificate.
 
+Ring, Blink ed EZVIZ usano lo stesso controllo segmentato 10/25/50/100. Su
+mobile le checkbox compaiono solo in modalità selezione: una pressione di 420 ms
+seleziona la prima card, il trascinamento estende la selezione e un normale
+movimento verticale annulla il gesto senza bloccare lo scorrimento. Il pulsante
+di selezione etichettato e il contatore restano sempre disponibili.
+
+I live condividono gli stati di rotazione Auto/Disattivata/90 gradi senza ruotare
+i controlli. Blink nasconde i dettagli tecnici ordinari dietro il pulsante debug.
+I dati USB compatti conservano label accessibili; le azioni Sync Module non
+verificate sono `aria-disabled` e non hanno callback mutanti.
+
 ## Esecuzione
 
 ```sh
 node --test tests/*.mjs
 NODE_PATH=/percorso/node_modules node tests/browser/panel-responsive.mjs
+NODE_PATH=/percorso/node_modules node tests/browser/blink-live-controls.mjs
+NODE_PATH=/percorso/node_modules node tests/browser/mobile-card-selection.mjs
 ```
 
-Il browser usa Chromium/Playwright, un server solo loopback e risposte Home
+I test usano Chromium, Firefox e WebKit tramite Playwright, un server solo loopback e risposte Home
 Assistant sintetiche. Verifica 48 combinazioni provider/lingua/larghezza,
 archivi, liste, identità Ring e ritorno del focus, impostazioni Blink, zone,
 conferma formattazione USB, errori e recupero. Nomi utente come “Elimina” devono
-rimanere invariati. Nessun servizio reale viene invocato, nessuna apertura,
+rimanere invariati. Test separati coprono rotazione/debug/teardown del live e
+selezione mobile con pressione prolungata. Nessun servizio reale viene invocato, nessuna apertura,
 registrazione, formattazione o notifica viene effettuata. Il gate non certifica
 connettività vendor, runtime HA distribuito o risultato di uno screen reader.

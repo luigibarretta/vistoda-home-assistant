@@ -33,7 +33,7 @@ users.
 | Provider | Released functions | Boundary |
 | --- | --- | --- |
 | Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings; experimental native camera viewer | Experimental consumer APIs; Ring does not support this third-party use. Camera live remains hardware-unverified; see [camera scope](docs/RING_CAMERAS.md). Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
-| Blink | Multiple cameras, snapshots, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, archives and NFS backup | Use Blink 0.16.0+. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
+| Blink | Multiple cameras, snapshots, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, versioned settings backups, archives and NFS backup | Use Blink 0.17.0+. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
 | EZVIZ | Multiple cameras, stored/manual snapshots, compatible live streams, local recordings and NFS backup | Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
 | Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
@@ -85,6 +85,9 @@ For fullscreen and microphone availability, see [Blink live controls](docs/blink
 Blink and EZVIZ keep local recording controls in a closed accordion. Recording
 archives share a 10/25/50/100 page-size selector; Blink/EZVIZ request that page
 size from the backend, while Ring pages its local archive metadata in the UI.
+On narrow touch screens a long press enters selection mode; dragging across
+cards extends the selection, while the always-visible counter and selection
+button provide an explicit keyboard and screen-reader alternative.
 System cards share one Arm/Disarm button, updated only after the state is
 confirmed, with a success toast. EZVIZ system control requires the native HA
 EZVIZ integration, matched by camera identity; it controls the associated
@@ -102,16 +105,30 @@ Vistoda preserves the current calibration and verifies saved values by reading
 them back. A failed first initialization cannot restore an absent threshold;
 reload and inspect the reported state before retrying.
 
-These switches configure **native Blink push notifications**, not Home Assistant
-Companion notifications. The Blink app needs notification permission. Cameras
-without the temperature capability (including the original Mini) do not expose
-the controls; missing telemetry disables writes rather than guessing a value.
+These switches configure **native Blink push notifications**. Vistoda Blink also
+publishes one `Temperatura fuori soglia` binary sensor per supported camera, so
+operators can build a separate Home Assistant Companion notification without
+reimplementing Fahrenheit threshold comparison. Cameras without the temperature
+capability (including the original Mini) do not expose the controls or that
+state as available; missing telemetry disables writes rather than guessing a
+value.
+
+The Blink system card can retain up to 25 named, all-camera settings backups.
+Restore matches each camera by provider serial or stable camera ID, creates a
+rollback snapshot, preflights every field and uses revision checks. A concurrent
+change or a non-reversible uninitialized temperature threshold stops the restore
+instead of overwriting or reporting partial values as successful. Single-camera
+backup/restore is supported by the backend contract but is intentionally not in
+the panel yet.
 
 Ring, Blink and EZVIZ use separate app-owned archives. The same displayed
 `/data/recordings` path in two apps does not mean the same directory: each Home
 Assistant app has an isolated data volume. Vistoda shows the owning provider and
 effective path. Supported archives are paginated server-side and allow playback,
 download, confirmed deletion, list membership and verified network backup.
+The Blink Sync Module section reports connection, firmware and USB storage used.
+Wi-Fi migration, safe eject and Sync Module removal remain visible but disabled
+until their complete recovery paths are independently verified.
 
 For NFS or SMB backup, add the storage in **Settings → System → Storage** with
 usage **Media**, then select its storage name in the Vistoda integration options.

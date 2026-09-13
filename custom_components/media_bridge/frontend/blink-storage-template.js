@@ -14,7 +14,9 @@ export const blinkStorageTemplate = (styles, listTemplate, bulkListTemplate) => 
     aria-label="Chiudi riproduzione" data-copy-aria-label="Chiudi riproduzione" title="Chiudi riproduzione" data-copy-title="Chiudi riproduzione" data-tooltip="Chiudi il video" data-copy-data-tooltip="Chiudi il video">
     <ha-icon icon="mdi:close"></ha-icon></button></div>
     <video id="video" controls playsinline preload="metadata"></video></section>
-    <div class="bulk-actions" id="bulk-actions" hidden><strong id="selected-count"><span data-copy="0 selezionate">0 selezionate</span></strong>
+    <div class="bulk-actions" id="bulk-actions"><button class="icon-action" id="selection-mode" aria-pressed="false"
+      aria-label="Seleziona clip" data-copy-aria-label="Seleziona clip" title="Seleziona clip" data-copy-title="Seleziona clip">
+      <ha-icon icon="mdi:select-multiple"></ha-icon></button><strong id="selected-count"><span data-copy="0 selezionate">0 selezionate</span></strong>
       <div class="bulk-buttons">
       <button class="icon-action" id="add-selected-to-lists" aria-label="Aggiungi selezionate alle liste" data-copy-aria-label="Aggiungi selezionate alle liste"
       title="Aggiungi selezionate alle liste" data-copy-title="Aggiungi selezionate alle liste" data-tooltip="Aggiungi tutte le clip selezionate a una o più liste" data-copy-data-tooltip="Aggiungi tutte le clip selezionate a una o più liste">

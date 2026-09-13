@@ -29,12 +29,10 @@ def test_blink_primary_controls_expose_state_icons_and_text() -> None:
 
 
 def test_usb_facts_are_vertically_centered_icon_labels() -> None:
-    storage = source("blink-storage.js")
+    storage = source("blink-storage.js") + source("blink-storage-ui.js")
     styles = source("blink-storage-styles.js")
-    assert all(
-        icon in storage
-        for icon in ("mdi:usb-flash-drive", "mdi:harddisk", "mdi:cloud-check-outline")
-    )
+    assert all(icon in storage for icon in ("mdi:usb-flash-drive", "mdi:cloud-check-outline"))
+    assert "_storageGauge" in storage and 'className = "storage-gauge"' in storage
     assert ".module-facts { display:flex; align-items:center" in styles
     assert ".storage-fact { display:inline-flex; align-items:center" in styles
 

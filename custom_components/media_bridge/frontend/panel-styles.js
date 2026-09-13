@@ -16,7 +16,7 @@ export const BASE_STYLES = `
     background:var(--secondary-background-color); text-decoration:none; }
   button ha-icon, .button ha-icon { --mdc-icon-size:20px; flex:0 0 auto; }
   button.primary, .button.primary { color:#fff;
-    background:linear-gradient(135deg,#6246ea,#4967e9); }
+    background:var(--vistoda-primary-gradient,linear-gradient(135deg,#6246ea,#4967e9)); }
   button.danger { color:#fff; background:linear-gradient(135deg,#d84d75,#f47740); }
   button:disabled { opacity:.48; cursor:not-allowed; }
   [data-tooltip] { position:relative; }
