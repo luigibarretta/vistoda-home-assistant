@@ -1,9 +1,13 @@
 import { copy } from "./panel-copy.js";
 import { dragStart, dragMove, dragReset } from "./page-drag.js";
+import { hydrateBlinkDragPreview } from "./blink-drag-preview.js";
 import { circularPagerIndexes, entityState, firstEntity, providerDevices, swipeStep,
   wrappedIndex } from "./panel-helpers.js";
 
 export const blinkViewNavigation = {
+  _hydrateDragPreview(clone, direction) {
+    hydrateBlinkDragPreview(this, clone, direction);
+  },
   _alarmDevice() {
     const alarms = providerDevices(this._info, "blink")
       .filter((item) => item.entities?.alarm_control_panel?.length);
@@ -63,6 +67,7 @@ export const blinkViewNavigation = {
   _stopLiveForCameraChange() {
     this._liveOpening = false;
     this._liveControls?.reset();
+    this._recordingMenu?.resetProvider?.();
     this._fullscreen?.exit().catch(() => {});
     const session = this._liveSession;
     this._liveSession = null;

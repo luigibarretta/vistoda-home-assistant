@@ -47,7 +47,11 @@ export const MEDIA_STYLES = `
   .provider-head { display:flex; justify-content:space-between; gap:18px;
     align-items:flex-start; margin-bottom:18px; }
   .provider-head h2 { margin:4px 0 5px; font-size:23px; }
-  .media-card { overflow:hidden; }
+  .media-card { overflow:hidden; touch-action:pan-y; user-select:none; }
+  .drag-current-page { position:relative; z-index:2; will-change:transform; }
+  .drag-adjacent-preview { position:fixed; z-index:1; margin:0; pointer-events:none;
+    overflow:hidden; opacity:.18; will-change:transform,opacity;
+    transition:opacity .04s linear; box-shadow:var(--ha-card-box-shadow); }
   .stage { position:relative; aspect-ratio:16/9; min-height:220px;
     display:grid; place-items:center; background:#111; touch-action:pan-y; user-select:none; overflow:hidden; }
   .stage img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }

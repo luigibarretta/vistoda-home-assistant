@@ -43,7 +43,11 @@ limits that storage outside Vistoda through the Home Assistant Supervisor. This
 prevents an “active” storage entry or local substitute from silently filling
 the Home Assistant disk.
 
-Direct provider recording to USB/microSD and Blink/EZVIZ talk remain gated until their exact
+Blink 0.18.0 adds the verified Walnut `SaveClip`/`DiscardClip` command. The
+provider owns routing: with Blink Local Storage enabled, eligible saved live
+sessions are stored on the Sync Module USB. This is distinct from HA-local
+fixed-duration capture and is the default Blink live-save choice. Direct
+arbitrary file writes to USB, EZVIZ provider recording to microSD and unsupported talk remain gated until their exact
 model-specific list, transport, mutation and recovery contracts pass live
 canaries. No UI control may imply parity merely because downstream media works.
 

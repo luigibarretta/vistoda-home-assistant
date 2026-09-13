@@ -91,7 +91,7 @@ class VistodaEzvizView extends HTMLElement {
     this.$("next").addEventListener("click", () => this._move(1));
     this.$("stage").addEventListener("pointerdown", (event) => this._startSwipe(event));
     this.$("stage").addEventListener("pointerup", (event) => this._finishSwipe(event));
-    this.$("stage").addEventListener("pointermove", (event) => this._dragSwipe(event));
+    this.$("stage").addEventListener("pointermove", (event) => this._dragSwipe(event), { passive: false });
     this.$("stage").addEventListener("pointercancel", () => this._cancelSwipe());
     this.$("snapshot").draggable = false;
     this.$("live").addEventListener("click", () => this._openLive());

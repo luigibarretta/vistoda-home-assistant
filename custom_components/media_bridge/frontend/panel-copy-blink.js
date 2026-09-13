@@ -17,7 +17,20 @@ export const BLINK_COPY = {
   "Eliminare il backup “{p0}”?": "Delete backup “{p0}”?", "Eliminazione backup…": "Deleting backup…",
   "Backup eliminato.": "Backup deleted.", "Eliminazione backup non riuscita.": "Unable to delete backup.",
   "Applica backup": "Apply backup", "Elimina backup": "Delete backup", "{p0} telecamere": "{p0} cameras",
-  "La registrazione diretta sulla chiavetta USB non è supportata.": "Direct recording to the USB drive is not supported.",
+  "Archivio Blink (USB se attivo)": "Blink archive (USB when active)",
+  "Blink salverà la sessione nell'archivio configurato; con Local Storage attivo, sulla chiavetta del Sync Module.":
+    "Blink will save the session to the configured archive; when Local Storage is active, to the Sync Module USB drive.",
+  "La copia HA usa l'archivio locale separato di Vistoda.":
+    "The HA copy uses Vistoda's separate local archive.",
+  "Non salvare questa live": "Do not save this live",
+  "Salvataggio in preparazione": "Preparing recording",
+  "Blink sta preparando il salvataggio della live.": "Blink is preparing the live recording.",
+  "La live verrà salvata nell'archivio Blink configurato.":
+    "The live session will be saved to the configured Blink archive.",
+  "Il salvataggio Blink di questa live è stato annullato.":
+    "Saving this live session to Blink was cancelled.",
+  "Salvataggio Blink non disponibile: avvia prima una live compatibile e riprova.":
+    "Blink saving is unavailable: start a compatible live session first and try again.",
   "Il microfono richiede HTTPS anche sul Wi-Fi di casa. Nelle impostazioni Companion usa un URL interno HTTPS valido.": "The microphone requires HTTPS even on home Wi-Fi. Set a valid HTTPS internal URL in Companion settings.",
   "Snapshot non aggiornato. Il video live è indipendente; riprova lo snapshot dopo averlo chiuso.": "Snapshot not updated. Live video is independent; retry the snapshot after closing it.",
   "Clip per pagina": "Clips per page",

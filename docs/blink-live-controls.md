@@ -1,6 +1,6 @@
 # Blink live controls
 
-Requires Vistoda HA 0.31.4 and Blink 0.17.1 for the complete control contract.
+Requires Vistoda HA 0.31.5 and Blink 0.18.0 for the complete control contract.
 
 The mobile refinement adds a loading spinner over the HA player placeholder,
 a compact 44 px-high hold-to-talk control with status outside the finger area, and shared
@@ -29,7 +29,11 @@ From HA 0.30.4 onward, leaving the Blink route or hiding the app stops that view
 even when HA keeps the panel cached. Teardown explicitly pauses media and
 releases receiving tracks. Continue does not override navigation cleanup.
 The floating recording button opens duration and destination controls using
-the same local archive action. USB is visibly disabled: direct live recording
+the same local archive action. The floating recorder defaults to Blink's native
+provider-managed save command. With Local Storage active Blink routes eligible
+clips to the Sync Module USB; Vistoda does not write arbitrary files directly
+to that drive. HA-local fixed-duration capture remains an explicit alternative,
+and either archive can subsequently be backed up to configured NFS storage.
 to the Sync Module drive is not implemented, and local recording is not USB.
 
 Camera audio is enabled by default where the browser permits it. If autoplay
@@ -65,7 +69,7 @@ Audio controls never change volume, motion, privacy or alarm settings.
 
 ## Italiano
 
-Il contratto completo richiede Vistoda HA 0.31.4 e Blink 0.17.1.
+Il contratto completo richiede Vistoda HA 0.31.5 e Blink 0.18.0.
 
 Il miglioramento mobile aggiunge uno spinner sopra il placeholder del player HA,
 un pulsante premi-per-parlare compatto alto 44 px con stato fuori dall'area coperta dal dito,
