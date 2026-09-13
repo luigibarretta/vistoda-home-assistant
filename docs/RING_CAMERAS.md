@@ -1,6 +1,6 @@
 # Ring cameras (experimental)
 
-Vistoda Home Assistant 0.30.0 and the Ring app 0.14.0 add a native camera
+Vistoda Home Assistant 0.30.1 and the Ring app 0.14.0 add a native camera
 inventory and browser live viewer. No official Home Assistant Ring integration
 is required. `/vistoda/ring` displays a camera selector when the enrolled Ring
 account reports supported cameras; an account with only an Intercom has no empty

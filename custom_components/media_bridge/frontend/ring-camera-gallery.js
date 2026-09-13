@@ -30,7 +30,7 @@ class RingCameraGallery extends HTMLElement {
       section { padding:16px;border:1px solid var(--divider-color);border-radius:20px; }
       button,select { min-height:44px;font:inherit;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px;padding:8px; }
       select { max-width:100%; } .actions { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
-      button { display:inline-flex;align-items:center;gap:8px;cursor:pointer; }
+      button { min-width:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer; }
     </style><section><h2></h2><p id="notice" role="status"></p><div class="actions"><select></select>
       <button id="live"><ha-icon icon="mdi:video-wireless-outline"></ha-icon><span></span></button>
       <button id="reload"><ha-icon icon="mdi:refresh"></ha-icon></button></div><p id="location"></p></section>`;
