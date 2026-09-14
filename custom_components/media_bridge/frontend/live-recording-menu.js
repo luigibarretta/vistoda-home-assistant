@@ -6,6 +6,7 @@ import { LiveRecordingDeadline } from "./live-recording-deadline.js";
 export class LiveRecordingMenu {
   constructor(view) {
     this.view = view;
+    this.generation = 0;
     this.deadline = new LiveRecordingDeadline(() => this.finish());
     this.host = document.createElement("div");
     this.host.hidden = true;
@@ -49,7 +50,7 @@ export class LiveRecordingMenu {
     if (!this.host.hidden) this.root.getElementById("duration").focus();
   }
   close() { this.host.hidden = true; this.view.$("record-live").setAttribute("aria-expanded", "false"); }
-  resetProvider() { this.deadline.reset(); this.providerSaving = false; this.providerLocked = false; this._destination(); }
+  resetProvider() { this.generation++; this.deadline.reset(); this.providerSaving = false; this.providerLocked = false; this._destination(); }
   finish() {
     if (!this.providerSaving) return;
     this.deadline.reset();
@@ -73,6 +74,7 @@ export class LiveRecordingMenu {
     this.root.getElementById("start").disabled = provider && Boolean(this.providerLocked);
   }
   async start() {
+    const generation = this.generation;
     const button = this.root.getElementById("start");
     if (button.disabled) return;
     button.disabled = true;
@@ -86,6 +88,7 @@ export class LiveRecordingMenu {
         const result = await this.view._hass.callWS({
           type: "blink_live_bridge/recordings/provider", alias, save,
         });
+        if (generation !== this.generation) return;
         this.providerSaving = save;
         this.providerLocked = save && result?.status === 2;
         if (save) this.deadline.start(Number(this.root.getElementById("duration").value));
@@ -103,13 +106,14 @@ export class LiveRecordingMenu {
         if (!globalThis.confirm(copy(this.view, "Registrare {p0} secondi del live in archivio locale?", { p0: duration }))) return;
         await this.view._hass.callWS({ type: "blink_live_bridge/recordings/create", alias,
           duration_seconds: duration, request_id: globalThis.crypto.randomUUID() });
+        if (generation !== this.generation) return;
         this.root.getElementById("status").textContent = copy(this.view,
           "Registrazione di {p0} secondi avviata.", { p0: duration });
         this.view.$("recordings").reload();
       }
     } catch {
-      this.root.getElementById("status").textContent = copy(this.view,
+      if (generation === this.generation) this.root.getElementById("status").textContent = copy(this.view,
         "Salvataggio Blink non disponibile: avvia prima una live compatibile e riprova.");
-    } finally { button.disabled = Boolean(this.providerLocked); }
+    } finally { if (generation === this.generation) button.disabled = Boolean(this.providerLocked); }
   }
 }
