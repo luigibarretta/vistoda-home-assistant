@@ -8,6 +8,11 @@ Gli errori di inventario sono distinti dai provider non configurati. Il ritorno
 a Home Assistant usa la dashboard predefinita o `/lovelace`, senza percorsi
 personali. Ring seleziona il citofono per entry: apertura e cronologia restano
 associate all’ingresso scelto. EZVIZ associa ogni camera tramite alias esatto;
+la pagina dispositivo mostra la batteria dell’entità EZVIZ nativa associata e
+raggruppa i controlli realmente esposti da Home Assistant in sezioni ispirate
+all’app. Ogni riga apre il controllo nativo di HA; le impostazioni non esposte
+restano dichiarate non disponibili. Lo swipe muove solo lo snapshot e mai
+l’intera card della telecamera.
 non aggiorna immagini di altre camere se l’associazione è ambigua. Aprire il
 pannello legge soltanto immagini già salvate, senza risvegliare dispositivi.
 

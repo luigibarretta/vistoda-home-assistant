@@ -196,6 +196,7 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
     blink_template = (COMPONENT / "frontend" / "blink-view-template.js").read_text(encoding="utf-8")
     ezviz = (COMPONENT / "frontend" / "ezviz-view.js").read_text(encoding="utf-8")
+    ezviz_actions = (COMPONENT / "frontend" / "ezviz-view-actions.js").read_text(encoding="utf-8")
     assert 'callService("blink_live_bridge", "trigger_camera"' in blink
     system_control = (COMPONENT / "frontend" / "system-arm-control.js").read_text()
     assert '"alarm_control_panel", arm ? "alarm_arm_away" : "alarm_disarm"' in system_control
@@ -206,8 +207,16 @@ def test_blink_and_ezviz_views_keep_expensive_actions_explicit() -> None:
     assert "await this.waitForIce(pc)" in live and "OFFER_ICE_HEADSTART_MS" not in live
     assert "Aggiorna snapshot" in blink_template
     assert "SceneTrove" in ezviz and "standalone e separato" in ezviz
-    assert 'this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")' in ezviz
+    assert 'this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")' in ezviz_actions
     assert "api_token" not in blink + ezviz
+
+
+def test_camera_swipe_is_bound_to_the_image_stage_not_the_whole_blink_card() -> None:
+    blink = (COMPONENT / "frontend" / "blink-view.js").read_text(encoding="utf-8")
+    drag = (COMPONENT / "frontend" / "page-drag.js").read_text(encoding="utf-8")
+    assert 'this.$("stage").addEventListener("pointerdown"' in blink
+    assert 'this.$("gallery").addEventListener("pointerdown"' not in blink
+    assert 'const target = (view) => view.$("snapshot")' in drag
 
 
 def test_ring_door_service_is_vistoda_first_and_visible() -> None:

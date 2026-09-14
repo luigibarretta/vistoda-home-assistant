@@ -1,5 +1,5 @@
-// Shared camera-page gesture feedback. The whole camera card follows the finger.
-const target = (view) => view.$("gallery") || view.$("snapshot");
+// Shared camera-page gesture feedback. Only the camera image follows the finger.
+const target = (view) => view.$("snapshot");
 const reduced = () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 function discardPreview(view) {
   view._swipePreview?.remove?.(); view._swipePreview = null;

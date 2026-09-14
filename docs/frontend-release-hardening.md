@@ -14,6 +14,11 @@ Ring selection shows both device and location names. The unlock confirmation
 names the selected entrance. History is configured with that exact entry,
 clears previous events immediately, and ignores stale asynchronous responses.
 EZVIZ selection routes snapshot refresh and archive access by camera alias.
+Its device page displays the battery reported by the exactly bound native EZVIZ
+entity and groups the native Home Assistant controls under app-inspired settings
+headings. A row opens Home Assistant's own control dialog; unsupported vendor
+settings remain explicitly unavailable. Swipe feedback moves only the snapshot,
+never the complete camera card.
 An unambiguous one-camera/one-entry installation remains compatible; multiple
 cameras without an exact alias match cannot refresh another camera's image.
 Merely opening the page continues to read saved snapshots only.

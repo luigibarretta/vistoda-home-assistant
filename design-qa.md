@@ -86,3 +86,18 @@ centered in its circular background, no document-level horizontal overflow, a
 deliberately scrollable localized filter row and zero console errors. Ring's
 combined `Home in Casoria` Location label is displayed once; notification
 wording separately avoids repeating the structured city.
+
+## EZVIZ settings and swipe regression check (0.32.0)
+
+- Reference: owner-provided EZVIZ Settings screenshots at 629 × 1280.
+- Capture: `/home/ansible/audits/vistoda-0.32.0-local/mobile.png`, 390 px mobile viewport.
+- Blink gesture listeners are confined to the image stage and only the snapshot
+  receives drag transforms; the camera card no longer moves.
+- EZVIZ shows the bound battery value (`55%` in the fixture) and nine compact,
+  icon-led settings groups. Actionable native HA entities open their standard
+  control dialog; unsupported groups state that the provider does not expose a
+  control.
+- The details page has no horizontal overflow, keeps 44 px primary targets and
+  preserves the existing provider typography, spacing and theme.
+
+final result: passed

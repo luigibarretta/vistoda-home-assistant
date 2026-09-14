@@ -35,11 +35,12 @@ def test_ezviz_provider_fetch_happens_only_after_explicit_websocket_action() -> 
     camera = (component / "camera.py").read_text()
     websocket = (component / "provider_recording_websocket.py").read_text()
     view = (component / "frontend" / "ezviz-view.js").read_text()
+    actions = (component / "frontend" / "ezviz-view-actions.js").read_text()
 
     assert "client.snapshot" not in camera
     assert "runtime.client.snapshot(alias)" in websocket
-    assert 'type: "media_bridge/ezviz/snapshot/refresh"' in view
+    assert 'type: "media_bridge/ezviz/snapshot/refresh"' in actions
     assert "this._nonce = 0" in view
     assert "this._snapshotObservedAt = Date.now()" not in view
-    assert "this._snapshotTimes.set(cameraId, Date.parse(result.updated_at)" in view
+    assert "this._snapshotTimes.set(cameraId, Date.parse(result.updated_at)" in actions
     assert "Ultimo snapshot salvato disponibile" in view

@@ -16,13 +16,14 @@ test("Blink preserves the selected camera and scopes its Sync Module alarm", asy
 });
 
 test("EZVIZ pages by stable entity and binds actions to exact entries", async () => {
-  const ezviz = await source("ezviz-view.js", "ezviz-view-navigation.js");
+  const view = await source("ezviz-view.js");
+  const ezviz = await source("ezviz-view.js", "ezviz-view-navigation.js", "ezviz-view-actions.js");
   assert.match(ezviz, /entry\.entry_id === entryId/);
   assert.match(ezviz, /matching\.length === 1/);
   assert.match(ezviz, /firstEntity\(device, "camera"\)\?\.entity_id === this\._selectedCameraId/);
   assert.match(ezviz, /generation !== this\._cameraGeneration/);
   assert.match(ezviz, /this\._snapshotTimes\.set\(cameraId/);
-  assert.doesNotMatch(ezviz, /connectedCallback\(\).*_refresh/s);
+  assert.doesNotMatch(view, /connectedCallback\(\).*_refresh/s);
 });
 
 test("shared archives invalidate in-flight device requests", async () => {

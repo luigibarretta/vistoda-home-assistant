@@ -2,9 +2,10 @@ import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import { ezvizViewNavigation } from "./ezviz-view-navigation.js";
-import { CameraLiveDialog } from "./camera-live-dialog.js";
+import { ezvizViewActions } from "./ezviz-view-actions.js";
 import "./provider-recordings.js";
 import "./system-arm-control.js";
+import "./ezviz-settings.js";
 import {
   devicesWithDomain,
   entityState,
@@ -28,6 +29,7 @@ class VistodaEzvizView extends HTMLElement {
     this._selectedCameraId = "";
     this._cameraGeneration = 0;
     this._swipeStart = null;
+    this._detailOpen = false;
   }
 
   set hass(value) { this._hass = value; this._render(); }
@@ -47,6 +49,8 @@ class VistodaEzvizView extends HTMLElement {
         #message { min-height:21px; margin-top:12px; }
         #recording-section > summary { padding:12px 0; cursor:pointer; font-weight:600; }
         #system { display:block; }
+        .detail-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+        .detail-head h2 { margin:0; flex:1; }
       </style>
       <section class="card system" id="system"><div class="provider-head"><div><div class="eyebrow">Vistoda · EZVIZ</div>
         <h2 data-i18n="ezvizTitle">Telecamere EZVIZ</h2><div class="muted" data-i18n="ezvizIntro">Consulta l’ultima immagine salvata.
@@ -72,13 +76,20 @@ class VistodaEzvizView extends HTMLElement {
             <div><span data-i18n="connection">Connessione</span><strong id="connection">—</strong></div></div>
             <div class="fact"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
             <div><span>Live</span><strong data-i18n="onRequest">Su richiesta</strong></div></div>
+            <div class="fact"><ha-icon id="battery-icon" icon="mdi:battery"></ha-icon>
+            <div><span data-i18n="battery">Batteria</span><strong id="battery">—</strong></div></div>
             <div class="fact"><ha-icon icon="mdi:camera-outline"></ha-icon>
             <div><span>Snapshot</span><strong id="snapshot-state"><span data-copy="Verifica…">Verifica…</span></strong></div></div></div>
+          <button id="details" class="wide"><ha-icon icon="mdi:cog-outline"></ha-icon>
+            <span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
           <div class="muted" id="message" role="status"></div>
           <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
           <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details>
           <div class="notice muted"><span data-copy="Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.">Questo archivio è standalone e separato da SceneTrove:
             registra soltanto quando lo richiedi qui.</span></div></div></section>
+      <section class="card" id="details-page" hidden><div class="detail-head"><button id="details-back"
+        aria-label="Torna alla telecamera" title="Torna alla telecamera"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
+        <h2 id="details-title">EZVIZ</h2></div><vistoda-ezviz-settings id="settings"></vistoda-ezviz-settings></section>
       <nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect">
         <button data-i18n-aria-label="cameraPrevious" id="previous" aria-label="Telecamera precedente">
           <ha-icon icon="mdi:chevron-left"></ha-icon></button><div class="dots" id="dots"></div>
@@ -96,6 +107,8 @@ class VistodaEzvizView extends HTMLElement {
     this.$("snapshot").draggable = false;
     this.$("live").addEventListener("click", () => this._openLive());
     this.$("refresh").addEventListener("click", () => this._refresh());
+    this.$("details").addEventListener("click", () => { this._detailOpen = true; this._render(); });
+    this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });
     this.$("snapshot").addEventListener("error", () => {
       this._imageState = "error";
       this._renderImage();
@@ -140,6 +153,10 @@ class VistodaEzvizView extends HTMLElement {
     ));
     const connectivityState = entityState(this._hass, connectivity);
     const entry = this._cameraEntry();
+    this.$("system").hidden = this._detailOpen;
+    this.$("camera-card").hidden = this._detailOpen || !device;
+    this.$("pager").hidden = this._detailOpen || !device;
+    this.$("details-page").hidden = !this._detailOpen || !device;
     this.$("system-control").configure(this._hass, entry?.alarm_entity_id, entry?.device_name || device?.name || "EZVIZ");
     setText(this.shadowRoot, "system-scope", copy(this, entry?.alarm_entity_id
       ? "Il comando Arma/Disarma si applica all’account EZVIZ associato."
@@ -149,14 +166,14 @@ class VistodaEzvizView extends HTMLElement {
     const providerAvailable = entry?.available ?? provider?.available;
     this.$("availability").textContent = localize(this._hass, providerAvailable ? "ready" : "unavailable");
     this.$("availability").classList.toggle("off", !providerAvailable);
-    this.$("camera-card").hidden = !device;
-    this.$("pager").hidden = !device;
     this.$("empty").hidden = Boolean(device);
     if (!device) {
       this.$("recordings").configure(this._hass, null);
       return;
     }
     setText(this.shadowRoot, "camera-name", entry?.device_name || device.name);
+    setText(this.shadowRoot, "details-title", entry?.device_name || device.name);
+    this.$("settings").configure(this._hass, entry);
     setText(this.shadowRoot, "camera-position", copy(this, "{p0} di {p1}", {
       p0: this._cameraIndex + 1, p1: cameras.length,
     }));
@@ -165,6 +182,13 @@ class VistodaEzvizView extends HTMLElement {
     this.$("camera-state").classList.toggle("off", !available);
     setText(this.shadowRoot, "connection", connectivityState?.state === "on"
       ? copy(this, "Connesso") : connectivityState?.state === "off" ? copy(this, "Disconnesso") : copy(this, "Non rilevata"));
+    const batteryState = entry?.battery_entity_id ? this._hass?.states?.[entry.battery_entity_id] : null;
+    const batteryValue = batteryState && !["unknown", "unavailable"].includes(batteryState.state)
+      ? `${batteryState.state}${batteryState.attributes?.unit_of_measurement || "%"}` : copy(this, "Non rilevata");
+    setText(this.shadowRoot, "battery", batteryValue);
+    const numericBattery = Number(batteryState?.state);
+    this.$("battery-icon").setAttribute("icon", Number.isFinite(numericBattery) && numericBattery <= 20
+      ? "mdi:battery-alert-variant-outline" : "mdi:battery");
     setText(this.shadowRoot, "snapshot-time", snapshotTimeText(
       state,
       this._hass?.locale?.language || "it-IT",
@@ -190,55 +214,9 @@ class VistodaEzvizView extends HTMLElement {
     this._renderDots(cameras);
   }
 
-  _openLive() {
-    this._liveDialog ||= new CameraLiveDialog(this);
-    this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")?.entity_id);
-  }
-
-  async _refresh() {
-    const entry = this._cameraEntry();
-    if (!entry || !this._hass || this._snapshotPending) return;
-    const generation = this._cameraGeneration;
-    const camera = firstEntity(this._cameraDevice(), "camera");
-    const cameraId = camera?.entity_id || "";
-    const hass = this._hass;
-    this._snapshotPending = true;
-    setText(this.shadowRoot, "message", copy(this, "Richiesta di un nuovo snapshot…"));
-    this.$("refresh").disabled = true;
-    try {
-      const result = await hass.callWS({ type: "media_bridge/ezviz/snapshot/refresh",
-        entry_id: entry.entry_id });
-      if (generation !== this._cameraGeneration || cameraId !== this._selectedCameraId) return;
-      this._snapshotTimes.set(cameraId, Date.parse(result.updated_at) || Date.now());
-      this._nonce = Date.now(); this._render();
-    } catch (_error) {
-      if (generation === this._cameraGeneration && cameraId === this._selectedCameraId) {
-        setText(this.shadowRoot, "message", copy(this, "Nuovo snapshot non disponibile."));
-      }
-    } finally {
-      if (generation === this._cameraGeneration && cameraId === this._selectedCameraId) {
-        this._snapshotPending = false;
-        this.$("refresh").disabled = !this._cameraEntry();
-      }
-    }
-  }
-
-  _renderImage() {
-    const loading = this._imageState === "loading";
-    const loaded = this._imageState === "loaded";
-    this.$("loader").hidden = !loading;
-    this.$("snapshot").hidden = !loaded;
-    this.$("placeholder").hidden = loading || loaded;
-    setText(this.shadowRoot, "snapshot-state", loading
-      ? copy(this, "Caricamento…") : loaded ? copy(this, "Disponibile") : copy(this, "Non disponibile"));
-    if (loading) setText(this.shadowRoot, "message", copy(this, "Caricamento dello snapshot in corso…"));
-    if (this._imageState === "error") {
-      setText(this.shadowRoot, "message", copy(this, "Snapshot non disponibile; il live può restare operativo."));
-    }
-  }
 }
 
-Object.assign(VistodaEzvizView.prototype, ezvizViewNavigation);
+Object.assign(VistodaEzvizView.prototype, ezvizViewActions, ezvizViewNavigation);
 if (!customElements.get("vistoda-ezviz-view")) {
   customElements.define("vistoda-ezviz-view", VistodaEzvizView);
 }

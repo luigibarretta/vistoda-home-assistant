@@ -41,8 +41,11 @@ def test_usb_facts_are_vertically_centered_icon_labels() -> None:
 
 def test_ezviz_and_archive_actions_keep_labels_with_icons() -> None:
     ezviz = source("ezviz-view.js")
+    settings = source("ezviz-settings.js")
     archive = source("provider-recordings-template.js")
     assert "mdi:lan-connect" in ezviz and "mdi:camera-retake-outline" in ezviz
+    assert "mdi:battery" in ezviz and "vistoda-ezviz-settings" in ezviz
+    assert "Rilevamento intelligente" in settings and "openMoreInfo" in settings
     assert "mdi:record-rec" in archive and "Registra live" in archive
     assert "mdi:chevron-left" in archive and "mdi:chevron-right" in archive
 
