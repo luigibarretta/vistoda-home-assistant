@@ -11,18 +11,30 @@ def metadata(native_entries, source="serial:1"):
     registry = NS(
         entities={
             "alarm": NS(
-                config_entry_id="native", device_id=None, disabled_by=None,
-                entity_id="alarm_control_panel.fixture", name=None, original_name="Alarm",
+                config_entry_id="native",
+                device_id=None,
+                disabled_by=None,
+                entity_id="alarm_control_panel.fixture",
+                name=None,
+                original_name="Alarm",
                 original_device_class=None,
             ),
             "battery": NS(
-                config_entry_id="native", device_id="device", disabled_by=None,
-                entity_id="sensor.fixture_battery", name=None, original_name="Battery",
+                config_entry_id="native",
+                device_id="device",
+                disabled_by=None,
+                entity_id="sensor.fixture_battery",
+                name=None,
+                original_name="Battery",
                 original_device_class="battery",
             ),
             "audio": NS(
-                config_entry_id="native", device_id="device", disabled_by=None,
-                entity_id="switch.fixture_audio", name=None, original_name="Audio",
+                config_entry_id="native",
+                device_id="device",
+                disabled_by=None,
+                entity_id="switch.fixture_audio",
+                name=None,
+                original_name="Audio",
                 original_device_class=None,
             ),
         }
@@ -44,7 +56,9 @@ def metadata(native_entries, source="serial:1"):
     functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
     exec(compile(ast.Module(body=functions, type_ignores=[]), str(SOURCE), "exec"), namespace)
     states = {
-        "sensor.fixture_battery": NS(attributes={"friendly_name": "Camera battery", "device_class": "battery"}),
+        "sensor.fixture_battery": NS(
+            attributes={"friendly_name": "Camera battery", "device_class": "battery"}
+        ),
         "switch.fixture_audio": NS(attributes={"friendly_name": "Camera audio"}),
     }
     hass = NS(config_entries=NS(async_entries=lambda _: native_entries), states=NS(get=states.get))
@@ -68,8 +82,18 @@ def test_exact_binding_exposes_native_name_account_alarm_and_labeled_ha_area():
         "alarm_entity_id": "alarm_control_panel.fixture",
         "alarm_scope": "account",
         "native_entities": [
-            {"entity_id": "sensor.fixture_battery", "domain": "sensor", "name": "Camera battery", "device_class": "battery"},
-            {"entity_id": "switch.fixture_audio", "domain": "switch", "name": "Camera audio", "device_class": None},
+            {
+                "entity_id": "sensor.fixture_battery",
+                "domain": "sensor",
+                "name": "Camera battery",
+                "device_class": "battery",
+            },
+            {
+                "entity_id": "switch.fixture_audio",
+                "domain": "switch",
+                "name": "Camera audio",
+                "device_class": None,
+            },
         ],
         "battery_entity_id": "sensor.fixture_battery",
         "room_name": "HA hall",

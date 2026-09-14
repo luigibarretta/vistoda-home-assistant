@@ -19,9 +19,7 @@ def _native_entity(hass, entity) -> dict:
             or entity.original_name
             or entity.entity_id
         )[:255],
-        "device_class": (
-            attributes.get("device_class") or entity.original_device_class
-        ),
+        "device_class": (attributes.get("device_class") or entity.original_device_class),
     }
 
 
@@ -68,9 +66,7 @@ def panel_metadata(hass, entry) -> dict:
         )
         result["native_entities"] = native_entities[:64]
         batteries = [
-            item["entity_id"]
-            for item in native_entities
-            if item["device_class"] == "battery"
+            item["entity_id"] for item in native_entities if item["device_class"] == "battery"
         ]
         if len(batteries) == 1:
             result["battery_entity_id"] = batteries[0]
