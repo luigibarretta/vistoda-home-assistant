@@ -1,6 +1,8 @@
 export const BLINK_STORAGE_STYLES = `
   :host { display:block; margin-top:18px; }
   .storage { padding:18px; }
+  a { color:var(--primary-color); }
+  :host([embedded]) .storage { padding:0; border:0; border-radius:0; box-shadow:none; }
   header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
   .header-actions, .clip-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
   .header-actions button { display:inline-flex; align-items:center; gap:7px; }

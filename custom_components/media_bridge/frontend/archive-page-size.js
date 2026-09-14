@@ -1,3 +1,4 @@
+import { ARCHIVE_SELECT_STYLE } from "./archive-layout-styles.js";
 export const PAGE_SIZES = Object.freeze([10, 25, 50, 100]);
 
 class VistodaPageSize extends (globalThis.HTMLElement || class {}) {
@@ -8,9 +9,7 @@ class VistodaPageSize extends (globalThis.HTMLElement || class {}) {
     this.shadowRoot.innerHTML = `<style>
       :host { display:flex; align-items:center; gap:9px; margin:12px 0; min-width:0; }
       span { color:var(--secondary-text-color); font-size:12px; font-weight:650; }
-      select { min-width:96px; min-height:44px; box-sizing:border-box; padding:8px 36px 8px 12px;
-        border:1px solid var(--divider-color); border-radius:12px; color:var(--primary-text-color);
-        background:var(--secondary-background-color); font:inherit; font-weight:700; color-scheme:dark; }
+      select { ${ARCHIVE_SELECT_STYLE} min-width:96px; font-weight:700; }
       select:focus-visible { outline:3px solid var(--primary-color,#6246ea); outline-offset:2px; }
       select:disabled { opacity:.45; cursor:not-allowed; }
     </style><label for="picker"><span id="label">Clip per pagina</span></label><select id="picker"></select>`;

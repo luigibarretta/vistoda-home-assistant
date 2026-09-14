@@ -1,6 +1,9 @@
 import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
+import { ARCHIVE_FILTER_STYLES } from "./archive-layout-styles.js";
 
-export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
+export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}${ARCHIVE_FILTER_STYLES}
+  #archives { margin-top:24px; padding:clamp(16px, 3vw, 24px); min-width:0; }
+  #archives > h2 { margin:0 0 16px; font-size:23px; }
   #message { min-height:21px; margin-top:12px; }
   #system { display:block; }
   #system-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -115,14 +118,14 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   <h2 data-copy="Archivio registrazioni">Archivio registrazioni</h2>
   <vistoda-archive-tabs id="archive-tabs">
     <section slot="usb" id="usb-archive-panel">
-      <label for="module-filter">Sync Module</label>
-      <select id="module-filter" style="min-height:44px;max-width:100%"></select>
-      <vistoda-blink-storage id="storage"></vistoda-blink-storage>
+      <div class="archive-filter"><label for="module-filter">Sync Module</label>
+      <select id="module-filter"></select></div>
+      <vistoda-blink-storage id="storage" embedded></vistoda-blink-storage>
     </section>
     <section slot="local" id="local-archive-panel">
-      <label for="local-camera-filter" data-copy="Telecamera">Telecamera</label>
-      <select id="local-camera-filter" style="min-height:44px;max-width:100%"></select>
-      <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings>
+      <div class="archive-filter"><label for="local-camera-filter" data-copy="Telecamera">Telecamera</label>
+      <select id="local-camera-filter"></select></div>
+      <vistoda-provider-recordings id="recordings" embedded></vistoda-provider-recordings>
     </section>
     <vistoda-network-archive id="network-archive" slot="network"></vistoda-network-archive>
   </vistoda-archive-tabs>

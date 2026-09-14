@@ -2,6 +2,7 @@ export const PROVIDER_RECORDING_STYLES = `
   [hidden] { display:none !important; }
   :host { display:block; margin-top:18px; padding-top:18px;
     border-top:1px solid var(--divider-color); }
+  :host([embedded]) { padding-top:0; border-top:0; min-height:0; }
   .head, .capture { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .head-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
   h4 { margin:0; font-size:17px; }
@@ -41,6 +42,9 @@ export const PROVIDER_RECORDING_STYLES = `
     gap:10px; margin-top:12px; }
   .archive-pager span { text-align:center; color:var(--secondary-text-color); font-size:13px; }
   @media (max-width:600px) {
+    .archive-path { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+    .archive-path > span { grid-column:1 / -1; }
+    .archive-path code { min-width:0; }
     .head { grid-template-columns:1fr; align-items:stretch; }
     .head { display:grid; } .capture > * { flex:1 1 100%; }
     .head-actions { justify-content:stretch; }

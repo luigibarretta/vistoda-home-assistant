@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { checkRingCameras } from "./ring-camera-fixture.mjs";
 import { checkArchives } from "./archive-tabs-fixture.mjs";
+import { checkArchiveLayout } from "./archive-layout-fixture.mjs";
 const playwright = createRequire(import.meta.url)("playwright");
 const frontend = new URL("../../custom_components/media_bridge/frontend/", import.meta.url);
 const server = createServer(async (request, response) => {
@@ -53,6 +54,7 @@ try {
         assert.equal(await page.locator("#gallery #recordings").count(), 0);
         assert.equal(await page.locator("#archive-tabs [role=tab]").count(), 3);
         await checkArchives(page);
+        await checkArchiveLayout(page, engine);
         await stage.locator("#live").click();
         await page.waitForFunction(() => actions.includes("live"));
         assert.deepEqual(await page.evaluate(() => actions.slice(0, 2)), ["snapshot", "live"]);

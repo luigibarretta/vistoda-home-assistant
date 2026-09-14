@@ -11,6 +11,7 @@ class ArchiveTabs extends HTMLElement {
         border-bottom:3px solid transparent; background:none; color:var(--primary-text-color); font:inherit; }
       button[aria-selected="true"] { border-color:var(--primary-color); font-weight:700; }
       button:focus-visible { outline:3px solid var(--primary-color); outline-offset:-3px; }
+      @media (max-width:600px) { button { font-size:14px; padding:8px 4px; line-height:1.3; } }
     </style><nav role="tablist"></nav>`;
     this.keys = ["usb", "local", "network"];
     this.labels = ["USB Blink", "Locale HA", "Backup NFS"];
