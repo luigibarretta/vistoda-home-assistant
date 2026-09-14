@@ -4,6 +4,9 @@ import "./blink-settings-backups.js";
 import "./blink-storage.js";
 import "./blink-zones.js";
 import "./provider-recordings.js";
+import "./archive-tabs.js";
+import "./network-archive.js";
+import { BlinkArchives } from "./blink-archives.js";
 import "./system-arm-control.js";
 import { blinkViewLive } from "./blink-view-live.js";
 import { BlinkLiveControls } from "./blink-live-controls.js";
@@ -56,6 +59,7 @@ class VistodaBlinkView extends HTMLElement {
     });
     this._liveControls = new BlinkLiveControls(this);
     this._recordingMenu = new LiveRecordingMenu(this);
+    this._archives = new BlinkArchives(this);
     this.$("refresh").addEventListener("click", () => this._refreshSnapshot());
     this.$("motion").addEventListener("click", () => this._toggleMotion());
     this.$("details").addEventListener("click", () => {
@@ -107,11 +111,8 @@ class VistodaBlinkView extends HTMLElement {
     this.$("gallery").hidden = this._detailOpen || cameras.length === 0;
     this.$("pager").hidden = this._detailOpen || cameras.length === 0;
     this.$("details-page").hidden = !this._detailOpen || cameras.length === 0;
-    this.$("storage").hidden = this._detailOpen;
     const entry = provider?.entries?.[0] || null;
-    this.$("storage").configure(this._hass, entry ? {
-      provider: "blink", entryId: entry.entry_id,
-    } : null);
+    this._archives.configure(entry, cameras);
     if (this._detailOpen) this.$("system").hidden = true;
     this.$("previous").disabled = cameras.length < 2;
     this.$("next").disabled = cameras.length < 2;
@@ -119,7 +120,6 @@ class VistodaBlinkView extends HTMLElement {
     else {
       this.$("settings").camera = null;
       this.$("zones").camera = null;
-      this.$("recordings").configure(this._hass, null);
     }
     this._renderDots(cameras.length);
     this._renderLive();
@@ -171,9 +171,6 @@ class VistodaBlinkView extends HTMLElement {
     this.$("snapshot").alt = copy(this, "Snapshot {p0}", { p0: device.name });
     this.$("settings").hass = this._hass;
     this.$("settings").camera = { alias: cameraState?.attributes?.alias, name: device.name };
-    this.$("recordings").configure(this._hass, {
-      provider: "blink", entryId: entry?.entry_id, alias: cameraState?.attributes?.alias,
-    });
     this.$("zones").hass = this._hass;
     if (url && this.$("snapshot").src !== url) {
       this._failedImage = "";

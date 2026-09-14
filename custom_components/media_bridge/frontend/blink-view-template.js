@@ -29,8 +29,6 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
   #mobile-live-dialog #legacy-live { display:flex; align-items:center; justify-content:center; }
   #mobile-live-dialog .blink-legacy-card { width:100%; height:auto; }
   #mobile-live-dialog .stage-actions { bottom:max(16px, env(safe-area-inset-bottom)); }
-  #recording-section { margin-top:12px; }
-  #recording-section > summary { padding:12px 0; cursor:pointer; font-weight:600; }
   .detail-head { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
   .detail-head h2 { margin:0; font-size:23px; }
   .detail-head button { flex:0 0 auto; }
@@ -106,15 +104,29 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
       </div>
     <p class="muted" id="microphone-unavailable" hidden data-copy="Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.">Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.</p>
     <div class="muted" id="message" role="status"></div>
-    <details id="recording-section"><summary data-copy="Archivio locale HA">Archivio locale HA</summary>
-    <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details></div>
+    </div>
 </section>
 <dialog id="mobile-live-dialog" aria-label="Live Blink"><div id="mobile-stage-slot"></div></dialog>
 <nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect"><button data-i18n-aria-label="cameraPrevious" id="previous"
   aria-label="Telecamera precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
   <div class="dots" id="dots"></div><button data-i18n-aria-label="cameraNext" id="next" aria-label="Telecamera successiva">
   <ha-icon icon="mdi:chevron-right"></ha-icon></button></nav>
-<vistoda-blink-storage id="storage"></vistoda-blink-storage>
+<section class="card" id="archives">
+  <h2 data-copy="Archivio registrazioni">Archivio registrazioni</h2>
+  <vistoda-archive-tabs id="archive-tabs">
+    <section slot="usb" id="usb-archive-panel">
+      <label for="module-filter">Sync Module</label>
+      <select id="module-filter" style="min-height:44px;max-width:100%"></select>
+      <vistoda-blink-storage id="storage"></vistoda-blink-storage>
+    </section>
+    <section slot="local" id="local-archive-panel">
+      <label for="local-camera-filter" data-copy="Telecamera">Telecamera</label>
+      <select id="local-camera-filter" style="min-height:44px;max-width:100%"></select>
+      <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings>
+    </section>
+    <vistoda-network-archive id="network-archive" slot="network"></vistoda-network-archive>
+  </vistoda-archive-tabs>
+</section>
 <section id="details-page" hidden><div class="detail-head"><button id="details-back"
   title="Torna alle telecamere" data-copy-title="Torna alle telecamere"><ha-icon icon="mdi:arrow-left"></ha-icon>
   <span><span data-copy="Telecamere">Telecamere</span></span></button><div><div class="eyebrow"><span data-copy="Dettaglio camera">Dettaglio camera</span></div>

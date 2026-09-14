@@ -9,13 +9,26 @@ last pass under `usb_auto_backup`. The first pass runs at the worker's next
 hourly interval; use **Back up archive** in the USB section for an immediate
 copy. The local archive's backup button copies only Vistoda local recordings.
 
-Blink recording controls are in live view's **REC** menu. The **HA local
-archive** accordion retains local file management and playback. Blink chooses
-its configured provider destination (USB when Local Storage is active).
-HA-local capture supports 15, 30 or 60 seconds. Provider `save=false` discards
-the whole session; it is not a stop-and-keep-segment operation. USB duration
-controls therefore remain unavailable: saving follows the actual end of the
-shared session, including any other viewers.
+Blink's **Recording archive** is separate from the camera carousel. Its tabs
+are **Blink USB**, **Local HA** and **NFS backup**. Changing camera does not
+change the archive filter. USB can be filtered by Sync Module and camera;
+Local HA and NFS have their own camera filters and page-size selectors.
+NFS lists completed files with metadata on the configured mount, not pending
+backup requests. Administrators can download verified files, play USB MP4
+copies and add selected copies to the original video's lists. Local TS copies
+are download-only in this tab. NFS deletion is not exposed. Source deletion
+does not remove the NFS file. A missing mount never falls back to local disk.
+
+Recording controls remain in live view's **REC** menu. Blink chooses its
+configured destination (USB when Local Storage is active). **Close this live
+view and keep saving** closes only the requesting viewer, without sending
+`save=false`. Optional 15/30/60-second limits count received media time, not
+loading or stalls, then close that viewer. Navigation/closing the application
+can end it earlier. Other viewers are not disconnected and may extend the
+shared clip. The provider records the whole session, including video before
+REC: this is not an independently trimmed segment or a server-side timer.
+Choose HA-local capture for a separate 15/30/60-second file. Provider
+`save=false` still means discard saving, never stop-and-keep.
 
 Use **Settings → Devices & services → Vistoda → Configure**, then select
 **Reconnect account**. Managed Ring and EZVIZ entries also support Reconfigure

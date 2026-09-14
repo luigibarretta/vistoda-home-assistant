@@ -54,14 +54,28 @@ Il primo passaggio avviene alla successiva scadenza oraria del worker; per una
 copia immediata usa **Backup archivio** nella sezione USB. Il pulsante nel
 vecchio archivio locale riguarda invece soltanto i file locali Vistoda.
 
-In Blink i comandi di registrazione sono nel pulsante **REC** della vista live;
-l'accordion **Archivio locale HA** conserva soltanto gestione e riproduzione dei
-file locali. La destinazione Blink resta quella configurata dal produttore
-(USB quando Local Storage è attivo). L'opzione locale HA mantiene la cattura
-temporizzata a 15, 30 o 60 secondi. Il comando provider `save=false` annulla il
-salvataggio dell'intera sessione: non è uno stop che conserva un segmento.
-Per questo il controllo della durata USB resta indisponibile; il salvataggio
-segue la fine effettiva della sessione condivisa, anche con più visualizzatori.
+L'**Archivio registrazioni** Blink è separato dal carousel delle telecamere,
+con i tab **USB Blink**, **Locale HA** e **Backup NFS**. Cambiare telecamera non
+cambia il filtro dell'archivio. USB permette di scegliere Sync Module e camera;
+Locale HA e NFS hanno filtri camera e selettori della dimensione pagina propri.
+NFS mostra file completi con metadati presenti sul mount, non richieste di
+backup in attesa. Gli amministratori possono scaricare file verificati,
+riprodurre le copie USB MP4 e aggiungere le copie selezionate alle liste del
+video originale. Le copie locali TS sono solo scaricabili in questo tab.
+L'eliminazione NFS non è esposta. Eliminare la sorgente non elimina la copia
+NFS; un mount mancante non viene sostituito da una cartella locale.
+
+I comandi rimangono nel pulsante **REC** della live. Blink sceglie la propria
+destinazione configurata (USB quando Local Storage è attivo). **Chiudi questa
+live e conserva** chiude soltanto il proprio visualizzatore, senza inviare
+`save=false`. I limiti opzionali di 15/30/60 secondi contano il video ricevuto,
+non caricamento o blocchi, poi chiudono quel visualizzatore. Navigazione e
+chiusura dell'app possono terminarlo prima. Gli altri spettatori non vengono
+disconnessi e possono prolungare la clip condivisa. Blink registra l'intera
+sessione, anche prima di REC: non è un segmento ritagliato indipendente né un
+timer lato server. Per un file separato di 15/30/60 secondi scegli Locale HA.
+Il comando `save=false` continua ad annullare il salvataggio, non a fermarlo
+conservando una clip.
 
 Prima di scrivere viene verificato il mount NFS/NFS4/SMB esatto e scrivibile
 sotto `/media`, rifiutando cartelle locali e symlink. Sono richiesti almeno

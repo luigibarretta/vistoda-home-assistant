@@ -42,6 +42,7 @@ class VistodaProviderRecordings extends HTMLElement {
   }
 
   disconnectedCallback() { this._clearTimer(); }
+  pausePlayback() { this.$?.("player")?.close(); }
 
   configure(hass, config) {
     this._hass = hass;

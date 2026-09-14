@@ -2,7 +2,7 @@ export function recordingCommand(config, action) {
   const namespace = config.provider === "blink" ? "blink_live_bridge" : "media_bridge/ezviz";
   const message = { type: `${namespace}/recordings/${action}` };
   if (config.provider === "blink" && ["create", "list"].includes(action)) {
-    message.alias = config.alias;
+    if (config.alias) message.alias = config.alias;
   }
   if (config.provider !== "blink") message.entry_id = config.entryId;
   return message;

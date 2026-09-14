@@ -5,6 +5,11 @@ Blink and EZVIZ devices. It combines device selection, live media, snapshots,
 controls and local archives without exposing provider services or credentials to
 the browser.
 
+Blink recordings have a separate archive with **USB**, **Local HA** and **NFS
+backup** tabs. REC stays in live view. See [recording limits and network backup
+setup](docs/reconnect-and-network-backup.md): stopping your viewer preserves
+provider saving but does not cut off other viewers or trim a shared USB clip.
+
 The name joins *vista* and *custodia*: one guarded view of cameras and entrances
 inside the trusted Home Assistant network.
 

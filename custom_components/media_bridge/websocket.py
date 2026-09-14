@@ -41,8 +41,10 @@ STOP_REASONS = ("user_stop", "panel_closed", "client_expired", "connection_ended
 @callback
 def async_register(hass: HomeAssistant) -> None:
     """Register the bounded browser commands once for the integration."""
+    from .network_archive_websocket import async_register as register_network_archive
     from .ring_camera_websocket import async_register as register_cameras
 
+    register_network_archive(hass)
     register_cameras(hass)
     async_register_panel_info(hass)
     websocket_api.async_register_command(hass, ws_ring_info)

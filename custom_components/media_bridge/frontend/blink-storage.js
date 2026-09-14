@@ -13,6 +13,7 @@ import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import { MobileCardSelection } from "./mobile-card-selection.js";
 
 class VistodaBlinkStorage extends HTMLElement {
+  pausePlayback() { this._closePlayer(); }
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -90,13 +91,14 @@ class VistodaBlinkStorage extends HTMLElement {
     renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._hass?.locale?.language);
     this._renderCameraFilter();
     this.$("backup-all").disabled = this._busy || !this._hass;
-    const nodes = this._storages.map((storage) => this._module(storage));
+    const visible = this._storages.filter((item) => !this._moduleFilter || String(item.sync_module_id) === this._moduleFilter);
+    const nodes = visible.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {
       const empty = document.createElement("div"); empty.className = "muted";
       empty.textContent = copy(this, "Nessuna chiavetta USB Blink disponibile."); nodes.push(empty);
     }
     this.$("content").replaceChildren(...nodes);
-    const total = this._storages.reduce((sum, storage) => sum + (storage.pagination?.total_items || 0), 0);
+    const total = visible.reduce((sum, storage) => sum + (storage.pagination?.total_items || 0), 0);
     this.$("selected-count").textContent = copy(this, "{p0} clip · {p1} selezionate", {
       p0: total, p1: this._selected.size,
     });

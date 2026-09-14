@@ -53,9 +53,12 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     assert.equal(await page.locator("vistoda-ring-device-identity #edit").evaluate(e => e === e.getRootNode().activeElement), true);
   }
   if (provider === "blink" || provider === "ezviz") {
-    const section = page.locator(`#recording-section`);
-    assert.equal(await section.evaluate((node) => node.open), false);
-    await section.locator(":scope > summary").click();
+    if (provider === "blink") await page.locator("#archive-tabs #tab-local").click();
+    else {
+      const section = page.locator(`#recording-section`);
+      assert.equal(await section.evaluate((node) => node.open), false);
+      await section.locator(":scope > summary").click();
+    }
     const archive = page.locator("vistoda-provider-recordings");
     await archive.locator(".item").first().waitFor();
     assert.match(await archive.locator(".item .meta").textContent(), en ? /Ready/ : /Pronta/);
@@ -68,6 +71,7 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     await archive.locator('#bulk-list-dialog button[value="cancel"]').click();
   }
   if (provider === "blink") {
+    await page.locator("#archive-tabs #tab-usb").click();
     const usb = page.locator("vistoda-blink-storage");
     assert.match(await usb.locator(".sync-module-info").textContent(), /4\.5\.40/);
     assert.match(await usb.locator(".storage-gauge").getAttribute("aria-label"), en ? /Storage used: 1%/ : /Spazio utilizzato: 1%/);

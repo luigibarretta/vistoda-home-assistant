@@ -53,6 +53,7 @@ export class BlinkLiveControls {
     this.loading = setInterval(() => {
       const video = findLiveVideo(this.view.$("stage"));
       const ready = Boolean(video && video.readyState >= 2);
+      this.view._recordingMenu?.deadline.update(video, this.activeState);
       this.view.$("live-loader").hidden = ready;
       if (ready && !this.mediaReady) {
         this.mediaReady = true;
@@ -92,6 +93,8 @@ export class BlinkLiveControls {
   extend() { this.promptDeadline = performance.now() + (this.interval || 30000); this.view.$("continue").hidden = true; }
   tick() {
     const now = performance.now();
+    // The explicitly chosen recording interval is activity, not idle viewing.
+    if (this.view._recordingMenu?.deadline.remaining != null) this.extend();
     const total = now >= this.deadline;
     if (total || (!this.held && now >= this.promptDeadline)) {
       this.close();

@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { checkRingCameras } from "./ring-camera-fixture.mjs";
+import { checkArchives } from "./archive-tabs-fixture.mjs";
 const playwright = createRequire(import.meta.url)("playwright");
 const frontend = new URL("../../custom_components/media_bridge/frontend/", import.meta.url);
 const server = createServer(async (request, response) => {
@@ -49,7 +50,9 @@ try {
         const stage = page.locator("#stage");
         assert.equal(await page.locator("#system #provider-head").count(), 1);
         assert.equal(await stage.locator("#live").count(), 1);
-        assert.equal(await page.locator("#recording-section").evaluate((node) => node.open), false);
+        assert.equal(await page.locator("#gallery #recordings").count(), 0);
+        assert.equal(await page.locator("#archive-tabs [role=tab]").count(), 3);
+        await checkArchives(page);
         await stage.locator("#live").click();
         await page.waitForFunction(() => actions.includes("live"));
         assert.deepEqual(await page.evaluate(() => actions.slice(0, 2)), ["snapshot", "live"]);
@@ -78,7 +81,7 @@ try {
         await stage.locator("#record-live").click();
         assert.equal(await stage.locator('select#destination').inputValue(), "provider");
         assert.equal(await stage.locator('option[value="provider"]').isEnabled(), true);
-        assert.equal(await stage.locator('select#duration').isDisabled(), true);
+        assert.equal(await stage.locator('select#duration').isEnabled(), true);
         await stage.locator('select#destination').selectOption("ha");
         assert.equal(await stage.locator('select#duration').inputValue(), "30");
         assert.equal(await stage.locator('select#duration').isEnabled(), true);
