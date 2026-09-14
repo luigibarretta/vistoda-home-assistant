@@ -44,8 +44,14 @@ another entry. Reconnect does not approve a Ring alias changing physical device.
 
 Ring Supervisor discovery supports one aggregate payload containing `devices`
 with distinct aliases and string-valued numeric `device_id` values. Existing
-entries are adopted only for the same endpoint and alias, retaining all stored
-binding data. A changed known physical ID aborts adoption. New intercoms are
+entries are adopted only on the same authenticated endpoint, by alias or by
+their stored physical Ring ID. A generated discovery alias does not rename an
+existing entry: a fresh status read must confirm that its original alias still
+resolves to that physical ID. Entry/device/entity IDs, options and official
+Ring bindings remain intact. Ambiguous matches or a changed physical ID abort
+adoption; an unreachable original alias is not silently replaced. This avoids
+another **Discovered → Add** prompt for an already configured intercom.
+New intercoms are
 selected in the native setup flow; remaining aliases continue through further
 setup after the first enrollment, without requesting another account password.
 Legacy single-alias discovery remains supported.
@@ -91,7 +97,7 @@ Downloaded diagnostics expose `reauth_supported` and redacted `backup_storage`
 readiness: ready, missing/not writable/unavailable mount, or low free space.
 They omit storage/server paths, credentials and physical Ring bindings.
 
-Regression checks: `python -m pytest -q tests/test_release_*.py`. These tests
+Regression checks: `python -m pytest -q tests/test_release_*.py tests/test_ring_discovery_identity.py`. These tests
 execute the integration's flow, identity migration, mount detection, and backup
 code using isolated HA framework doubles and temporary files. They do not
 contact vendors, mount shares, reconnect production accounts or open entrances.

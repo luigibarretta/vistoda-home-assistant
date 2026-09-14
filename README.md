@@ -65,6 +65,11 @@ Provider credentials and MFA values are sent only to the private provider app
 during enrollment. EZVIZ additionally needs each camera serial in its app
 options before startup.
 
+Ring discovery recognizes an existing physical intercom even when the app
+advertises a generated alias. It preserves the configured alias and HA entities
+after verifying the original route; it does not require another account login.
+See [discovery and reconnect safeguards](docs/reconnect-and-network-backup.md).
+
 Follow the complete [English setup guide](https://github.com/luigibarretta/vistoda-addons/blob/main/GETTING_STARTED.md)
 or [guida italiana](https://github.com/luigibarretta/vistoda-addons/blob/main/GETTING_STARTED.it.md).
 The exact tested versions are listed in the

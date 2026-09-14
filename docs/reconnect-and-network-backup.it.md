@@ -14,8 +14,14 @@ l’account non autorizza un alias Ring a cambiare dispositivo fisico.
 
 La discovery Supervisor Ring accetta un payload aggregato `devices` con alias
 distinti e `device_id` numerici rappresentati come stringhe. Le entry esistenti
-vengono adottate soltanto per lo stesso endpoint e alias, mantenendo i binding.
-Un device ID fisico già noto che cambia interrompe l’adozione. I nuovi citofoni
+vengono adottate soltanto sullo stesso endpoint autenticato, tramite alias o
+ID fisico Ring già memorizzato. Un alias generato dalla discovery non rinomina
+la entry: una nuova lettura deve confermare che l'alias originale risolva ancora
+quell'ID fisico. ID di entry, device ed entità, opzioni e binding Ring ufficiali
+restano invariati. Corrispondenze ambigue o un ID fisico diverso interrompono
+l'adozione; un alias originale irraggiungibile non viene sostituito in silenzio.
+Si evita così un nuovo **Scoperto → Aggiungi** per un citofono già configurato.
+I nuovi citofoni
 si scelgono nel flusso nativo; gli alias rimanenti proseguono dopo il primo
 accesso senza richiedere nuovamente la password. Rimane compatibile la discovery
 precedente con un singolo alias.
@@ -96,7 +102,7 @@ La diagnostica scaricabile mostra `reauth_supported` e `backup_storage` con
 stato pronto, mount mancante/non scrivibile/indisponibile o spazio insufficiente.
 Omette percorsi di server e archivi, credenziali e binding fisici Ring.
 
-Verifica: `python -m pytest -q tests/test_release_*.py`. I test eseguono i flussi,
+Verifica: `python -m pytest -q tests/test_release_*.py tests/test_ring_discovery_identity.py`. I test eseguono i flussi,
 la migrazione, il controllo dei mount e il backup con sostituti isolati del
 framework HA e file temporanei. Non contattano i produttori, montano
 condivisioni, ricollegano account di produzione o aprono ingressi.

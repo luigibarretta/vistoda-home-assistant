@@ -100,7 +100,7 @@ def test_supervisor_apps_hide_bridge_fields_and_keep_external_mode() -> None:
     manifest = load(COMPONENT / "manifest.json")
     assert "async_step_hassio" in managed
     assert "CONF_MANAGED_APP: True" in managed
-    assert "self._existing_provider_entry()" in managed
+    assert "self._existing_provider_entry(device)" in managed
     assert "async_set_unique_id(self._unique_id())" in managed
     assert "if changed:" in managed and "async_reload(existing.entry_id)" in managed
     assert "async_step_ring_credentials" in managed

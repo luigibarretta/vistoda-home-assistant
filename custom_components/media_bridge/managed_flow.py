@@ -15,10 +15,10 @@ from .const import (
     PROVIDER_EZVIZ,
     PROVIDER_RING,
 )
-from .errors import CannotConnectError, InvalidBridgeAuthError
+from .errors import BridgeError, CannotConnectError, InvalidBridgeAuthError
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID
 from .managed_devices import discovered_devices
-from .ring_binding import CONF_RING_DEVICE_ID
+from .ring_binding import CONF_RING_DEVICE_ID, valid_device_id
 
 
 class ManagedAppDiscoveryMixin:
@@ -69,7 +69,7 @@ class ManagedAppDiscoveryMixin:
         for device in self._managed_devices:
             self._bridge_data[CONF_ALIAS] = device[CONF_ALIAS]
             try:
-                existing = self._existing_provider_entry()
+                existing = self._existing_provider_entry(device)
             except ValueError:
                 return self.async_abort(reason="discovered_device_changed")
             if existing is None:
@@ -84,6 +84,17 @@ class ManagedAppDiscoveryMixin:
             if expected_source and actual_source and expected_source != actual_source:
                 return self.async_abort(reason="discovered_device_changed")
             updates = {**existing.data, **self._bridge_data, **device}
+            if self._provider == PROVIDER_RING and existing.data[CONF_ALIAS] != device[CONF_ALIAS]:
+                # Discovery may advertise a generated alias for an already bound
+                # intercom. Keep the working route and HA identity, but first prove
+                # that this authenticated endpoint still resolves it to that device.
+                try:
+                    status = await self._require_client().ring_status(existing.data[CONF_ALIAS])
+                except BridgeError:
+                    return self.async_abort(reason="cannot_connect")
+                if status.device_id != actual:
+                    return self.async_abort(reason="discovered_device_changed")
+                updates[CONF_ALIAS] = existing.data[CONF_ALIAS]
             changed = self.hass.config_entries.async_update_entry(existing, data=updates)
             if changed:
                 await self.hass.config_entries.async_reload(existing.entry_id)
@@ -150,14 +161,22 @@ class ManagedAppDiscoveryMixin:
             data={"managed_continuation": config},
         )
 
-    def _existing_provider_entry(self):
-        """An alias is meaningful only within the same authenticated endpoint."""
+    def _existing_provider_entry(self, device):
+        """Match Ring physical identity only within the authenticated endpoint."""
+        device_id = device.get(CONF_RING_DEVICE_ID)
         matches = [
             entry
             for entry in self.hass.config_entries.async_entries(DOMAIN)
             if entry.data.get(CONF_PROVIDER) == self._provider
-            and entry.data.get(CONF_ALIAS) == self._bridge_data[CONF_ALIAS]
             and entry.data.get(CONF_URL) == self._bridge_data[CONF_URL]
+            and (
+                entry.data.get(CONF_ALIAS) == device[CONF_ALIAS]
+                or (
+                    self._provider == PROVIDER_RING
+                    and valid_device_id(device_id)
+                    and entry.data.get(CONF_RING_DEVICE_ID) == device_id
+                )
+            )
         ]
         if len(matches) > 1:
             raise ValueError("ambiguous existing provider entries")
