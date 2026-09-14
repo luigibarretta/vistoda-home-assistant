@@ -148,6 +148,13 @@ class VistodaProviderRecordings extends HTMLElement {
   _render() {
     if (!this._mounted) return;
     if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
+    const blink = this._config?.provider === "blink";
+    this.shadowRoot.querySelector(".capture").hidden = blink;
+    this.$("destination-note").hidden = blink;
+    this.$("recording-heading").textContent = copy(this, blink ? "Archivio locale HA" : "Registrazione live locale");
+    this.$("recording-description").textContent = copy(this, blink
+      ? "Avvia le registrazioni dal pulsante REC nella vista live."
+      : "Cattura il flusso che stai visualizzando, senza creare eventi cloud.");
     this.$("start").disabled = this._busy || !this._config;
     this.$("reload").disabled = this._busy || !this._config;
     this.$("backup-all").disabled = this._busy || !this._config;

@@ -149,7 +149,7 @@
     "step": {"init": {
       "title": "Collegamento e backup Vistoda",
       "description": "Per i backup, aggiungi prima un archivio di rete con utilizzo Media in Impostazioni → Sistema → Archiviazione di Home Assistant. Inserisci solo il nome, non un indirizzo server o un percorso. Vistoda verifica il mount NFS o SMB esatto prima di scrivere. Ricollega avvia un nuovo accesso mantenendo i dispositivi.",
-      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account"},
+      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account", "blink_usb_auto_backup": "Backup automatico delle clip USB Blink ogni ora"},
       "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant."}
     }},
     "error": {

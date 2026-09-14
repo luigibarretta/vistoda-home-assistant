@@ -106,7 +106,7 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}
       </div>
     <p class="muted" id="microphone-unavailable" hidden data-copy="Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.">Questo live non supporta ancora l’invio della voce alla telecamera da Vistoda.</p>
     <div class="muted" id="message" role="status"></div>
-    <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
+    <details id="recording-section"><summary data-copy="Archivio locale HA">Archivio locale HA</summary>
     <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details></div>
 </section>
 <dialog id="mobile-live-dialog" aria-label="Live Blink"><div id="mobile-stage-slot"></div></dialog>

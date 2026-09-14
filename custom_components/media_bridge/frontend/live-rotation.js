@@ -28,7 +28,7 @@ export class LiveRotation {
       }
     }
     const labels = { auto: "Rotazione automatica", off: "Rotazione disattivata", rotate: "Rotazione di 90 gradi" };
-    const icons = { auto: "mdi:screen-rotation", off: "mdi:screen-rotation-off", rotate: "mdi:phone-rotate-landscape" };
+    const icons = { auto: "mdi:screen-rotation", off: "mdi:screen-rotation-lock", rotate: "mdi:rotate-right" };
     this.button.setAttribute("aria-pressed", String(this.mode !== "off"));
     this.button.setAttribute("data-rotation", this.mode);
     const label = this.translate(labels[this.mode]);

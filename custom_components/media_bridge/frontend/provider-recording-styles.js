@@ -1,4 +1,5 @@
 export const PROVIDER_RECORDING_STYLES = `
+  [hidden] { display:none !important; }
   :host { display:block; margin-top:18px; padding-top:18px;
     border-top:1px solid var(--divider-color); }
   .head, .capture { display:flex; align-items:center; justify-content:space-between; gap:12px; }

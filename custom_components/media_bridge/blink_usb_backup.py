@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import json
 import re
 import shutil
 from datetime import UTC, datetime
@@ -67,6 +68,11 @@ async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, An
     runtime = hass.data.get("blink_live_bridge", {}).get("runtime")
     if runtime is None:
         raise ValueError("Blink runtime unavailable")
+    target, existing = await hass.async_add_executor_job(_prepare, msg, mount)
+    if existing:
+        metadata = await hass.async_add_executor_job(_existing_metadata, target, msg)
+        await hass.async_add_executor_job(_write_metadata, target, metadata)
+        return {"status": "existing", "relative_path": _relative(target, mount)}
     path = (
         f"/v1/local-storage/{msg['network_id']}/{msg['sync_module_id']}/"
         f"{msg['manifest_id']}/{msg['clip_id']}/media"
@@ -77,11 +83,6 @@ async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, An
             raise ValueError("Blink USB media response is invalid")
         if upstream.content_length is not None and upstream.content_length > MAX_BACKUP_BYTES:
             raise ValueError("Blink USB clip exceeds backup limit")
-        target, existing = await hass.async_add_executor_job(_prepare, msg, mount)
-        if existing:
-            metadata = await hass.async_add_executor_job(_existing_metadata, target, msg)
-            await hass.async_add_executor_job(_write_metadata, target, metadata)
-            return {"status": "existing", "relative_path": _relative(target, mount)}
         partial = target.with_name(f".{target.name}.partial")
         handle = await hass.async_add_executor_job(_open_partial, partial)
         digest = hashlib.sha256()
@@ -122,7 +123,18 @@ def _existing_metadata(target: Path, msg: dict[str, Any]) -> dict[str, Any]:
     size = target.stat().st_size
     if not 0 < size <= MAX_BACKUP_BYTES:
         raise OSError("existing Blink USB backup is invalid")
-    return _metadata(msg, size, _sha256(target))
+    metadata = _metadata(msg, size, _sha256(target))
+    sidecar = target.with_suffix(target.suffix + ".json")
+    if sidecar.is_symlink():
+        raise OSError("unsafe Blink USB metadata path")
+    if sidecar.exists():
+        saved = json.loads(sidecar.read_text(encoding="utf-8"))
+        if saved.get("bytes") != size or saved.get("sha256") != metadata["sha256"]:
+            raise OSError("existing Blink USB backup checksum mismatch")
+        for key in ("network_id", "sync_module_id", "manifest_id", "clip_id"):
+            if saved.get("source", {}).get(key) != msg[key]:
+                raise OSError("existing Blink USB backup identity mismatch")
+    return metadata
 
 
 def _metadata(msg: dict[str, Any], size: int, digest: str) -> dict[str, Any]:

@@ -160,6 +160,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     if ring_events:
         ring_events.start()
+    if provider == PROVIDER_BLINK:
+        from .blink_usb_auto_backup import async_setup as async_setup_usb_backup
+
+        async_setup_usb_backup(hass, entry)
     return True
 
 

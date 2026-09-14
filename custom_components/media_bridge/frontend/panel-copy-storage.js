@@ -1,4 +1,6 @@
 export const STORAGE_COPY = {
+  "Configura backup di rete e backup automatico": "Configure network and automatic backups",
+  "Avvia le registrazioni dal pulsante REC nella vista live.": "Start recordings using the REC button in live view.",
   "Backup archivio Blink": "Back up Blink archive", "Rileggi chiavetta": "Reload USB drive",
   "Rilegge stato, spazio e indice della chiavetta Blink": "Reload Blink USB drive status, space and index",
   "Archivio Blink su chiavetta USB": "Blink USB drive archive",

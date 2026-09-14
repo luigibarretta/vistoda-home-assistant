@@ -11,6 +11,8 @@ from .backup_storage import (
 )
 from .const import CONF_PROVIDER, PROVIDER_BLINK, PROVIDER_EZVIZ, PROVIDER_RING
 
+CONF_AUTO_BACKUP = "blink_usb_auto_backup"
+
 
 class VistodaOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
@@ -33,6 +35,12 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                         errors["base"] = readiness["reason"]
                     else:
                         options[CONF_BACKUP_STORAGE] = user_input[CONF_BACKUP_STORAGE]
+                        if provider == PROVIDER_BLINK:
+                            enabled = user_input.get(CONF_AUTO_BACKUP, False)
+                            if enabled and not readiness["ready"]:
+                                errors["base"] = readiness["reason"]
+                            else:
+                                options[CONF_AUTO_BACKUP] = enabled
             if not errors:
                 if user_input.get("reconnect_account") and provider in {
                     PROVIDER_RING,
@@ -52,4 +60,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
             ] = str
         if provider in {PROVIDER_RING, PROVIDER_EZVIZ}:
             schema[vol.Optional("reconnect_account", default=False)] = bool
+        if provider == PROVIDER_BLINK:
+            schema[
+                vol.Optional(
+                    CONF_AUTO_BACKUP, default=self.config_entry.options.get(CONF_AUTO_BACKUP, False)
+                )
+            ] = bool
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)

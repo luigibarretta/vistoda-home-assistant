@@ -149,7 +149,7 @@
     "step": {"init": {
       "title": "Vistoda connection and backup",
       "description": "For backups, first add network storage with Media usage in Home Assistant Settings → System → Storage. Enter only its name, not a server address or filesystem path. Vistoda verifies the exact NFS or SMB mount before writing. Reconnect starts a new sign-in without replacing devices.",
-      "data": {"backup_storage": "Network media storage name", "reconnect_account": "Reconnect account"},
+      "data": {"backup_storage": "Network media storage name", "reconnect_account": "Reconnect account", "blink_usb_auto_backup": "Automatically back up Blink USB clips every hour"},
       "data_description": {"backup_storage": "Default: vistoda_archives. Backup remains unavailable until this network storage is mounted and writable.", "reconnect_account": "Use the same vendor account. Its password is forwarded once and is not saved in Home Assistant."}
     }},
     "error": {

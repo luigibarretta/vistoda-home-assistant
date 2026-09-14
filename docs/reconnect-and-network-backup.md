@@ -1,5 +1,22 @@
 # Reconnect accounts and configure network backups
 
+Blink options include **Automatically back up Blink USB clips every hour**.
+Enable it only after configuring writable network media storage. The Home
+Assistant worker runs with the panel closed, creates at most 20 new copies per
+pass and continues next hour. Each pass reads at most 100 pages of 50 clips.
+It never deletes originals or propagates USB deletions. Diagnostics expose the
+last pass under `usb_auto_backup`. The first pass runs at the worker's next
+hourly interval; use **Back up archive** in the USB section for an immediate
+copy. The local archive's backup button copies only Vistoda local recordings.
+
+Blink recording controls are in live view's **REC** menu. The **HA local
+archive** accordion retains local file management and playback. Blink chooses
+its configured provider destination (USB when Local Storage is active).
+HA-local capture supports 15, 30 or 60 seconds. Provider `save=false` discards
+the whole session; it is not a stop-and-keep-segment operation. USB duration
+controls therefore remain unavailable: saving follows the actual end of the
+shared session, including any other viewers.
+
 Use **Settings → Devices & services → Vistoda → Configure**, then select
 **Reconnect account**. Managed Ring and EZVIZ entries also support Reconfigure
 as a direct reconnect route. Confirm the provider and sign in to the same

@@ -44,6 +44,25 @@ quindi il suo nome nelle opzioni della entry Blink o EZVIZ, per esempio
 `family_archive`: non usare IP, URL della condivisione o percorsi `/media/...`.
 Il valore predefinito compatibile è `vistoda_archives`.
 
+Nelle opzioni Blink puoi abilitare **Backup automatico delle clip USB Blink ogni
+ora**. La destinazione deve essere pronta prima di abilitarlo. Il worker gira
+in Home Assistant anche con il pannello chiuso, copia fino a 20 nuovi file per
+passaggio e prosegue nelle ore successive; legge al massimo 100 pagine da 50
+clip per passaggio. Non elimina gli originali e non propaga le eliminazioni USB
+al backup. Lo stato dell'ultimo passaggio è nella diagnostica `usb_auto_backup`.
+Il primo passaggio avviene alla successiva scadenza oraria del worker; per una
+copia immediata usa **Backup archivio** nella sezione USB. Il pulsante nel
+vecchio archivio locale riguarda invece soltanto i file locali Vistoda.
+
+In Blink i comandi di registrazione sono nel pulsante **REC** della vista live;
+l'accordion **Archivio locale HA** conserva soltanto gestione e riproduzione dei
+file locali. La destinazione Blink resta quella configurata dal produttore
+(USB quando Local Storage è attivo). L'opzione locale HA mantiene la cattura
+temporizzata a 15, 30 o 60 secondi. Il comando provider `save=false` annulla il
+salvataggio dell'intera sessione: non è uno stop che conserva un segmento.
+Per questo il controllo della durata USB resta indisponibile; il salvataggio
+segue la fine effettiva della sessione condivisa, anche con più visualizzatori.
+
 Prima di scrivere viene verificato il mount NFS/NFS4/SMB esatto e scrivibile
 sotto `/media`, rifiutando cartelle locali e symlink. Sono richiesti almeno
 512 MiB liberi. Un mount mancante rende il backup indisponibile: non viene mai

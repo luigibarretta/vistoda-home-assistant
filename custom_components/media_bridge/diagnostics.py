@@ -64,6 +64,13 @@ async def async_get_config_entry_diagnostics(
         except (ValueError, OSError):
             payload["backup_storage"] = {"ready": False, "reason": "invalid_storage_name"}
     payload["reauth_supported"] = entry.data.get(CONF_PROVIDER) in {"ring", "ezviz"}
+    if entry.data.get(CONF_PROVIDER) == "blink":
+        payload["usb_auto_backup"] = {
+            "enabled": bool(entry.options.get("blink_usb_auto_backup", False)),
+            **hass.data.get(DOMAIN, {})
+            .get("blink_usb_auto_backup_status", {})
+            .get(entry.entry_id, {}),
+        }
     if runtime and runtime.ring_status:
         payload["ring_status"] = {
             "last_update_success": runtime.ring_status.last_update_success,

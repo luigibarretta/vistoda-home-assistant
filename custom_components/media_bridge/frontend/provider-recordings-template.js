@@ -1,7 +1,7 @@
 import { PAGE_SIZE_TEMPLATE } from "./archive-page-size.js";
 export const providerRecordingsTemplate = (styles, listTemplate, bulkListTemplate) => `<style>${styles}</style>
-  <section><div class="head"><div><h4><span data-copy="Registrazione live locale">Registrazione live locale</span></h4>
-    <div class="muted"><span data-copy="Cattura il flusso che stai visualizzando, senza creare eventi cloud.">Cattura il flusso che stai visualizzando, senza creare eventi cloud.</span></div>
+  <section><div class="head"><div><h4 id="recording-heading"><span data-copy="Registrazione live locale">Registrazione live locale</span></h4>
+    <div class="muted" id="recording-description"><span data-copy="Cattura il flusso che stai visualizzando, senza creare eventi cloud.">Cattura il flusso che stai visualizzando, senza creare eventi cloud.</span></div>
     </div><div class="head-actions"><button id="backup-all" title="Backup archivio" data-copy-title="Backup archivio"
     data-tooltip="Copia su NFS tutte le registrazioni pronte non ancora presenti" data-copy-data-tooltip="Copia su NFS tutte le registrazioni pronte non ancora presenti">
     <ha-icon icon="mdi:cloud-upload"></ha-icon> <span data-copy="Backup archivio">Backup archivio</span></button><button id="reload"

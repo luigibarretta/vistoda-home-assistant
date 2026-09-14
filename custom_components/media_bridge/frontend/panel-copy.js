@@ -24,11 +24,15 @@ export function localizeCopy(root, context) {
   const changed = rootLanguages.get(root) !== language;
   rootLanguages.set(root, language);
   root.querySelectorAll("[data-copy]").forEach((node) => {
-    node.textContent = copy(context, node.getAttribute("data-copy"));
+    const text = copy(context, node.getAttribute("data-copy"));
+    // Replacing unchanged native option text can dismiss a mobile picker
+    // during background HA state updates.
+    if (node.textContent !== text) node.textContent = text;
   });
   for (const attribute of ["aria-label", "title", "placeholder", "data-tooltip", "alt"]) {
     root.querySelectorAll(`[data-copy-${attribute}]`).forEach((node) => {
-      node.setAttribute(attribute, copy(context, node.getAttribute(`data-copy-${attribute}`)));
+      const text = copy(context, node.getAttribute(`data-copy-${attribute}`));
+      if (node.getAttribute(attribute) !== text) node.setAttribute(attribute, text);
     });
   }
   return changed;
