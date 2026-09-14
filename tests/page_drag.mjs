@@ -2,41 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { dragStart, dragMove, dragReset } from "../custom_components/media_bridge/frontend/page-drag.js";
 
-test("shared drag follows a finger, animates settling, and respects reduced motion", () => {
+test("shared drag recognizes the gesture without moving a resting snapshot", () => {
   const animations = [];
   const node = { style: { transform: "" }, animate: (...args) => animations.push(args) };
   const view = { $: () => node };
   const event = (x, y = 0) => ({ pointerId: 1, clientX: x, clientY: y, composedPath: () => [] });
   assert.equal(dragStart(view, event(100)), true);
   dragMove(view, event(40));
-  assert.equal(node.style.transform, "translateX(-60px)");
+  assert.equal(node.style.transform, "");
   dragReset(view, 1);
   assert.equal(node.style.transform, "");
-  assert.equal(animations[0][0][0].transform, "translateX(100%)");
-  globalThis.matchMedia = () => ({ matches: true });
-  try {
-    dragStart(view, event(100)); dragMove(view, event(40)); dragReset(view, 1);
-    assert.equal(node.style.transform, ""); assert.equal(animations.length, 1);
-  } finally { delete globalThis.matchMedia; }
+  assert.equal(animations.length, 0);
 });
 
-test("horizontal drag reveals the adjacent card with progressive opacity", () => {
-  const inserted = [], preview = { dataset: {}, style: {}, classList: { add() {} },
-    setAttribute() {}, querySelectorAll: () => [], remove() { this.removed = true; } };
-  const node = { clientWidth: 200, style: { transform: "" }, classList: { add() {}, remove() {} },
-    cloneNode: () => preview, getBoundingClientRect: () => ({ top: 10, left: 20, width: 200, height: 300 }),
-    parentNode: { insertBefore: (item) => inserted.push(item) } };
-  const directions = [], view = { $: () => node,
-    _hydrateDragPreview: (_clone, direction) => directions.push(direction) };
+test("horizontal drag remains visually stable while preventing browser navigation", () => {
+  const node = { style: { transform: "" }, classList: { add() {}, remove() {} } };
+  const view = { $: () => node };
   let prevented = false;
   const event = (x) => ({ pointerId: 1, clientX: x, clientY: 0, cancelable: true,
     preventDefault: () => { prevented = true; }, composedPath: () => [] });
   dragStart(view, event(100)); dragMove(view, event(50));
   assert.equal(prevented, true);
-  assert.equal(inserted.length, 1); assert.deepEqual(directions, [1]);
-  assert.equal(preview.style.opacity, "0.385");
-  assert.equal(preview.style.transform, "translateX(75%)");
-  dragReset(view); assert.equal(preview.removed, true);
+  assert.equal(node.style.transform, "");
+  dragReset(view); assert.equal(node.style.transform, "");
 });
 
 test("vertical scroll, controls and mismatched pointers never navigate", () => {

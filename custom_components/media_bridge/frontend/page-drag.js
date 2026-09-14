@@ -1,24 +1,7 @@
-// Shared camera-page gesture feedback. Only the camera image follows the finger.
+// Shared camera-page gesture recognition. The image stays centered while dragging.
 const target = (view) => view.$("snapshot");
-const reduced = () => globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 function discardPreview(view) {
   view._swipePreview?.remove?.(); view._swipePreview = null;
-}
-function preview(view, direction) {
-  if (view._swipePreview?.dataset?.direction === String(direction)) return view._swipePreview;
-  discardPreview(view);
-  const node = target(view), box = node?.getBoundingClientRect?.();
-  if (!node || !box) return null;
-  const clone = node.cloneNode(true);
-  clone.querySelectorAll?.("[id]").forEach((item) => item.removeAttribute("id"));
-  clone.querySelectorAll?.("video").forEach((item) => { item.pause?.(); item.removeAttribute("src"); });
-  clone.classList.add("drag-adjacent-preview"); clone.dataset.direction = String(direction);
-  clone.setAttribute("aria-hidden", "true"); clone.inert = true;
-  Object.assign(clone.style, { top: `${box.top}px`, left: `${box.left}px`,
-    width: `${box.width}px`, height: `${box.height}px` });
-  view._hydrateDragPreview?.(clone, direction);
-  node.parentNode?.insertBefore(clone, node); view._swipePreview = clone;
-  return clone;
 }
 export function dragStart(view, event) {
   const path = event.composedPath?.() || [];
@@ -43,27 +26,14 @@ export function dragMove(view, event) {
   start.horizontal = true;
   const card = target(view);
   if (event.cancelable) event.preventDefault?.();
-  if (!reduced()) {
-    card.style.transform = `translateX(${dx}px)`; card.classList?.add("drag-current-page");
-    const direction = dx < 0 ? 1 : -1, sibling = preview(view, direction);
-    if (sibling) {
-      const progress = Math.min(Math.abs(dx) / Math.max(card.clientWidth || 1, 1), 1);
-      sibling.style.opacity = String(.18 + progress * .82);
-      sibling.style.transform = `translateX(${direction * (100 - progress * 100)}%)`;
-    }
-  }
+  card.style.transform = "";
 }
 export function dragReset(view, step = 0) {
   const start = view._swipeStart;
-  const node = target(view), previous = node?.style.transform || "none";
+  const node = target(view);
   if (start?.capture?.hasPointerCapture?.(start.id)) start.capture.releasePointerCapture(start.id);
   view._swipeStart = null;
   if (!node) return;
   node.style.transform = ""; node.classList?.remove("drag-current-page");
   discardPreview(view);
-  if (reduced()) return;
-  node.animate?.([
-    { transform: step ? `translateX(${step > 0 ? 100 : -100}%)` : previous },
-    { transform: "translateX(0)" },
-  ], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
 }

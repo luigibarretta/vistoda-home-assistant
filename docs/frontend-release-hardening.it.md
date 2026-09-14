@@ -11,7 +11,10 @@ associate all’ingresso scelto. EZVIZ associa ogni camera tramite alias esatto;
 la pagina dispositivo mostra la batteria dell’entità EZVIZ nativa associata e
 raggruppa i controlli realmente esposti da Home Assistant in sezioni ispirate
 all’app. Ogni riga apre il controllo nativo di HA; le impostazioni non esposte
-restano dichiarate non disponibili. Lo swipe muove solo lo snapshot e mai
+restano dichiarate non disponibili. Le impostazioni cloud verificate ma omesse
+da HA vengono lette dal coordinator EZVIZ nativo associato esattamente e salvate
+solo dopo conferma amministratore, controllo di concorrenza e verifica
+read-after-write con rollback. Lo swipe non trasforma mai lo snapshot fermo e
 l’intera card della telecamera.
 non aggiorna immagini di altre camere se l’associazione è ambigua. Aprire il
 pannello legge soltanto immagini già salvate, senza risvegliare dispositivi.

@@ -220,6 +220,7 @@ def test_camera_swipe_is_bound_to_the_image_stage_not_the_whole_blink_card() -> 
     assert 'this.$("stage").addEventListener("pointerdown"' in blink
     assert 'this.$("gallery").addEventListener("pointerdown"' not in blink
     assert 'const target = (view) => view.$("snapshot")' in drag
+    assert "translateX(${dx}px)" not in drag
 
 
 def test_ring_door_service_is_vistoda_first_and_visible() -> None:

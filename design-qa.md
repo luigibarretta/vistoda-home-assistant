@@ -101,3 +101,23 @@ wording separately avoids repeating the structured city.
   preserves the existing provider typography, spacing and theme.
 
 final result: passed
+
+## EZVIZ provider controls and stationary snapshot (0.32.1)
+
+- References: owner-provided EZVIZ Battery, Intelligent Detection, Message
+  Notification, Audio, Image, Privacy and Network Settings screenshots.
+- Capture: `/home/ansible/audits/vistoda-0.32.1-local/mobile.png`, 390 px mobile viewport.
+- The snapshot remains centered and stationary throughout the swipe gesture. The
+  gesture still changes camera, but no partial card, cloned image or settling
+  transform is shown.
+- Nine icon-led settings accordions remain within the mobile viewport. Verified
+  provider controls are merged with native Home Assistant entities in their
+  corresponding category; unavailable or ambiguous private controls are not
+  presented as writable.
+- Provider changes are staged, expose one sticky Save action, require an explicit
+  confirmation dialog and retain 44 px or larger interactive targets.
+- The browser fixture exposed three provider-backed rows and reported an empty
+  snapshot transform during an active pointer drag. No horizontal overflow or
+  visual displacement was observed.
+
+final result: passed

@@ -17,7 +17,10 @@ EZVIZ selection routes snapshot refresh and archive access by camera alias.
 Its device page displays the battery reported by the exactly bound native EZVIZ
 entity and groups the native Home Assistant controls under app-inspired settings
 headings. A row opens Home Assistant's own control dialog; unsupported vendor
-settings remain explicitly unavailable. Swipe feedback moves only the snapshot,
+settings remain explicitly unavailable. Verified cloud settings omitted by HA
+are loaded from the exactly bound native EZVIZ coordinator and saved only after
+administrator confirmation, optimistic concurrency and read-after-write
+verification with rollback. Swipe gestures never transform the resting snapshot,
 never the complete camera card.
 An unambiguous one-camera/one-entry installation remains compatible; multiple
 cameras without an exact alias match cannot refresh another camera's image.
