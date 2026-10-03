@@ -8,6 +8,8 @@ import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
 import { blinkStorageActions } from "./blink-storage-actions.js";
 import { blinkStorageUi } from "./blink-storage-ui.js";
 import { blinkStorageFilter } from "./blink-storage-filter.js";
+import { blinkStorageState, usbBlocked } from "./blink-storage-state.js";
+import { blinkStorageRefresh } from "./blink-storage-refresh.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import { MobileCardSelection } from "./mobile-card-selection.js";
@@ -114,7 +116,7 @@ class VistodaBlinkStorage extends HTMLElement {
     const title = document.createElement("strong"); title.textContent = storage.network_name || copy(this, "Sistema Blink");
     const count = document.createElement("span");
     count.textContent = copy(this, "{p0} clip", { p0: storage.pagination?.total_items ?? storage.clips?.length ?? 0 });
-    summary.append(title, count);
+    summary.append(title, this._usbSummary(storage, count));
     const body = document.createElement("div"); body.className = "module-body";
     const sync = document.createElement("section"); sync.className = "sync-module-info";
     const syncIcon = document.createElement("ha-icon");
@@ -130,18 +132,13 @@ class VistodaBlinkStorage extends HTMLElement {
       ? storage.status.usb_storage_used
       : Number.isFinite(storage.status?.usb_storage_available_percentage)
         ? 100 - storage.status.usb_storage_available_percentage : null;
-    if (Number.isFinite(used)) {
-      facts.append(this._storageGauge(used));
-    }
-    if (storage.status?.last_backup_completed) {
-      facts.append(this._fact("mdi:cloud-check-outline", copy(this, "Ultimo backup Blink"),
-        this._date(storage.status.last_backup_completed)));
-    }
+    // Blink reports 0% while the drive is unreadable; a gauge would claim free space.
+    if (Number.isFinite(used) && !usbBlocked(storage)) facts.append(this._storageGauge(used));
+    facts.append(...this._backupFacts(storage));
     const moduleActions = document.createElement("div"); moduleActions.className = "module-actions";
     moduleActions.append(this._moduleAction("mdi:wifi-cog", copy(this, "Cambia rete Wi-Fi"),
       copy(this, "Procedura non ancora verificata: usa l’app Blink.")),
-    this._moduleAction("mdi:eject-outline", copy(this, "Espelli in sicurezza"),
-      copy(this, "Espulsione non ancora verificata: usa l’app Blink.")),
+    this._ejectAction(storage),
     this._moduleAction("mdi:delete-outline", copy(this, "Elimina Sync Module"),
       copy(this, "Rimozione non disponibile in Vistoda per proteggere la configurazione."), true));
     if (storage.status?.can_format_usb) {
@@ -152,13 +149,14 @@ class VistodaBlinkStorage extends HTMLElement {
     }
     const clips = this._listManager.filtered(storage.clips || [], (clip) => this._mediaId(storage, clip));
     const rows = clips.map((clip) => this._clip(storage, clip));
-    if (!rows.length) {
+    if (!rows.length && !usbBlocked(storage)) {
       const empty = document.createElement("div"); empty.className = "muted";
       empty.textContent = this._listManager.filterId
         ? copy(this, "Nessuna clip di questa pagina appartiene alla lista.") : copy(this, "Nessuna clip indicizzata in questa pagina.");
       rows.push(empty);
     }
-    body.append(sync, facts, moduleActions, ...rows, this._pager(storage.pagination));
+    body.append(sync, ...[this._usbNotice(storage)].filter(Boolean), facts, moduleActions, ...rows,
+      this._pager(storage.pagination));
     details.append(summary, body); return details;
   }
 
@@ -242,7 +240,8 @@ class VistodaBlinkStorage extends HTMLElement {
   }
 }
 
-Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions, blinkStorageUi, blinkStorageFilter);
+Object.assign(VistodaBlinkStorage.prototype, blinkStorageActions, blinkStorageUi, blinkStorageFilter,
+  blinkStorageState, blinkStorageRefresh);
 
 if (!customElements.get("vistoda-blink-storage")) {
   customElements.define("vistoda-blink-storage", VistodaBlinkStorage);

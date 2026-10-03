@@ -38,7 +38,7 @@ users.
 | Provider | Released functions | Boundary |
 | --- | --- | --- |
 | Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings; experimental native camera viewer | Experimental consumer APIs; Ring does not support this third-party use. Camera live remains hardware-unverified; see [camera scope](docs/RING_CAMERAS.md). Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
-| Blink | Multiple cameras, gesture-only snapshot paging, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, versioned settings backups, provider-managed live saving, camera-filtered USB archives and NFS backup | Use Blink 0.18.0+. Blink routes a saved live to USB only when Local Storage is active; HA-local recording remains separate. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
+| Blink | Multiple cameras, gesture-only snapshot paging, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, versioned settings backups, provider-managed live saving, camera-filtered USB archives and NFS backup | Use Blink 0.19.0+ (0.18.0+ without USB eject/reconnect and status refresh). Blink routes a saved live to USB only when Local Storage is active; HA-local recording remains separate. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
 | EZVIZ | Multiple cameras, stored/manual snapshots, battery state, native HA controls and verified provider settings, compatible live streams, local recordings and NFS backup | Vistoda adds only settings with a readable current cloud value and an exact `pyezvizapi` operation. Writes require an administrator, explicit save confirmation, optimistic concurrency and read-after-write verification with rollback. Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
 | Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
@@ -136,9 +136,15 @@ Ring, Blink and EZVIZ use separate app-owned archives. The same displayed
 Assistant app has an isolated data volume. Vistoda shows the owning provider and
 effective path. Supported archives are paginated server-side and allow playback,
 download, confirmed deletion, list membership and verified network backup.
-The Blink Sync Module section reports connection, firmware and USB storage used.
-Wi-Fi migration, safe eject and Sync Module removal remain visible but disabled
-until their complete recovery paths are independently verified.
+The Blink Sync Module section reports connection, firmware and USB storage used,
+and follows the official app's USB states: **Format USB Drive**, **USB Drive
+Disconnected** (reconnect), **Insert USB Drive**, **USB Drive Full** (safe
+eject) and **USB Drive Not Compatible**, with the same help links, the
+almost-full and backup-in-progress banners, the last backup failure reason and
+a 30-second status refresh while the section is visible. Safe eject and
+reconnect need Blink 0.19.0+ and an administrator; formatting still requires
+the typed confirmation. Wi-Fi migration and Sync Module removal remain visible
+but disabled until their complete recovery paths are independently verified.
 
 For NFS or SMB backup, add the storage in **Settings → System → Storage** with
 usage **Media**, then select its storage name in the Vistoda integration options.

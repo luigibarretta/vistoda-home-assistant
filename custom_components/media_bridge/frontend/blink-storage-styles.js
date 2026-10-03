@@ -2,6 +2,7 @@ export const BLINK_STORAGE_STYLES = `
   :host { display:block; margin-top:18px; }
   .storage { padding:18px; }
   a { color:var(--primary-color); }
+  .settings-link { display:inline-flex; align-items:center; gap:8px; min-height:44px; }
   :host([embedded]) .storage { padding:0; border:0; border-radius:0; box-shadow:none; }
   header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
   .header-actions, .clip-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
@@ -30,6 +31,23 @@ export const BLINK_STORAGE_STYLES = `
   .storage-gauge::before { content:""; position:absolute; inset:7px; border-radius:50%;
     background:var(--card-background-color); }
   .storage-gauge strong { position:relative; z-index:1; font-size:12px; }
+  .storage-gauge.critical { background:conic-gradient(var(--error-color,#db4437) var(--used),
+      var(--divider-color) 0); }
+  .backup-failed ha-icon { color:var(--error-color,#db4437); }
+  .usb-notice { --tone:var(--warning-color,#ffa600); display:grid; grid-template-columns:auto minmax(0,1fr);
+    gap:12px; margin:0 0 12px; padding:12px 14px; border-radius:12px; border-left:4px solid var(--tone);
+    background:color-mix(in srgb,var(--tone) 12%,transparent); }
+  .usb-notice.error, .usb-badge.error { --tone:var(--error-color,#db4437); }
+  .usb-notice.info, .usb-badge.info { --tone:var(--info-color,#039be5); }
+  .usb-notice > ha-icon { --mdc-icon-size:26px; color:var(--tone); }
+  .usb-notice strong { display:block; } .usb-notice p { margin:4px 0 0; line-height:1.4; }
+  .usb-notice small { display:block; margin-top:8px; color:var(--secondary-text-color); }
+  .usb-notice-action { display:inline-flex; align-items:center; gap:7px; min-height:44px; margin-top:10px; }
+  .usb-notice-link { display:inline-flex; align-items:center; min-height:44px; margin-top:4px; }
+  .usb-notice .usb-warning { margin-top:8px; font-weight:600; }
+  .usb-summary { display:inline-flex; flex:0 0 auto; align-items:center; gap:8px; white-space:nowrap; }
+  .usb-badge { --tone:var(--warning-color,#ffa600); padding:3px 9px; border-radius:999px; font-size:12px;
+    font-weight:600; color:var(--tone); background:color-mix(in srgb,var(--tone) 16%,transparent); }
   .module-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:7px; margin:4px 0 10px; }
   .module-actions button { width:42px; min-width:42px; padding:0; }
   .module-actions [aria-disabled="true"] { opacity:.48; cursor:not-allowed; }

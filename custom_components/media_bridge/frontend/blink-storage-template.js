@@ -7,7 +7,7 @@ export const blinkStorageTemplate = (styles, listTemplate, bulkListTemplate) => 
     <ha-icon icon="mdi:cloud-upload"></ha-icon><span data-copy="Backup archivio">Backup archivio</span></button><button id="reload"
     title="Rileggi chiavetta" data-copy-title="Rileggi chiavetta" data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink" data-copy-data-tooltip="Rilegge stato, spazio e indice della chiavetta Blink">
     <ha-icon icon="mdi:refresh"></ha-icon><span data-copy="Rileggi chiavetta">Rileggi chiavetta</span></button></div></header>
-    <p><a href="/config/integrations/integration/media_bridge"><ha-icon icon="mdi:backup-restore"></ha-icon>
+    <p><a class="settings-link" href="/config/integrations/integration/media_bridge"><ha-icon icon="mdi:backup-restore"></ha-icon>
       <span data-copy="Configura backup di rete e backup automatico">Configura backup di rete e backup automatico</span></a></p>
     ${PAGE_SIZE_TEMPLATE}
     <details class="camera-filter" id="camera-filter"><summary id="camera-filter-label"><span data-copy="Tutte le telecamere">Tutte le telecamere</span></summary>

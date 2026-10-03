@@ -13,6 +13,8 @@ export const blinkStorageUi = {
     const node = document.createElement("div"); node.className = "storage-gauge";
     const label = copy(this, "Spazio utilizzato: {p0}%", { p0: used });
     node.setAttribute("role", "img"); node.setAttribute("aria-label", label); node.dataset.tooltip = label;
+    // Native threshold: the official usage graph turns red from 90 %.
+    if (used >= 90) node.classList.add("critical");
     node.tabIndex = 0; node.style.setProperty("--used", `${used * 3.6}deg`);
     const valueNode = document.createElement("strong"); valueNode.textContent = `${used}%`;
     node.append(valueNode); return node;

@@ -132,6 +132,8 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
             "blink-storage-template.js",
             "blink-storage-ui.js",
             "blink-storage-filter.js",
+            "blink-storage-state.js",
+            "blink-storage-refresh.js",
         )
     )
     template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
@@ -159,6 +161,12 @@ def test_blink_usb_archive_is_guarded_and_uses_signed_downloads() -> None:
     ).read_text(encoding="utf-8")
     assert "button.disabled = true" in storage
     assert "sync_module/delete" not in storage and "change_wifi" not in storage
+    assert "format_required:" in storage and "Formatta chiavetta USB" in storage
+    assert "this._openFormat(storage)" in storage and "usbBlocked(storage)" in storage
+    assert 'type: "blink_live_bridge/local_storage/status"' in storage
+    assert 'type: "blink_live_bridge/local_storage/command"' in storage
+    assert "STATUS_REFRESH_MS = 30_000" in storage and "checkVisibility" in storage
+    assert "Espulsione non ancora verificata" not in storage
 
 
 def test_blink_zone_editor_uses_typed_native_grid_and_admin_boundary() -> None:

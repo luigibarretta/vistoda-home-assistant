@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { commandErrorMessage } from "./blink-storage-refresh.js";
 export const blinkStorageActions = {
   _path(storage, clip) {
     return `/api/blink_live_bridge/v1/local-storage/${storage.network_id}/` +
@@ -127,12 +128,14 @@ export const blinkStorageActions = {
     const storage = this._formatStorage; const confirmation = this._formatPhrase;
     if (!storage || this.$("format-confirmation").value !== confirmation) return;
     this._busy = true; this._render(); this._setMessage(copy(this, "Formattazione Blink in corso…"));
+    let failure = null;
     try {
       await this._hass.callWS({ type: "blink_live_bridge/local_storage/format",
         network_id: Number(storage.network_id), sync_module_id: Number(storage.sync_module_id),
         confirmation });
-      this._selected.clear(); this._setMessage(copy(this, "Chiavetta formattata dal Sync Module Blink."));
-    } catch (_error) { this._setMessage(copy(this, "Formattazione non riuscita o non consentita dal supporto.")); }
+      this._selected.clear();
+    } catch (error) { failure = commandErrorMessage(error, "Formattazione non riuscita o non consentita dal supporto."); }
     finally { this._busy = false; await this.reload(); }
+    this._setMessage(failure ? copy(this, failure) : this._formatOutcome(storage));
   },
 };

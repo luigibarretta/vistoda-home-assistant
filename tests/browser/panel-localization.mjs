@@ -75,7 +75,8 @@ export async function checkAdvancedPanel(page, provider, language, check) {
     const usb = page.locator("vistoda-blink-storage");
     assert.match(await usb.locator(".sync-module-info").textContent(), /4\.5\.40/);
     assert.match(await usb.locator(".storage-gauge").getAttribute("aria-label"), en ? /Storage used: 1%/ : /Spazio utilizzato: 1%/);
-    assert.equal(await usb.locator('.module-actions button[aria-disabled="true"]').count(), 3);
+    // Wi-Fi and Sync Module removal stay disabled; safe eject is native.
+    assert.equal(await usb.locator('.module-actions button[aria-disabled="true"]').count(), 2);
     assert.equal(await usb.locator("#camera-filter-options input").count(), 3);
     await usb.locator("#selection-mode").click();
     await usb.locator(".select-clip input").check();

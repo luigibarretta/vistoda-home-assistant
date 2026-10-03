@@ -29,7 +29,11 @@ def test_blink_primary_controls_expose_state_icons_and_text() -> None:
 
 
 def test_usb_facts_are_vertically_centered_icon_labels() -> None:
-    storage = source("blink-storage.js") + source("blink-storage-ui.js")
+    storage = (
+        source("blink-storage.js")
+        + source("blink-storage-ui.js")
+        + source("blink-storage-state.js")
+    )
     styles = source("blink-storage-styles.js")
     assert "mdi:usb-flash-drive" not in storage
     assert "mdi:cloud-check-outline" in storage
