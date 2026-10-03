@@ -1,13 +1,23 @@
 # Reconnect accounts and configure network backups
 
-Blink options include **Automatically back up Blink USB clips every hour**.
-Enable it only after configuring writable network media storage. The Home
-Assistant worker runs with the panel closed, creates at most 20 new copies per
-pass and continues next hour. Each pass reads at most 100 pages of 50 clips.
-It never deletes originals or propagates USB deletions. Diagnostics expose the
-last pass under `usb_auto_backup`. The first pass runs at the worker's next
-hourly interval; use **Back up archive** in the USB section for an immediate
-copy. The local archive's backup button copies only Vistoda local recordings.
+The hourly Blink network backup is switched on in the **NFS backup** tab
+(**Hourly automatic backup to NFS**, administrators only) or in the Blink
+options. Enable it only after configuring writable network media storage. The
+Home Assistant worker runs with the panel closed and copies both Blink USB
+clips and Blink **Local HA** recordings, including motion recordings. It
+creates at most 20 new copies per pass across both sources and continues next
+hour; each source reads at most 100 pages of 50 items per pass. Existing copies
+are verified by checksum, not downloaded again. It never deletes originals or
+propagates deletions. Diagnostics expose the last pass under `usb_auto_backup`.
+The first pass runs at the worker's next hourly interval; use **Back up
+archive** in the USB section for an immediate USB copy.
+
+Without a Sync Module USB drive, the **Local HA** tab can record motion: an
+administrator enables **Motion recording** (15/30/60 s, selected cameras).
+Recording starts after Blink reports the event on an armed network, so it
+captures the scene that follows, and each recording wakes the camera (battery
+cameras drain faster). Motion recordings are a rolling buffer; manual
+recordings are never removed automatically.
 
 Blink's **Recording archive** is separate from the camera carousel. Its tabs
 are **Blink USB**, **Local HA** and **NFS backup**. Changing camera does not

@@ -26,6 +26,9 @@ export async function checkArchiveLayout(page, engine) {
     const recordings = view.$("recordings").shadowRoot;
     recordings.getElementById("archive-path").hidden = false;
     recordings.getElementById("archive-directory").textContent = "/data/recordings";
+    view.$("motion-recording")._apply({ settings:{enabled:true,duration_seconds:30,cameras:[]},
+      poller:{state:"active",interval_seconds:30}, cameras:[{alias:"a",name:"Corridoio",powered:true},
+        {alias:"b",name:"Giardino sul retro con nome lungo",powered:false}] });
   });
   const directory = process.env.ARCHIVE_SCREENSHOTS;
   if (directory) await mkdir(directory, {recursive:true});
@@ -61,7 +64,15 @@ export async function checkArchiveLayout(page, engine) {
         inspect(root); return bad;
       });
       assert.deepEqual(overflowing,[], `${engine}/${width}/${key}: overflow`);
+      if(key === "local") {
+        const motion = page.locator("vistoda-blink-motion-recording");
+        assert.equal(await motion.locator("#battery").isVisible(), true);
+        for(const target of await motion.locator(".check, #duration, #save").all()) {
+          const box=await target.boundingBox(); assert.ok(box.width >= 43.9 && box.height >= 43.9, `${engine}/${width}: motion target ${await target.evaluate((node) => node.id || node.className)} ${box.width}x${box.height}`);
+        }
+      }
       if(key === "network") {
+        const toggle=await page.locator("vistoda-network-archive .auto-backup").boundingBox(); assert.ok(toggle.height >= 44);
         for(const selector of [".row button", ".archive-pagination button", "#add-selected-to-lists"]) {
           for(const button of await page.locator(`vistoda-network-archive ${selector}`).all()) {
             const box=await button.boundingBox(); assert.equal(box.width,44); assert.equal(box.height,44);

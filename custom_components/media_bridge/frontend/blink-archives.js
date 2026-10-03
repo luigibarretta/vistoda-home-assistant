@@ -1,5 +1,6 @@
 import { copy } from "./panel-copy.js";
 import { entityState, firstEntity } from "./panel-helpers.js";
+import "./blink-motion-recording.js";
 
 export class BlinkArchives {
   constructor(view) {
@@ -28,6 +29,7 @@ export class BlinkArchives {
       view.$("storage")._moduleFilter = select.value;
     }
     view.$("network-archive").configure(view._hass, entry?.entry_id);
+    view.$("motion-recording").configure(view._hass, entry?.entry_id);
     const choices = [["", copy(view, "Tutte le telecamere")], ...cameras.map((device) => [
       entityState(view._hass, firstEntity(device, "camera"))?.attributes?.alias, device.name,
     ]).filter(([alias]) => alias)];

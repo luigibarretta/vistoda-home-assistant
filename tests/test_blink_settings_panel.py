@@ -203,3 +203,32 @@ def test_provider_links_are_nested_but_legacy_routes_remain_registered() -> None
     assert 'return provider === "overview" ? "/vistoda" : `/vistoda/${provider}`' in helpers
     assert "canonicalVistodaPath" in panel
     assert '"vistoda-blink": ("blink"' in registration
+
+
+def test_blink_motion_recording_card_and_hourly_backup_switch_follow_contracts() -> None:
+    motion = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("blink-motion-recording.js", "blink-motion-model.js")
+    )
+    template = (FRONTEND / "blink-view-template.js").read_text(encoding="utf-8")
+    archives = (FRONTEND / "blink-archives.js").read_text(encoding="utf-8")
+    assert 'type: "blink_live_bridge/motion_recording/get"' in motion
+    assert 'type: "blink_live_bridge/motion_recording/set"' in motion
+    assert 'error?.code === "unknown_command"' in motion and "this.hidden = true" in motion
+    assert ":host([hidden]) { display:none !important; }" in motion
+    assert "is_admin === true" in motion and "mdi:motion-sensor" in motion
+    assert "[15, 30, 60]" in motion and "Tutte le telecamere" in motion
+    assert '<section slot="local" id="local-archive-panel">' in template
+    assert template.index("vistoda-blink-motion-recording") < template.index(
+        "vistoda-provider-recordings"
+    )
+    assert 'view.$("motion-recording").configure' in archives
+    network = "\n".join(
+        (FRONTEND / name).read_text(encoding="utf-8")
+        for name in ("network-archive.js", "network-archive-auto.js")
+    )
+    assert 'type: "media_bridge/blink/auto_backup/set"' in network
+    assert 'role="switch"' in network and "Backup automatico orario su NFS" in network
+    assert "this._autoBusy || !this._admin() || !this._automatic" in network
+    item = (FRONTEND / "provider-recording-item.js").read_text(encoding="utf-8")
+    assert "recordingTrigger(item)" in item and "mdi:motion-sensor" in item

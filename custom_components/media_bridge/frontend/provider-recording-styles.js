@@ -22,6 +22,9 @@ export const PROVIDER_RECORDING_STYLES = `
   .item[aria-selected="true"] { box-shadow:inset 0 0 0 2px var(--primary-color); }
   .meta { display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:4px;
     color:var(--secondary-text-color); font-size:12px; }
+  .trigger-badge { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:999px;
+    color:var(--primary-text-color); background:color-mix(in srgb,var(--primary-color) 18%,transparent);
+    font-weight:700; } .trigger-badge ha-icon { --mdc-icon-size:14px; }
   .item-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
   .select-item { display:grid; place-items:center; width:44px; min-height:44px; }
   .select-item input { width:20px; height:20px; }

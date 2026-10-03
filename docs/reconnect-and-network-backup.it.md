@@ -50,15 +50,26 @@ quindi il suo nome nelle opzioni della entry Blink o EZVIZ, per esempio
 `family_archive`: non usare IP, URL della condivisione o percorsi `/media/...`.
 Il valore predefinito compatibile è `vistoda_archives`.
 
-Nelle opzioni Blink puoi abilitare **Backup automatico delle clip USB Blink ogni
-ora**. La destinazione deve essere pronta prima di abilitarlo. Il worker gira
-in Home Assistant anche con il pannello chiuso, copia fino a 20 nuovi file per
-passaggio e prosegue nelle ore successive; legge al massimo 100 pagine da 50
-clip per passaggio. Non elimina gli originali e non propaga le eliminazioni USB
-al backup. Lo stato dell'ultimo passaggio è nella diagnostica `usb_auto_backup`.
-Il primo passaggio avviene alla successiva scadenza oraria del worker; per una
-copia immediata usa **Backup archivio** nella sezione USB. Il pulsante nel
-vecchio archivio locale riguarda invece soltanto i file locali Vistoda.
+Il backup orario Blink si attiva nel tab **Backup NFS** (**Backup automatico
+orario su NFS**, solo amministratori) oppure nelle opzioni Blink. La
+destinazione deve essere pronta prima di abilitarlo. Il worker gira in Home
+Assistant anche con il pannello chiuso e copia sia le clip USB Blink sia le
+registrazioni **Locale HA**, comprese quelle da movimento. Crea al massimo 20
+nuove copie per passaggio fra le due fonti e prosegue nelle ore successive;
+ogni fonte legge al massimo 100 pagine da 50 elementi per passaggio. Le copie
+esistenti sono verificate con il checksum, senza riscaricarle. Non elimina gli
+originali e non propaga le eliminazioni. Lo stato dell'ultimo passaggio è nella
+diagnostica `usb_auto_backup`. Il primo passaggio avviene alla successiva
+scadenza oraria del worker; per una copia USB immediata usa **Backup archivio**
+nella sezione USB.
+
+Senza chiavetta USB nel Sync Module, il tab **Locale HA** può registrare al
+movimento: un amministratore attiva **Registrazione al movimento** (15/30/60 s,
+telecamere selezionate). La registrazione parte dopo che Blink segnala
+l'evento su una rete armata, quindi riprende la scena successiva, e ogni
+registrazione accende la telecamera (quelle a batteria si scaricano prima). Le
+registrazioni da movimento sono un buffer circolare; quelle manuali non vengono
+mai rimosse automaticamente.
 
 L'**Archivio registrazioni** Blink è separato dal carousel delle telecamere,
 con i tab **USB Blink**, **Locale HA** e **Backup NFS**. Cambiare telecamera non

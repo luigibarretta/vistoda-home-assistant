@@ -149,12 +149,17 @@ but disabled until their complete recovery paths are independently verified.
 For NFS or SMB backup, add the storage in **Settings → System → Storage** with
 usage **Media**, then select its storage name in the Vistoda integration options.
 Vistoda requires a real writable network mount with at least 512 MiB free and
-never falls back silently to the Home Assistant disk. Blink options can enable
-hourly, incremental USB backups (up to 20 new files per pass, no deletion
-propagation). In Blink, start recordings from the live **REC** menu; the local
-archive remains available for playback and file management. Provider saving
-covers the shared live session, while HA-local capture offers 15/30/60 seconds.
-See the
+never falls back silently to the Home Assistant disk. An administrator can turn
+on the hourly, incremental backup from the **NFS backup** tab or the Blink
+options: each pass copies and verifies Blink USB clips and ready **Local HA**
+recordings (up to 20 new files per pass, no deletion propagation). In Blink,
+start recordings from the live **REC** menu; the local archive remains available
+for playback and file management. Provider saving covers the shared live
+session, while HA-local capture offers 15/30/60 seconds. With a Blink adapter
+that supports it, the **Local HA** tab also shows **Motion recording**: choose
+cameras and a 15/30/60-second length, and motion clips get a **Motion** badge.
+Recording starts after Blink reports the motion (about 30–60 seconds), so it
+captures the following scene, and it wakes battery cameras. See the
 [network-backup guide](docs/reconnect-and-network-backup.md).
 
 ## Security model

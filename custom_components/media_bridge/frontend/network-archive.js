@@ -6,6 +6,7 @@ import { ProviderRecordingListManager } from "./provider-recording-list-manager.
 import { PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE } from "./provider-recording-list-template.js";
 import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
+import { AUTO_BACKUP_STYLES, AUTO_BACKUP_TEMPLATE, networkArchiveAuto } from "./network-archive-auto.js";
 
 class NetworkArchive extends HTMLElement {
   constructor() {
@@ -15,11 +16,11 @@ class NetworkArchive extends HTMLElement {
     this._listManager = new ProviderRecordingListManager(this);
     this._bulkListManager = new ProviderRecordingBulkLists(this, this._listManager, () => [...this._selected]);
     this.shadowRoot.innerHTML = `<style>${BASE_STYLES}${PROVIDER_LIST_STYLES}${PROVIDER_BULK_LIST_STYLES}
-      ${ARCHIVE_FILTER_STYLES}${NETWORK_ARCHIVE_STYLES}
+      ${ARCHIVE_FILTER_STYLES}${NETWORK_ARCHIVE_STYLES}${AUTO_BACKUP_STYLES}
     </style><header><h3 data-copy="Backup NFS">Backup NFS</h3>
       <button id="reload" class="icon-action" aria-label="Aggiorna" data-copy-aria-label="Aggiorna"><ha-icon icon="mdi:refresh"></ha-icon></button></header>
       <p><a href="/config/integrations/integration/media_bridge" data-copy="Configura backup di rete e backup automatico">Configura backup di rete e backup automatico</a></p>
-      <p id="automatic"></p><p id="last-run"></p><code id="path"></code>
+      ${AUTO_BACKUP_TEMPLATE}<p id="last-run"></p><code id="path"></code>
       <p data-copy="Le copie sono indipendenti dagli originali. Il checksum viene verificato prima del download.">Le copie sono indipendenti dagli originali. Il checksum viene verificato prima del download.</p>
       <div class="archive-filter"><label for="camera" data-copy="Telecamera">Telecamera</label><select id="camera"><option value="" data-copy="Tutte le telecamere">Tutte le telecamere</option></select></div>
       ${PAGE_SIZE_TEMPLATE}${PROVIDER_LIST_TEMPLATE}${PROVIDER_BULK_LIST_TEMPLATE}
@@ -32,6 +33,7 @@ class NetworkArchive extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this._listManager.mount(this.shadowRoot); this._bulkListManager.mount(this.shadowRoot);
     this.$("reload").onclick = () => this.reload();
+    this.$("auto-backup").onchange = () => this._setAutomatic();
     this.$("camera").onchange = () => { this.page = 1; this.reload(); };
     this.$("previous").onclick = () => { this.page--; this.reload(); };
     this.$("next").onclick = () => { this.page++; this.reload(); };
@@ -40,8 +42,9 @@ class NetworkArchive extends HTMLElement {
   }
   configure(hass, entryId) {
     this._hass = hass; localizeCopy(this.shadowRoot, this);
-    if (entryId === this.entryId) return;
+    if (entryId === this.entryId) { this._renderAutomatic(); return; }
     this.entryId = entryId; this.generation++; this.page = 1; this.pausePlayback();
+    this._automatic = null; this._autoBusy = false; this._renderAutomatic();
     this._config = entryId ? { provider: "blink", entryId } : null;
     this._selected.clear(); this._listManager.configure(this._config);
     this.reload();
@@ -72,8 +75,7 @@ class NetworkArchive extends HTMLElement {
         })); this.$("camera").value = selected;
       }
       this.$("path").textContent = result.directory;
-      this.$("automatic").textContent = copy(this, result.automatic.enabled
-        ? "Backup automatico USB attivo (ogni ora)." : "Backup automatico USB disattivato.");
+      this._automatic = result.automatic; this._renderAutomatic();
       const last = result.automatic.last_run;
       this.$("last-run").textContent = last ? copy(this, "Ultimo controllo: {p0}", {
         p0: new Date(last.checked_at).toLocaleString(this._hass?.locale?.language),
@@ -87,6 +89,7 @@ class NetworkArchive extends HTMLElement {
     } catch {
       if (generation === this.generation) {
         this.$("items").replaceChildren(); this.$("count").textContent = "";
+        this._automatic = null; this._renderAutomatic();
         this.$("status").textContent = copy(this, "Archivio di rete non disponibile. Verifica mount e permessi amministrativi.");
       }
     } finally {
@@ -135,4 +138,5 @@ class NetworkArchive extends HTMLElement {
     } catch { this.$("status").textContent = copy(this, "Download non disponibile."); }
   }
 }
+Object.assign(NetworkArchive.prototype, networkArchiveAuto);
 if (!customElements.get("vistoda-network-archive")) customElements.define("vistoda-network-archive", NetworkArchive);

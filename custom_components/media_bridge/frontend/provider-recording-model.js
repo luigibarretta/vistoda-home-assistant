@@ -21,3 +21,6 @@ export function cameraRecordings(items, alias) {
     .filter((item) => !alias || item.camera === alias)
     .sort((left, right) => right.requested_at.localeCompare(left.requested_at));
 }
+
+/** Recording origin from the optional manifest `trigger`; absent means manual. */
+export function recordingTrigger(item) { return item?.trigger === "motion" ? "motion" : "manual"; }

@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { recordingTrigger } from "./provider-recording-model.js";
 const STATUS = {
   pending: "In attesa", recording: "Registrazione in corso", ready: "Pronta", failed: "Non riuscita",
 };
@@ -27,6 +28,11 @@ export function recordingItem(item, context) {
   title.textContent = date;
   const meta = document.createElement("div"); meta.className = "meta";
   meta.textContent = `${STATUS[item.status] ? copy(context, STATUS[item.status]) : item.status} · ${Number(duration).toFixed(1)} s · ${size}`;
+  if (recordingTrigger(item) === "motion") {
+    const badge = document.createElement("span"); badge.className = "trigger-badge";
+    badge.innerHTML = `<ha-icon icon="mdi:motion-sensor"></ha-icon>`;
+    badge.append(copy(context, "Movimento")); meta.prepend(badge);
+  }
   detail.append(title, meta);
   const tags = context.tags?.(); if (tags) detail.append(tags);
   const actions = document.createElement("div"); actions.className = "item-actions";

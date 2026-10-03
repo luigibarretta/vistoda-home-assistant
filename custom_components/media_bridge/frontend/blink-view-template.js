@@ -123,6 +123,7 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}${ARCHIV
       <vistoda-blink-storage id="storage" embedded></vistoda-blink-storage>
     </section>
     <section slot="local" id="local-archive-panel">
+      <vistoda-blink-motion-recording id="motion-recording"></vistoda-blink-motion-recording>
       <div class="archive-filter"><label for="local-camera-filter" data-copy="Telecamera">Telecamera</label>
       <select id="local-camera-filter"></select></div>
       <vistoda-provider-recordings id="recordings" embedded></vistoda-provider-recordings>

@@ -64,11 +64,18 @@ async def test_disabled_tick_and_overlapping_tick_do_not_start_work(monkeypatch)
 async def test_existing_clips_do_not_consume_new_file_budget_and_pages_continue(monkeypatch):
     env, module, worker = setup_worker(monkeypatch)
     client = env.hass.data["blink_live_bridge"]["runtime"].client
-    client.get_json.side_effect = [batch(range(1, 31), True), batch([31])]
+    no_local = {"recordings": [], "pagination": {"has_next": False}}
+    client.get_json.side_effect = [batch(range(1, 31), True), batch([31]), no_local]
     copy = AsyncMock(side_effect=[{"status": "existing"}] * 30 + [{"status": "created"}])
     monkeypatch.setattr(module, "_backup_clip", copy)
-    assert await worker.run() == {"status": "complete", "created": 1, "checked": 31}
-    assert client.get_json.call_count == 2
+    assert await worker.run() == {
+        "status": "complete",
+        "created": 1,
+        "checked": 31,
+        "local_created": 0,
+        "local_checked": 0,
+    }
+    assert client.get_json.call_count == 3
     assert copy.call_args.args[1]["camera"] == "Front_Door"
 
 
@@ -79,8 +86,20 @@ async def test_new_file_budget_stops_before_next_download(monkeypatch):
     )
     copy = AsyncMock(return_value={"status": "created"})
     monkeypatch.setattr(module, "_backup_clip", copy)
-    assert await worker.run() == {"status": "pending", "created": 20, "checked": 20}
+    assert await worker.run() == {
+        "status": "pending",
+        "created": 20,
+        "checked": 20,
+        "local_created": 0,
+        "local_checked": 0,
+    }
     assert copy.call_count == 20
+    # The shared cap is exhausted: HA-local recordings wait for the next hour.
+    assert all("/v1/recordings" not in str(c) for c in client_calls(env))
+
+
+def client_calls(env):
+    return env.hass.data["blink_live_bridge"]["runtime"].client.get_json.call_args_list
 
 
 async def test_unload_cancels_inflight_worker(monkeypatch):
