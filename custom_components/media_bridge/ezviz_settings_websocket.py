@@ -5,7 +5,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
-from pyezvizapi.exceptions import HTTPError, PyEzvizError
 
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
@@ -70,6 +69,10 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
         connection.send_error(msg["id"], "unavailable", "EZVIZ settings are unavailable")
         return
     coordinator, serial = resolved
+    # pyezvizapi ships with HA's EZVIZ integration, which owns the resolved
+    # coordinator; importing it here keeps Blink/Ring-only installs loadable.
+    from pyezvizapi.exceptions import HTTPError, PyEzvizError
+
     old = current_value(coordinator.data[serial], msg["key"])
     if old != msg["expected_value"]:
         connection.send_error(msg["id"], "conflict", "EZVIZ setting changed upstream")
