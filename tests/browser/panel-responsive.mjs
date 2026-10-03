@@ -175,8 +175,8 @@ try {
         if (screenshotDirectory && language === "it") {
           await page.screenshot({ path: `${screenshotDirectory}/${engine}-about-${width}.png`, fullPage: true });
         }
-        await page.keyboard.press("Escape");
-        assert.equal(await dialog.isVisible(), false);
+        // WebKit closes the native dialog asynchronously after Escape.
+        await page.keyboard.press("Escape"); await dialog.waitFor({ state: "hidden", timeout: 5000 });
         assert.equal(await about.evaluate((element) => element === element.getRootNode().activeElement), true);
       }
       if (provider === "ring") {
