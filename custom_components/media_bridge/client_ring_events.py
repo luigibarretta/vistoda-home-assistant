@@ -9,6 +9,7 @@ from aiohttp import ClientTimeout
 from .errors import CannotConnectError
 
 EVENT_TIMEOUT = ClientTimeout(total=35, connect=5)
+UNLOCK_ORIGINS = frozenset({"user", "device", "code", "delivery"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +17,20 @@ class RingPushEvent:
     sequence: int
     event_type: str
     occurred_at: int
+    origin: str = ""
+    actor: str = ""
+
+
+def _origin(value) -> str:
+    """Accept only Ring's unlock origins; anything else is unknown."""
+    return value if value in UNLOCK_ORIGINS else ""
+
+
+def _actor(value) -> str:
+    """Accept a short printable display name; anything else is unknown."""
+    if not isinstance(value, str) or not 0 < len(value) <= 64 or not value.isprintable():
+        return ""
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +96,8 @@ class RingEventClientMixin:
                     sequence=int(item["sequence"]),
                     event_type=str(item["event_type"]),
                     occurred_at=int(item["occurred_at"]),
+                    origin=_origin(item.get("origin")),
+                    actor=_actor(item.get("actor")),
                 )
                 for item in payload["events"]
             )

@@ -140,7 +140,9 @@ class RingHistoryManager:
             next_cursor = provider.next_cursor if provider is not None else None
             return self._result(events, next_cursor, provider is None)
 
-    async def async_record(self, event_type: str, occurred_at: int | None, source: str) -> bool:
+    async def async_record(
+        self, event_type: str, occurred_at: int | None, source: str, *, origin="", actor=""
+    ) -> bool:
         """Persist one observed event and publish a unique unlock notification event."""
         if event_type not in HISTORY_TYPES:
             return False
@@ -172,7 +174,7 @@ class RingHistoryManager:
             )[:MAX_LOCAL_EVENTS]
             await self._store.async_save(self._data)
         if event_type == "unlock":
-            self._publish_unlock(timestamp, source)
+            self._publish_unlock(timestamp, source, origin, actor)
         return True
 
     async def async_update_identity(
@@ -216,10 +218,10 @@ class RingHistoryManager:
             "degraded": degraded,
         }
 
-    def _publish_unlock(self, occurred_at: int, source: str) -> None:
+    def _publish_unlock(self, occurred_at: int, source: str, origin: str, actor: str) -> None:
         identity = self.identity
         local = dt_util.as_local(datetime.fromtimestamp(occurred_at, UTC))
-        message = unlock_message(identity, local)
+        message = unlock_message(identity, local, origin, actor)
         self.hass.bus.async_fire(
             EVENT_RING_UNLOCKED,
             {
@@ -228,6 +230,8 @@ class RingHistoryManager:
                 "alias": self.alias,
                 "occurred_at": occurred_at,
                 "source": source,
+                "origin": origin,
+                "actor": actor,
                 "message": message,
             },
         )

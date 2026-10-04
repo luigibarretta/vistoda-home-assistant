@@ -93,5 +93,7 @@ class RingEventListener:
                     event_type,
                     event.occurred_at,
                     f"observed:native:{event.sequence}",
+                    origin=event.origin,
+                    actor=event.actor,
                 )
                 async_dispatcher_send(self.hass, ring_event_signal(self.entry.entry_id), event)

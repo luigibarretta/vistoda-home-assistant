@@ -130,3 +130,44 @@ async def test_native_ring_events_reject_a_different_physical_device() -> None:
     client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
     with pytest.raises(CannotConnectError):
         await client.ring_events("entrance", None, wait=0, expected_device_id="42")
+
+
+@pytest.mark.asyncio
+async def test_native_ring_events_carry_only_valid_unlock_details() -> None:
+    events = [
+        {
+            "sequence": 8,
+            "event_type": "intercom_unlock",
+            "occurred_at": 1,
+            "origin": "user",
+            "actor": "Luigi",
+        },
+        {
+            "sequence": 9,
+            "event_type": "intercom_unlock",
+            "occurred_at": 2,
+            "origin": "Mario",
+            "actor": "a\nb",
+        },
+    ]
+    session = FakeSession(
+        [
+            response(
+                200,
+                {
+                    "events": events,
+                    "next_sequence": 9,
+                    "generation": "00000000-0000-4000-8000-000000000001",
+                    "connected": True,
+                    "device_id": "42",
+                    "cursor_reset": False,
+                },
+            )
+        ]
+    )
+    client = BridgeClient(session, "http://bridge.local:8775", "x" * 32)
+    batch = await client.ring_events(
+        "entrance", 7, expected_device_id="42", generation="00000000-0000-4000-8000-000000000001"
+    )
+    assert (batch.events[0].origin, batch.events[0].actor) == ("user", "Luigi")
+    assert (batch.events[1].origin, batch.events[1].actor) == ("", "")

@@ -33,6 +33,17 @@ def test_unlock_notification_does_not_repeat_city_in_ring_location_label() -> No
     )
 
 
+def test_unlock_notification_names_who_unlocked_like_the_official_app() -> None:
+    identity = {"device_name": "Front Entrance", "location_name": "Home", "city": ""}
+    local = datetime(2026, 9, 10, 19, 30, tzinfo=ZoneInfo("Europe/Rome"))
+    base = "Your Front Entrance in Home was used to unlock the entrance on 10/09/2026 at 19:30"
+    assert unlock_message(identity, local, "user", "Luigi") == f"{base} by Luigi"
+    assert unlock_message(identity, local, "user", "") == base
+    assert unlock_message(identity, local, "device", "Luigi") == f"{base} from the handset"
+    assert unlock_message(identity, local, "code", "Anna") == f"{base} with an access code (Anna)"
+    assert unlock_message(identity, local, "delivery", "") == f"{base} for a delivery"
+
+
 def test_observation_deduplicates_a_command_but_not_two_native_unlocks() -> None:
     assert sources_overlap("command:native_button", "observed:native:12")
     assert sources_overlap("observed:native:12", "observed:official")

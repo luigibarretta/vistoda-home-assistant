@@ -6,15 +6,30 @@ DEDUPE_SECONDS = 12
 HISTORY_TYPES = {"unlock", "live_view", "ding", "motion", "activity"}
 
 
-def unlock_message(identity: dict[str, str], local: datetime) -> str:
-    """Render the stable user-requested notification sentence."""
+def unlock_message(
+    identity: dict[str, str], local: datetime, origin: str = "", actor: str = ""
+) -> str:
+    """Render the stable user-requested sentence plus who unlocked, when known."""
     city = identity.get("city", "")
     location = identity["location_name"]
     city_suffix = "" if _already_contains_city(location, city) else f" in {city}" if city else ""
     return (
         f"Your {identity['device_name']} in {location}{city_suffix} was used to "
         f"unlock the entrance on {local:%d/%m/%Y} at {local:%H:%M}"
+        f"{_unlocked_by(origin, actor)}"
     )
+
+
+def _unlocked_by(origin: str, actor: str) -> str:
+    """Mirror the official app's wording for Ring's unlock origins."""
+    named = f" ({actor})" if actor else ""
+    if origin == "device":
+        return " from the handset"
+    if origin == "code":
+        return f" with an access code{named}"
+    if origin == "delivery":
+        return f" for a delivery{named}"
+    return f" by {actor}" if actor else ""
 
 
 def _already_contains_city(location: str, city: str) -> bool:
