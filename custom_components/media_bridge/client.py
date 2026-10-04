@@ -23,6 +23,7 @@ from .errors import (
     InvalidOtpError,
     InvalidVendorAuthError,
     RateLimitedError,
+    ReauthRequiredError,
 )
 from .models import (
     BridgeHealth,
@@ -205,6 +206,8 @@ class BridgeClient(
         if status == 401:
             raise InvalidBridgeAuthError
         code = error_code(body)
+        if status == 403 and code == "reauth_required":
+            raise ReauthRequiredError
         if status == 422 and code == "invalid_otp":
             raise InvalidOtpError
         if status == 422:

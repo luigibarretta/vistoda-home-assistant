@@ -172,6 +172,14 @@
     "ring_push_unavailable": {
       "title": "Vistoda Ring push events are unavailable",
       "description": "The Ring bridge is reachable, but its native event channel has remained disconnected. Doorbell notifications still use the official Ring integration when available. Check the Vistoda Ring app network access and logs."
+    },
+    "ring_push_silent": {
+      "title": "Ring stopped delivering call notifications for {name}",
+      "description": "The Vistoda Ring engine is connected, but Ring is no longer delivering real-time call notifications, so calls may be missed. In your Ring account settings, check the authorized client devices, keep the Vistoda device authorized and make sure notifications are enabled for this Intercom; if needed, sign in again from this integration. Vistoda keeps checking and removes this issue when notifications resume."
+    },
+    "ezviz_core_unavailable": {
+      "title": "The Home Assistant EZVIZ integration is not running",
+      "description": "Vistoda EZVIZ camera settings, system arming and camera connectivity depend on the official Home Assistant EZVIZ integration, which is missing, disabled or failed to load. Add or repair the EZVIZ integration in Settings → Devices & services. Live video and snapshots through the Vistoda EZVIZ app keep working."
     }
   },
   "selector": {
@@ -185,9 +193,9 @@
   },
   "entity": {
     "binary_sensor": {
-      "connectivity": {
-        "name": "Connection"
-      }
+      "connectivity": {"name": "Connection"},
+      "ring_intercom_connectivity": {"name": "Intercom connection"},
+      "ezviz_camera_connectivity": {"name": "Camera connection"}
     },
     "button": {
       "ring_open_door": {

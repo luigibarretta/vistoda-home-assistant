@@ -25,6 +25,10 @@ class BridgeCoordinator(DataUpdateCoordinator[str]):
         self.entry = entry
 
     async def _async_update_data(self) -> str:
+        if self.entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
+            from .ezviz_core import refresh_core_issue
+
+            refresh_core_issue(self.hass)
         try:
             version = (await self.client.health()).version
         except BridgeError as error:

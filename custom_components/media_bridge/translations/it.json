@@ -172,6 +172,14 @@
     "ring_push_unavailable": {
       "title": "Gli eventi push di Vistoda Ring non sono disponibili",
       "description": "Il bridge Ring è raggiungibile, ma il suo canale eventi nativo è rimasto disconnesso. Le notifiche del citofono continuano a usare l'integrazione Ring ufficiale quando disponibile. Controlla l'accesso di rete e i log dell'app Vistoda Ring."
+    },
+    "ring_push_silent": {
+      "title": "Ring ha smesso di inviare le notifiche di chiamata per {name}",
+      "description": "Il motore Vistoda Ring è connesso, ma Ring non sta più consegnando le notifiche di chiamata in tempo reale: alcune chiamate potrebbero andare perse. Nelle impostazioni dell'account Ring controlla i dispositivi client autorizzati, mantieni autorizzato il dispositivo Vistoda e verifica che le notifiche di questo citofono siano attive; se necessario, ripeti l'accesso da questa integrazione. Vistoda continua a controllare e rimuove questo avviso quando le notifiche riprendono."
+    },
+    "ezviz_core_unavailable": {
+      "title": "L'integrazione EZVIZ di Home Assistant non è attiva",
+      "description": "Le impostazioni delle telecamere, l'inserimento del sistema e lo stato di connessione delle telecamere di Vistoda EZVIZ dipendono dall'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
     }
   },
   "selector": {
@@ -185,9 +193,9 @@
   },
   "entity": {
     "binary_sensor": {
-      "connectivity": {
-        "name": "Connessione"
-      }
+      "connectivity": {"name": "Connessione"},
+      "ring_intercom_connectivity": {"name": "Connessione citofono"},
+      "ezviz_camera_connectivity": {"name": "Connessione telecamera"}
     },
     "button": {
       "ring_open_door": {

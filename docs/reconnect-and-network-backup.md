@@ -111,3 +111,27 @@ Regression checks: `python -m pytest -q tests/test_release_*.py tests/test_ring_
 execute the integration's flow, identity migration, mount detection, and backup
 code using isolated HA framework doubles and temporary files. They do not
 contact vendors, mount shares, reconnect production accounts or open entrances.
+
+## Vendor session and device health
+
+When Ring revokes the Vistoda session (for example after a password change or
+removing the device from Ring's authorized client devices), the Ring engine
+answers HTTP 403 `reauth_required`. Vistoda starts the standard Home Assistant
+re-authentication flow for that entry; the event listener pauses for five
+minutes between checks and does not report a push outage. A bad bridge token
+remains HTTP 401 and keeps its existing error.
+
+`binary_sensor.*_intercom_connection` (Ring) follows the engine's `online`
+status every minute and is unavailable when the bridge cannot be reached.
+Each EZVIZ camera gets `binary_sensor.*_camera_connection`, read from the
+native Home Assistant EZVIZ integration (status 1 online, 2 offline). The EZVIZ
+panel badge and **Connection** fact show the camera; **Vistoda app** shows the
+bridge. Repairs raises `ezviz_core_unavailable` while that native integration
+is missing, disabled or failed, because EZVIZ settings and arming depend on it.
+
+Ring engines from 0.15.0 report `push_degraded` and `last_missed_ding_at`.
+Repairs shows `ring_push_silent_<entry_id>` while Ring stops delivering call
+notifications and clears it when they resume. Each new missed call fires one
+`vistoda_ring_missed_call` event with `entry_id`, `alias`, `device_name`,
+`location_name`, `city` and `occurred_at` (epoch seconds), persisted so a
+restart does not repeat it. Older engines omit these fields and nothing changes.

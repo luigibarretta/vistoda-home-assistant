@@ -41,6 +41,9 @@ class RingPushBatch:
     connected: bool
     device_id: str = ""
     cursor_reset: bool = False
+    # Optional engine hints; None means an older engine that omits them.
+    push_degraded: bool | None = None
+    last_missed_ding_at: int | None = None
 
 
 @dataclass(slots=True)
@@ -108,6 +111,8 @@ class RingEventClientMixin:
                 connected=payload["connected"],
                 device_id=payload["device_id"],
                 cursor_reset=payload["cursor_reset"],
+                push_degraded=_optional_bool(payload.get("push_degraded")),
+                last_missed_ding_at=_optional_timestamp(payload.get("last_missed_ding_at")),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise CannotConnectError from error
@@ -135,6 +140,18 @@ class RingEventClientMixin:
         ):
             raise CannotConnectError
         return result
+
+
+def _optional_bool(value) -> bool | None:
+    """Ignore malformed optional hints instead of failing the whole batch."""
+    return value if isinstance(value, bool) else None
+
+
+def _optional_timestamp(value) -> int | None:
+    """Accept a non-negative epoch-second timestamp; anything else is unknown."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
 
 
 def _valid_generation(value: str) -> bool:

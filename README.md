@@ -85,6 +85,14 @@ canonical routes.
 Ring presents every enrolled intercom as an explicitly selected device. History,
 identity, controls, notifications, audio and recordings remain tied to that
 physical entrance. Opening is never retried automatically.
+Vistoda can replace the vendor apps for day-to-day alerts: a revoked Ring
+session opens Home Assistant's standard re-authentication flow, the
+`Intercom connection` and per-camera EZVIZ `Camera connection` sensors report
+the device itself (the EZVIZ panel shows the Vistoda app link separately), and
+Repairs warns when Ring stops delivering call notifications or when the native
+EZVIZ integration needed for settings and arming is not loaded. Automations can
+listen for `vistoda_ring_missed_call`; see
+[Reconnect accounts](docs/reconnect-and-network-backup.md#vendor-session-and-device-health).
 
 Blink and EZVIZ present multiple cameras in stable, circular page views. Opening
 a page uses the latest stored snapshot; a new capture happens only after an

@@ -55,3 +55,36 @@ def update_ezviz_binding_issue(hass: HomeAssistant, entry: ConfigEntry, availabl
         severity=ir.IssueSeverity.ERROR,
         translation_key="ezviz_binding_unavailable",
     )
+
+
+def update_ring_push_silent_issue(hass: HomeAssistant, entry: ConfigEntry, degraded: bool) -> None:
+    """Warn when Ring stopped delivering call notifications to the engine."""
+    issue_id = f"ring_push_silent_{entry.entry_id}"
+    if not degraded:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="ring_push_silent",
+        translation_placeholders={"name": entry.title},
+    )
+
+
+def update_ezviz_core_issue(hass: HomeAssistant, available: bool) -> None:
+    """Explain that EZVIZ settings and arming need the native EZVIZ integration."""
+    issue_id = "ezviz_core_unavailable"
+    if available:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="ezviz_core_unavailable",
+    )

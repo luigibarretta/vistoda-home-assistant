@@ -17,7 +17,7 @@ export const COMMON_COPY = {
   "Schede": "Cards", "Tabella": "Table", "Aggiungi": "Add", "Destinazione": "Destination",
   "Disponibile": "Available", "Non disponibile": "Unavailable", "Non rilevata": "Not detected",
   "Verifica…": "Checking…", "Caricamento…": "Loading…", "Pronto": "Ready",
-  "Connesso": "Connected", "Disconnesso": "Disconnected", "Invio…": "Sending…",
+  "Connesso": "Connected", "Disconnesso": "Disconnected", "Online": "Online", "Offline": "Offline", "Invio…": "Sending…",
   "Non riuscito": "Failed", "Non riuscita": "Failed", "In attesa": "Pending", "Pronta": "Ready",
   "Registrazione in corso": "Recording", "Impostazioni": "Settings", "Telecamera": "Camera",
   "Telecamere": "Cameras", "Batteria": "Battery", "Temperatura": "Temperature", "Ingresso": "Entrance",

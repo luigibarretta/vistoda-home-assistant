@@ -1,4 +1,4 @@
-"""Bridge availability entity."""
+"""Bridge, Ring Intercom and EZVIZ camera connectivity entities."""
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -8,7 +8,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK
+from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ, PROVIDER_RING
 
 
 async def async_setup_entry(
@@ -16,9 +16,15 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add one connectivity entity."""
+    """Add bridge connectivity plus the physical device connectivity when known."""
     runtime: BridgeRuntime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([BridgeConnectivity(runtime, entry)])
+    entities: list[BinarySensorEntity] = [BridgeConnectivity(runtime, entry)]
+    provider = entry.data[CONF_PROVIDER]
+    if provider == PROVIDER_RING and runtime.ring_status is not None:
+        entities.append(RingIntercomConnectivity(runtime, entry))
+    if provider == PROVIDER_EZVIZ:
+        entities.append(EzvizCameraConnectivity(entry))
+    async_add_entities(entities)
 
 
 class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
@@ -67,6 +73,7 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
         key = "cameras" if self._attr_unique_id.startswith("blink-") else "version"
         attributes = {key: self.coordinator.data or "unknown"}
         attributes["panel_path"] = f"/vistoda/{self._provider}"
+        attributes["connectivity_scope"] = "bridge"
         if self._provider == "ring":
             attributes.update(
                 {
@@ -75,3 +82,70 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
                 }
             )
         return attributes
+
+
+class RingIntercomConnectivity(CoordinatorEntity, BinarySensorEntity):
+    """Report the Ring Intercom's own cloud connectivity from native status."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "ring_intercom_connectivity"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, runtime: BridgeRuntime, entry: ConfigEntry) -> None:
+        from .ring_binding import entity_prefix
+        from .ring_facade import ring_device_info
+
+        super().__init__(runtime.ring_status)
+        self._entry = entry
+        self._attr_unique_id = f"{entity_prefix(entry)}intercom-connectivity"
+        self._attr_device_info = ring_device_info(entry)
+        self._attr_extra_state_attributes = {"connectivity_scope": "device"}
+
+    @property
+    def available(self) -> bool:
+        """Stay unavailable when the bridge or the enrolled device cannot be verified."""
+        from .ring_binding import verified_device_id
+
+        return (
+            self.coordinator.last_update_success
+            and verified_device_id(self._entry, self.coordinator.data) is not None
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return the native online flag."""
+        return getattr(self.coordinator.data, "online", None)
+
+
+class EzvizCameraConnectivity(BinarySensorEntity):
+    """Report camera reachability from Home Assistant's native EZVIZ coordinator."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "ezviz_camera_connectivity"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_should_poll = True
+    _attr_available = False
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        from .ezviz_identity import device_info, entity_prefix
+
+        self._entry = entry
+        self._attr_unique_id = f"{entity_prefix(entry)}camera-connectivity"
+        self._attr_device_info = device_info(entry)
+        self._attr_extra_state_attributes = {
+            "connectivity_scope": "camera",
+            "source_integration": "ezviz",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Publish a real first state instead of waiting for the first poll."""
+        await super().async_added_to_hass()
+        await self.async_update()
+
+    async def async_update(self) -> None:
+        """Read the in-memory native snapshot; this never calls the EZVIZ cloud."""
+        from .ezviz_core import native_camera_online
+
+        online = native_camera_online(self.hass, self._entry)
+        self._attr_available = online is not None
+        self._attr_is_on = online

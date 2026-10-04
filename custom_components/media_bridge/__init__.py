@@ -120,7 +120,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .ring_facade import async_bind_official
 
         async_migrate_registry(hass, entry)
-        ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS])
+        ring_status = RingStatusCoordinator(hass, client, entry.data[CONF_ALIAS], entry)
         await ring_status.async_config_entry_first_refresh()
         async_bind_native(hass, entry, ring_status.data)
         async_bind_official(hass, entry)
@@ -180,4 +180,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await async_close_entry(hass, entry.entry_id)
     hass.data[DOMAIN].pop(entry.entry_id, None)
+    if entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
+        from .ezviz_core import refresh_core_issue
+
+        refresh_core_issue(hass, exclude_entry_id=entry.entry_id)
     return True

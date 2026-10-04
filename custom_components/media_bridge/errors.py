@@ -31,3 +31,7 @@ class EnrollmentExpiredError(BridgeError):
 
 class RateLimitedError(BridgeError):
     """A local or vendor rate limit was reached."""
+
+
+class ReauthRequiredError(BridgeError):
+    """The bridge token is valid, but the vendor session was revoked."""

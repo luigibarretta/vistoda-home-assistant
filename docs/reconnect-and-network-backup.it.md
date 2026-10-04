@@ -117,3 +117,29 @@ Verifica: `python -m pytest -q tests/test_release_*.py tests/test_ring_discovery
 la migrazione, il controllo dei mount e il backup con sostituti isolati del
 framework HA e file temporanei. Non contattano i produttori, montano
 condivisioni, ricollegano account di produzione o aprono ingressi.
+
+## Sessione del produttore e stato dei dispositivi
+
+Se Ring revoca la sessione Vistoda (per esempio dopo un cambio password o la
+rimozione del dispositivo dai client autorizzati dell'account Ring), il motore
+Ring risponde HTTP 403 `reauth_required`. Vistoda avvia il normale flusso di
+nuova autenticazione di Home Assistant per quella entry; il listener eventi
+attende cinque minuti tra un controllo e l'altro e non segnala un guasto push.
+Un token bridge errato resta HTTP 401 con l'errore esistente.
+
+`binary_sensor.*_connessione_citofono` (Ring) segue lo stato `online` del
+motore ogni minuto ed è non disponibile quando il bridge non risponde. Ogni
+telecamera EZVIZ ha `binary_sensor.*_connessione_telecamera`, letto
+dall'integrazione EZVIZ nativa di Home Assistant (stato 1 online, 2 offline).
+Il badge e la voce **Connessione** del pannello EZVIZ mostrano la telecamera;
+**App Vistoda** mostra il bridge. Riparazioni segnala `ezviz_core_unavailable`
+finché l'integrazione nativa è assente, disattivata o in errore, perché
+impostazioni e inserimento EZVIZ dipendono da essa.
+
+I motori Ring dalla 0.15.0 riportano `push_degraded` e `last_missed_ding_at`.
+Riparazioni mostra `ring_push_silent_<entry_id>` finché Ring non consegna le
+notifiche di chiamata e lo rimuove quando riprendono. Ogni nuova chiamata persa
+genera un solo evento `vistoda_ring_missed_call` con `entry_id`, `alias`,
+`device_name`, `location_name`, `city` e `occurred_at` (secondi epoch),
+memorizzato per non ripeterlo dopo un riavvio. I motori precedenti omettono
+questi campi e il comportamento non cambia.

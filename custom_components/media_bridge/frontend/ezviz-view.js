@@ -3,6 +3,7 @@ import { BASE_STYLES, MEDIA_STYLES } from "./panel-styles.js";
 import { localize, localizeElements } from "./panel-localize.js";
 import { ezvizViewNavigation } from "./ezviz-view-navigation.js";
 import { ezvizViewActions } from "./ezviz-view-actions.js";
+import { connectionCopyKey, ezvizConnectivity } from "./ezviz-connectivity.js";
 import "./provider-recordings.js";
 import "./system-arm-control.js";
 import "./ezviz-settings.js";
@@ -74,6 +75,8 @@ class VistodaEzvizView extends HTMLElement {
           <span class="badge off" id="camera-state"><span data-copy="Non disponibile">Non disponibile</span></span></div>
           <div class="facts"><div class="fact"><ha-icon icon="mdi:lan-connect"></ha-icon>
             <div><span data-i18n="connection">Connessione</span><strong id="connection">—</strong></div></div>
+            <div class="fact"><ha-icon icon="mdi:server-network"></ha-icon>
+            <div><span data-i18n="bridgeConnection">App Vistoda</span><strong id="bridge">—</strong></div></div>
             <div class="fact"><ha-icon icon="mdi:video-wireless-outline"></ha-icon>
             <div><span>Live</span><strong data-i18n="onRequest">Su richiesta</strong></div></div>
             <div class="fact"><ha-icon id="battery-icon" icon="mdi:battery"></ha-icon>
@@ -148,10 +151,7 @@ class VistodaEzvizView extends HTMLElement {
     const device = this._cameraDevice();
     const camera = firstEntity(device, "camera");
     const state = entityState(this._hass, camera);
-    const connectivity = firstEntity(device, "binary_sensor", (item) => (
-      item.device_class === "connectivity"
-    ));
-    const connectivityState = entityState(this._hass, connectivity);
+    const links = ezvizConnectivity(this._hass, device);
     const entry = this._cameraEntry();
     this.$("system").hidden = this._detailOpen;
     this.$("camera-card").hidden = this._detailOpen || !device;
@@ -178,10 +178,14 @@ class VistodaEzvizView extends HTMLElement {
       p0: this._cameraIndex + 1, p1: cameras.length,
     }));
     const available = state && state.state !== "unavailable";
-    setText(this.shadowRoot, "camera-state", available ? copy(this, "Disponibile") : copy(this, "Non disponibile"));
-    this.$("camera-state").classList.toggle("off", !available);
-    setText(this.shadowRoot, "connection", connectivityState?.state === "on"
-      ? copy(this, "Connesso") : connectivityState?.state === "off" ? copy(this, "Disconnesso") : copy(this, "Non rilevata"));
+    // The badge follows the camera itself when the native EZVIZ status is known.
+    const online = links.camera === "unknown" ? null : links.camera === "on";
+    setText(this.shadowRoot, "camera-state", online === null
+      ? (available ? copy(this, "Disponibile") : copy(this, "Non disponibile"))
+      : online ? copy(this, "Online") : copy(this, "Offline"));
+    this.$("camera-state").classList.toggle("off", online === null ? !available : !online);
+    setText(this.shadowRoot, "connection", copy(this, connectionCopyKey(links.camera)));
+    setText(this.shadowRoot, "bridge", copy(this, connectionCopyKey(links.bridge)));
     const batteryState = entry?.battery_entity_id ? this._hass?.states?.[entry.battery_entity_id] : null;
     const batteryValue = batteryState && !["unknown", "unavailable"].includes(batteryState.state)
       ? `${batteryState.state}${batteryState.attributes?.unit_of_measurement || "%"}` : copy(this, "Non rilevata");
