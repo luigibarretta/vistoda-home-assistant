@@ -1,11 +1,14 @@
 import { copy } from "./panel-copy.js";
 import { CameraLiveDialog } from "./camera-live-dialog.js";
 import { firstEntity, setText } from "./panel-helpers.js";
+import { ptzTargets } from "./ezviz-ptz-model.js";
 
 export const ezvizViewActions = {
   _openLive() {
     this._liveDialog ||= new CameraLiveDialog(this);
-    this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")?.entity_id);
+    // PTZ buttons belong to the native camera bound to this Vistoda entry.
+    const ptz = ptzTargets(this._cameraEntry()?.native_entities, this._hass?.states);
+    this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")?.entity_id, { ptz });
   },
 
   async _refresh() {

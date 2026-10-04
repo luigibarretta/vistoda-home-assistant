@@ -45,7 +45,7 @@ def test_usb_facts_are_vertically_centered_icon_labels() -> None:
 
 def test_ezviz_and_archive_actions_keep_labels_with_icons() -> None:
     ezviz = source("ezviz-view.js")
-    settings = source("ezviz-settings.js")
+    settings = source("ezviz-settings.js") + source("ezviz-settings-model.js")
     archive = source("provider-recordings-template.js")
     assert "mdi:lan-connect" in ezviz and "mdi:camera-retake-outline" in ezviz
     assert "mdi:battery" in ezviz and "vistoda-ezviz-settings" in ezviz

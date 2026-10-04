@@ -149,4 +149,10 @@ export const COMMON_COPY = {
   "Immagine evento: {p0}": "Event picture: {p0}", "Persona": "Person", "Veicolo": "Vehicle",
   "Campanello": "Doorbell", "Suono": "Sound", "Animale": "Pet", "Manomissione": "Tampering",
   "Altro allarme": "Other alarm",
+  "Protezione e allarme": "Arming and alarm", "Telecamera armata": "Camera armed",
+  "Programmazione allarme": "Alarm schedule", "Modalità di rilevamento": "Detection mode",
+  "Sagoma umana": "Human shape", "Variazione immagine": "Image change", "Sensore PIR": "PIR sensor",
+  "Controllo PTZ": "Pan and tilt control", "Muovi su": "Move up", "Muovi giù": "Move down",
+  "Muovi a sinistra": "Move left", "Muovi a destra": "Move right",
+  "Comando PTZ non riuscito": "Pan and tilt command failed",
 };

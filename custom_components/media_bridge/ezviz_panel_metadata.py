@@ -6,11 +6,34 @@ from homeassistant.helpers import entity_registry as er
 
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
 
+# Unique-id suffixes of HA core EZVIZ entities (2026.8, pyezvizapi 1.0.0.7):
+# buttons/number use "{serial}_{key}", binary sensors "{serial}_{name}.{key}".
+ROLE_SUFFIXES = {
+    "_ptz_up": "ptz_up",
+    "_ptz_down": "ptz_down",
+    "_ptz_left": "ptz_left",
+    "_ptz_right": "ptz_right",
+    "_detection_sensibility": "detection_sensitivity",
+    ".alarm_schedules_enabled": "alarm_schedule",
+    ".encrypted": "encrypted",
+}
 
-def _native_entity(hass, entity) -> dict:
+
+def entity_role(serial: str, unique_id) -> str | None:
+    """Map a native unique_id to a stable panel role, never by entity_id or name."""
+    if not isinstance(unique_id, str) or not unique_id.startswith(f"{serial}_"):
+        return None
+    return next(
+        (role for suffix, role in ROLE_SUFFIXES.items() if unique_id.endswith(suffix)), None
+    )
+
+
+def _native_entity(hass, entity, serial: str = "") -> dict:
     state = hass.states.get(entity.entity_id)
     attributes = state.attributes if state else {}
+    role = entity_role(serial, getattr(entity, "unique_id", None))
     return {
+        **({"role": role} if role else {}),
         "entity_id": entity.entity_id,
         "domain": entity.entity_id.partition(".")[0],
         "name": (
@@ -56,7 +79,7 @@ def panel_metadata(hass, entry) -> dict:
     if device:
         native_entities = sorted(
             (
-                _native_entity(hass, entity)
+                _native_entity(hass, entity, serial)
                 for entity in registry.entities.values()
                 if entity.config_entry_id == native.entry_id
                 and entity.device_id == device.id

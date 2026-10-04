@@ -7,9 +7,10 @@ from types import SimpleNamespace as NS  # noqa: N814
 SOURCE = Path("custom_components/media_bridge/ezviz_panel_metadata.py")
 
 
-def metadata(native_entries, source="serial:1"):
+def metadata(native_entries, source="serial:1", extra=None):
     registry = NS(
         entities={
+            **(extra or {}),
             "alarm": NS(
                 config_entry_id="native",
                 device_id=None,
@@ -53,7 +54,7 @@ def metadata(native_entries, source="serial:1"):
         "ar": NS(async_get=lambda _: NS(async_get_area=lambda _: NS(name="HA hall"))),
     }
     tree = ast.parse(SOURCE.read_text())
-    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef | ast.Assign)]
     exec(compile(ast.Module(body=functions, type_ignores=[]), str(SOURCE), "exec"), namespace)
     states = {
         "sensor.fixture_battery": NS(
@@ -106,3 +107,36 @@ def test_missing_or_ambiguous_binding_never_guesses_account_by_name():
     assert metadata([native()], "another:1")[0] == {}
     assert metadata([native(), native()])[0] == {}
     assert metadata([])[0] == {}
+
+
+def native_entity(entity_id, unique_id):
+    return NS(
+        config_entry_id="native",
+        device_id="device",
+        disabled_by=None,
+        entity_id=entity_id,
+        unique_id=unique_id,
+        name=None,
+        original_name=None,
+        original_device_class=None,
+    )
+
+
+def test_native_roles_come_only_from_this_camera_unique_ids():
+    extra = {
+        "up": native_entity("button.cam_up", "serial_ptz_up"),
+        "left": native_entity("button.cam_left", "serial_ptz_left"),
+        "sens": native_entity("number.cam_sens", "serial_detection_sensibility"),
+        "plan": native_entity("binary_sensor.cam_plan", "serial_Cam.alarm_schedules_enabled"),
+        "enc": native_entity("binary_sensor.cam_enc", "serial_Cam.encrypted"),
+        "other": native_entity("button.other_up", "other_ptz_up"),
+        "named": native_entity("button.serial_ptz_down", "serial_unrelated"),
+    }
+    result, _ = metadata([native()], extra=extra)
+    roles = {item["entity_id"]: item.get("role") for item in result["native_entities"]}
+    assert roles["button.cam_up"] == "ptz_up"
+    assert roles["button.cam_left"] == "ptz_left"
+    assert roles["number.cam_sens"] == "detection_sensitivity"
+    assert roles["binary_sensor.cam_plan"] == "alarm_schedule"
+    assert roles["binary_sensor.cam_enc"] == "encrypted"
+    assert roles["button.other_up"] is None and roles["button.serial_ptz_down"] is None

@@ -3,11 +3,13 @@ import { LiveRotation } from "./live-rotation.js";
 import { findLiveVideo } from "./live-fullscreen.js";
 import { copy } from "./panel-copy.js";
 import { setPlayerMuted } from "./live-speaker.js";
+import { mountPtz } from "./live-ptz.js";
 
 // Provider-neutral, user-opened viewer. Removing the card releases its HA stream.
 export class CameraLiveDialog {
   constructor(host) { this.host = host; this.generation = 0; }
-  async open(hass, entityId) {
+  // options.ptz: optional D-pad targets from ezviz-ptz-model.js (EZVIZ only).
+  async open(hass, entityId, options = {}) {
     this.close();
     if (!entityId?.startsWith("camera.")) return;
     const generation = ++this.generation;
@@ -40,6 +42,7 @@ export class CameraLiveDialog {
       get(id).title = copy({ hass }, text); get(id).setAttribute("aria-label", copy({ hass }, text));
     }
     get("close").onclick = () => this.close();
+    mountPtz(get("stage"), hass, options.ptz, get("status"));
     dialog.addEventListener("cancel", (event) => { event.preventDefault(); this.close(); });
     this.host.shadowRoot.append(dialog); dialog.showModal();
     this.visibility = () => { if (doc.hidden) this.close(); };

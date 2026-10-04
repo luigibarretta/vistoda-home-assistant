@@ -8,7 +8,13 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
-from .ezviz_provider_settings import current_value, provider_value, settings_from_data
+from .ezviz_bounded_call import bounded_call
+from .ezviz_provider_settings import (
+    current_value,
+    provider_value,
+    settings_from_data,
+    writable,
+)
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 KEY = vol.All(str, vol.Length(min=1, max=64))
@@ -29,6 +35,22 @@ def _resolve(hass: HomeAssistant, entry_id: str):
         if isinstance(data, dict) and isinstance(data.get(serial), dict):
             matches.append((coordinator, serial))
     return matches[0] if len(matches) == 1 else None
+
+
+# The poll itself failed: the write is neither confirmed nor disproved.
+POLL_FAILED = object()
+
+
+async def _read_back(coordinator, serial: str, key: str) -> Any:
+    """Poll the provider again; a failed or partial poll never confirms a write."""
+    # async_refresh bypasses the request debouncer: a debounced refresh could
+    # leave the read-back on data polled before this write.
+    await coordinator.async_refresh()
+    if not getattr(coordinator, "last_update_success", False):
+        return POLL_FAILED
+    data = coordinator.data
+    camera = data.get(serial) if isinstance(data, dict) else None
+    return current_value(camera, key) if isinstance(camera, dict) else None
 
 
 @callback
@@ -64,6 +86,9 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
     if not connection.user.is_admin:
         connection.send_error(msg["id"], "unauthorized", "Administrator access required")
         return
+    if not writable(msg["key"]):
+        connection.send_error(msg["id"], "not_supported", "EZVIZ setting is read-only")
+        return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "unavailable", "EZVIZ settings are unavailable")
@@ -79,17 +104,35 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
         return
     try:
         method_name, args = provider_value(msg["key"], msg["value"])
-        method = getattr(coordinator.ezviz_client, method_name)
-        await hass.async_add_executor_job(method, serial, *args)
-        await coordinator.async_request_refresh()
-        if current_value(coordinator.data[serial], msg["key"]) != msg["value"]:
+    except ValueError:
+        connection.send_error(msg["id"], "invalid_format", "Unsupported EZVIZ setting value")
+        return
+    client = getattr(coordinator, "ezviz_client", None)
+    try:
+        await hass.async_add_executor_job(bounded_call, client, method_name, serial, *args)
+        confirmed = await _read_back(coordinator, serial, msg["key"])
+        if confirmed is POLL_FAILED:
+            # Rolling back blind could flip a write that did succeed.
+            connection.send_error(msg["id"], "unconfirmed", "EZVIZ did not confirm the setting")
+            return
+        if confirmed != msg["value"]:
             rollback_name, rollback_args = provider_value(msg["key"], old)
             await hass.async_add_executor_job(
-                getattr(coordinator.ezviz_client, rollback_name), serial, *rollback_args
+                bounded_call, client, rollback_name, serial, *rollback_args
             )
-            await coordinator.async_request_refresh()
             raise ValueError("read-after-write mismatch")
-    except (AttributeError, HTTPError, PyEzvizError, TypeError, ValueError):
+    except (
+        AttributeError,
+        HTTPError,
+        KeyError,
+        OSError,  # includes requests timeouts and connection errors
+        PyEzvizError,
+        TypeError,
+        ValueError,
+    ):
+        # A failed call may still have reached the camera: poll again so the
+        # panel's follow-up settings/info shows the provider's real state.
+        await coordinator.async_refresh()
         connection.send_error(msg["id"], "unavailable", "EZVIZ rejected the setting")
         return
     connection.send_result(msg["id"], {"settings": settings_from_data(coordinator.data[serial])})

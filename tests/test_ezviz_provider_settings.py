@@ -2,10 +2,13 @@
 
 from pathlib import Path
 
+import pytest
+
 from custom_components.media_bridge.ezviz_provider_settings import (
     current_value,
     provider_value,
     settings_from_data,
+    writable,
 )
 
 
@@ -52,3 +55,45 @@ def test_private_settings_boundary_is_admin_gated_and_verified() -> None:
     assert "media_bridge/ezviz/settings/info" in frontend
     assert "media_bridge/ezviz/settings/set" in frontend
     assert "Conferma modifiche EZVIZ" in frontend
+
+
+def test_per_camera_arming_and_detection_mode_follow_native_data() -> None:
+    data = {
+        "alarm_notify": True,
+        "alarm_schedules_enabled": False,
+        "Alarm_DetectHumanCar": "5",
+        "supportExt": {"1": "1"},
+    }
+    settings = {item["key"]: item for item in settings_from_data(data)}
+    assert settings["camera_defence"] == {
+        "key": "camera_defence",
+        "group": "arming",
+        "kind": "boolean",
+        "value": True,
+    }
+    assert settings["alarm_schedule"]["kind"] == "status"
+    assert settings["alarm_schedule"]["value"] is False
+    assert settings["detection_mode"]["value"] == "pir"
+    assert settings["detection_mode"]["options"] == ["human_shape", "image_change", "pir"]
+    # Explicitly unsupported defence, unknown detection types and missing flags stay hidden.
+    hidden = settings_from_data(
+        {"alarm_notify": True, "supportExt": {"1": "0"}, "Alarm_DetectHumanCar": 9}
+    )
+    assert hidden == []
+    assert settings_from_data({"alarm_notify": None, "alarm_schedules_enabled": None}) == []
+
+
+def test_arming_writes_map_to_pinned_pyezvizapi_calls_and_schedule_is_read_only() -> None:
+    assert provider_value("camera_defence", True) == ("set_camera_defence", (1,))
+    assert provider_value("camera_defence", False) == ("set_camera_defence", (0,))
+    assert provider_value("detection_mode", "image_change") == ("set_detection_mode", (3,))
+    assert writable("camera_defence") and writable("detection_mode")
+    assert writable("human_detection") and writable("battery_work_mode")
+    assert not writable("alarm_schedule") and not writable("unknown")
+    for key, value in (
+        ("alarm_schedule", True),
+        ("camera_defence", "1"),
+        ("detection_mode", "vehicle"),
+    ):
+        with pytest.raises(ValueError):
+            provider_value(key, value)

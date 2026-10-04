@@ -4,8 +4,10 @@ import { COMMON_COPY } from "./panel-copy-common.js";
 import { RING_COPY } from "./panel-copy-ring.js";
 import { BLINK_COPY } from "./panel-copy-blink.js";
 import { STORAGE_COPY } from "./panel-copy-storage.js";
+import { CHECKLIST_COPY } from "./panel-copy-checklist.js";
 
-export const ADVANCED_COPY = Object.freeze({ ...COMMON_COPY, ...RING_COPY, ...BLINK_COPY, ...STORAGE_COPY });
+export const ADVANCED_COPY = Object.freeze({ ...COMMON_COPY, ...RING_COPY, ...BLINK_COPY, ...STORAGE_COPY,
+  ...CHECKLIST_COPY });
 export function copyLocale(context) {
   return context?._hass || context?.hass || context?.host?._hass || context?.host?.hass || context;
 }

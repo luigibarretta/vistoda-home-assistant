@@ -2,6 +2,7 @@ import { localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { PROVIDERS, PROVIDER_META, providerPath } from "./panel-helpers.js";
 import { localize, localizeElements } from "./panel-localize.js";
+import "./uninstall-checklist.js";
 
 class VistodaOverview extends HTMLElement {
   constructor() {
@@ -34,7 +35,8 @@ class VistodaOverview extends HTMLElement {
       <section class="intro"><h2 data-i18n="introTitle">Tutti i dispositivi, una sola vista</h2>
         <div class="muted" data-i18n="introBody">Scegli un marchio per vedere le telecamere, rispondere al citofono
         e consultare le registrazioni.</div></section>
-      <section class="grid" id="providers" aria-live="polite"></section>`; localizeCopy(this.shadowRoot, this);
+      <section class="grid" id="providers" aria-live="polite"></section>
+      <vistoda-uninstall-checklist id="checklist"></vistoda-uninstall-checklist>`; localizeCopy(this.shadowRoot, this);
   }
 
   _render() {
@@ -42,6 +44,8 @@ class VistodaOverview extends HTMLElement {
     localizeElements(this.shadowRoot, this._hass);
     const container = this.shadowRoot.getElementById("providers");
     container.replaceChildren(...PROVIDERS.map((provider) => this._providerCard(provider)));
+    const checklist = this.shadowRoot.getElementById("checklist");
+    checklist.info = this._info; checklist.hass = this._hass;
   }
 
   _providerCard(provider) {

@@ -1,66 +1,42 @@
 import { copy } from "./panel-copy.js";
 import { openMoreInfo } from "./panel-helpers.js";
+import { OPTION_LABELS, PROVIDER_LABELS, isActionable, settingsSections } from "./ezviz-settings-model.js";
 
-const GROUPS = [
-  ["battery", "mdi:battery", "Batteria", (e) => e.device_class === "battery"],
-  ["detection", "mdi:motion-sensor", "Rilevamento intelligente", (e) =>
-    e.entity_id.includes("motion") || e.entity_id.includes("detection") || e.entity_id.includes("pir")],
-  ["notifications", "mdi:bell-outline", "Notifiche", (e) =>
-    e.entity_id.includes("notification") || e.entity_id.includes("alarm_notify")],
-  ["audio", "mdi:microphone-outline", "Audio", (e) =>
-    e.entity_id.includes("audio") || e.entity_id.includes("volume") || e.entity_id.includes("sound")],
-  ["image", "mdi:image-outline", "Immagine", (e) =>
-    e.entity_id.includes("image") || e.entity_id.includes("night") || e.entity_id.includes("infrared")],
-  ["light", "mdi:lightbulb-outline", "Luci", (e) =>
-    e.domain === "light" || e.entity_id.includes("light") || e.entity_id.includes("led")],
-  ["privacy", "mdi:shield-outline", "Privacy", (e) =>
-    e.entity_id.includes("privacy") || e.entity_id.includes("sleep")],
-  ["network", "mdi:wifi", "Rete", (e) =>
-    e.entity_id.includes("wifi") || e.entity_id.includes("signal") || e.device_class === "signal_strength"],
-  ["device", "mdi:information-outline", "Informazioni dispositivo", (e) =>
-    e.domain === "update" || e.entity_id.includes("firmware")],
-];
-
-const isActionable = (entity) => ["switch", "select", "number", "button", "light"].includes(entity.domain);
 const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 })[character]);
 
-const PROVIDER_LABELS = {
-  battery_work_mode: "Modalità di lavoro", receive_device_message: "Ricevi messaggi dispositivo",
-  answer_doorbell_call: "Rispondi alle chiamate citofono", offline_notification: "Notifica dispositivo offline",
-  human_detection: "Rilevamento sagoma umana", wide_dynamic_range: "WDR",
-  distortion_correction: "Correzione distorsione", logo_watermark: "Filigrana logo",
-};
-const OPTION_LABELS = { power_saving: "Risparmio energetico", high_performance: "Prestazioni elevate",
-  super_power_saving: "Super risparmio energetico", user_customization: "Personalizzazione utente" };
+const RELOAD_MS = 30000;
 
 class VistodaEzvizSettings extends HTMLElement {
   constructor() { super(); this.attachShadow({ mode: "open" }); this._provider = []; this._draft = new Map(); }
+  // Called on every HA state update: reload provider values only for a new
+  // camera or after a quiet interval, so staged edits are never wiped.
   configure(hass, entry) {
-    this._hass = hass; this._entry = entry; this._render();
-    if (entry?.entry_id) this._loadProvider();
+    const changed = entry?.entry_id !== this._entry?.entry_id;
+    this._hass = hass; this._entry = entry;
+    if (changed) { this._provider = []; this._draft.clear(); this._error = false; }
+    const stale = Date.now() - (this._loadedAt || 0) > RELOAD_MS;
+    if (entry?.entry_id && (changed || (stale && !this._draft.size && !this._saving))) this._loadProvider();
+    this._render();
   }
 
   async _loadProvider() {
+    this._loadedAt = Date.now();
+    const entryId = this._entry.entry_id;
     try {
       const result = await this._hass.callWS({ type: "media_bridge/ezviz/settings/info", entry_id: this._entry.entry_id });
+      if (entryId !== this._entry?.entry_id) return;
       this._provider = result.settings || []; this._draft.clear(); this._error = false; this._render();
-    } catch { this._provider = []; this._render(); }
+    } catch { if (entryId === this._entry?.entry_id) { this._provider = []; this._render(); } }
   }
 
   _render() {
+    // Rebuilding would close an open confirmation or a native select picker.
+    if (this.shadowRoot.querySelector("#confirm")?.open || this.shadowRoot.activeElement?.tagName === "SELECT") return;
     const opened = new Set([...this.shadowRoot.querySelectorAll("details[open]")]
       .map((item) => item.dataset.group));
-    const entities = this._entry?.native_entities || [];
-    const claimed = new Set();
-    const sections = GROUPS.map(([key, icon, label, matches]) => {
-      const rows = entities.filter((entity) => !claimed.has(entity.entity_id) && matches(entity));
-      rows.forEach((entity) => claimed.add(entity.entity_id));
-      return { key, icon, label, rows, provider: this._provider.filter((item) => item.group === key) };
-    });
-    const remainder = entities.filter((entity) => !claimed.has(entity.entity_id));
-    if (remainder.length) sections.push({ key: "other", icon: "mdi:tune", label: "Altre impostazioni", rows: remainder, provider: [] });
+    const sections = settingsSections(this._entry?.native_entities || [], this._provider);
     this.shadowRoot.innerHTML = `<style>
       :host{display:block}.group{border-top:1px solid var(--divider-color,#ffffff1f)}
       details>summary{display:flex;align-items:center;gap:12px;min-height:58px;padding:4px 2px;cursor:pointer;list-style:none}
@@ -109,15 +85,19 @@ class VistodaEzvizSettings extends HTMLElement {
   _providerRow(setting) {
     const value = this._draft.has(setting.key) ? this._draft.get(setting.key) : setting.value;
     const label = copy(this, PROVIDER_LABELS[setting.key] || setting.key);
+    // Read-only provider state (e.g. the alarm schedule) is shown, never staged.
+    if (setting.kind === "status") return `<div class="row" data-status="${setting.key}"><span class="name">${label}</span>
+      <span class="value">${copy(this, value ? "Attivata" : "Disattivata")}</span></div>`;
     if (setting.kind === "select") return `<label class="row"><span class="name">${label}</span><select data-setting="${setting.key}">
       ${setting.options.map((option) => `<option value="${option}"${option === value ? " selected" : ""}>${copy(this, OPTION_LABELS[option] || option)}</option>`).join("")}</select></label>`;
     return `<button class="row provider-toggle" data-setting="${setting.key}" aria-pressed="${value}"><span class="name">${label}</span>
       <ha-icon icon="${value ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}"></ha-icon></button>`;
   }
 
-  _stage(key, value) { this._draft.set(key, value); this._render(); }
+  _stage(key, value) { this.shadowRoot.activeElement?.blur?.(); this._draft.set(key, value); this._render(); }
   async _save() {
     this.shadowRoot.querySelector("#confirm")?.close();
+    this._saving = true;
     try {
       for (const [key, value] of this._draft) {
         const original = this._provider.find((item) => item.key === key);
@@ -127,6 +107,7 @@ class VistodaEzvizSettings extends HTMLElement {
       }
       this._draft.clear(); this._render();
     } catch { this._draft.clear(); await this._loadProvider(); this._error = true; this._render(); }
+    finally { this._saving = false; }
   }
 }
 
