@@ -136,7 +136,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     snapshot_updated_at = {}
     ezviz_alarms = None
     if provider == PROVIDER_EZVIZ:
-        ezviz_alarms = EzvizAlarmListener(hass, entry, client, entry.data[CONF_ALIAS])
+        ezviz_alarms = EzvizAlarmListener(
+            hass, entry, client, entry.data[CONF_ALIAS], verified=True
+        )
         from .ezviz_identity import async_migrate_registry
         from .ezviz_snapshot_cache import async_load
 

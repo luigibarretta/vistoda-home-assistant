@@ -31,7 +31,7 @@ def camera_name(hass, entry) -> str:
 class EzvizAlarmListener:
     """Own one cancel-safe alarm cursor per EZVIZ camera entry."""
 
-    def __init__(self, hass, entry, client, alias: str) -> None:
+    def __init__(self, hass, entry, client, alias: str, *, verified: bool = False) -> None:
         self.hass = hass
         self.entry = entry
         self.client = client
@@ -39,7 +39,8 @@ class EzvizAlarmListener:
         self.cursor = EzvizAlarmCursor()
         self.task = None
         self._remove_stop_listener = None
-        self._verified = False
+        # Setup has just verified the binding; failures and app restarts re-verify.
+        self._verified = verified
         self.supported: bool | None = None
         self.connected = False
 
