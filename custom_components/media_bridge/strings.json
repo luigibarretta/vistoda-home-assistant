@@ -195,7 +195,8 @@
     "binary_sensor": {
       "connectivity": {"name": "Connection"},
       "ring_intercom_connectivity": {"name": "Intercom connection"},
-      "ezviz_camera_connectivity": {"name": "Camera connection"}
+      "ezviz_camera_connectivity": {"name": "Camera connection"},
+      "ezviz_microsd_problem": {"name": "microSD problem"}
     },
     "button": {
       "ring_open_door": {"name": "Open door"}
@@ -223,7 +224,12 @@
     "sensor": {
       "ring_battery": {"name": "Battery"},
       "ring_last_activity": {"name": "Last activity"},
-      "recordings": {"name": "Call recordings"}
+      "recordings": {"name": "Call recordings"},
+      "ring_unlock_mode": {"name": "Unlock type", "state": {"direct": "Direct", "ring_to_open": "Ring-to-Open"},
+        "state_attributes": {"duration_seconds": {"name": "Unlock duration"},
+          "ring_to_open_enabled": {"name": "Ring-to-Open enabled"}}},
+      "ezviz_microsd": {"name": "microSD card", "state": {"ok": "OK", "no_card": "No card", "unformatted": "Not formatted",
+        "error": "Error", "unknown": "Unknown"}, "state_attributes": {"capacity_mb": {"name": "Capacity (MB)"}}}
     },
     "switch": {
       "ring_auto_record": {"name": "Automatically record communications"},

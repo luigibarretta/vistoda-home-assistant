@@ -1,5 +1,5 @@
 import { copy, localizeCopy } from "./panel-copy.js";
-import { PROVIDER_META } from "./panel-helpers.js";
+import { PROVIDER_META, openMoreInfo } from "./panel-helpers.js";
 import { checklistSections } from "./uninstall-checklist-model.js";
 
 const ICONS = { ok: "mdi:check-circle-outline", warn: "mdi:alert-circle-outline", todo: "mdi:checkbox-blank-circle-outline" };
@@ -24,6 +24,9 @@ class VistodaUninstallChecklist extends HTMLElement {
       li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--divider-color);line-height:1.4}
       li ha-icon{flex:none;color:var(--secondary-text-color)}li.ok ha-icon{color:var(--success-color,#43a047)}
       li.warn ha-icon{color:var(--warning-color,#ffa600)}.note{display:block;color:var(--secondary-text-color);font-size:13px}
+      .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.links button{min-height:36px;border-radius:10px;padding:4px 10px;
+        border:1px solid var(--divider-color);background:transparent;color:var(--primary-color);font:inherit;cursor:pointer}
+      .links button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
       .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
     </style><details id="checklist"><summary><ha-icon icon="mdi:clipboard-check-outline"></ha-icon>
       <span data-copy="Prima di disinstallare l’app ufficiale">Prima di disinstallare l’app ufficiale</span>
@@ -39,6 +42,10 @@ class VistodaUninstallChecklist extends HTMLElement {
     localizeCopy(this.shadowRoot, this);
     const sections = checklistSections(this._info, this._hass?.states);
     this.hidden = sections.length === 0;
+    // Unchanged content is not rebuilt, so keyboard focus survives state pushes.
+    const signature = JSON.stringify([copy(this, "Da fare"), sections]);
+    if (signature === this._signature) return;
+    this._signature = signature;
     const nodes = sections.map(({ provider, items }) => {
       const section = document.createElement("section");
       const title = document.createElement("h3");
@@ -56,12 +63,26 @@ class VistodaUninstallChecklist extends HTMLElement {
           const note = document.createElement("span"); note.className = "note";
           note.textContent = copy(this, item.note); text.append(note);
         }
+        if (item.links.length) text.append(this._links(item.links));
         row.append(icon, text); list.append(row);
       }
       section.append(title, list);
       return section;
     });
     this.shadowRoot.getElementById("sections").replaceChildren(...nodes);
+  }
+
+  // Each link opens the entity's more-info dialog, where it can be switched off.
+  _links(links) {
+    const wrapper = document.createElement("span"); wrapper.className = "links";
+    for (const link of links) {
+      const button = document.createElement("button"); button.type = "button";
+      button.textContent = link.name;
+      button.title = copy(this, "Apri {p0}", { p0: link.name });
+      button.addEventListener("click", () => openMoreInfo(this, link.entityId));
+      wrapper.append(button);
+    }
+    return wrapper;
   }
 }
 

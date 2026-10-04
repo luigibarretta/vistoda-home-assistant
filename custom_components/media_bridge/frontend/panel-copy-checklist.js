@@ -25,4 +25,17 @@ export const CHECKLIST_COPY = {
   "Integrazione nativa collegata": "Native integration connected",
   "Integrazione nativa non collegata": "Native integration not connected",
   "Crittografia video attiva": "Video encryption is on",
+  "Programmi ancora attivi: aprili per disattivarli.": "Schedules still enabled: open them to turn them off.",
+  "Nessun programma attivo": "No schedule enabled", "Apri {p0}": "Open {p0}",
+  "Ring-to-Open attivo: l’apertura remota può funzionare solo dopo una chiamata.":
+    "Ring-to-Open is on: remote unlock may only work after someone rings.",
+  "Apertura diretta": "Direct unlock",
+  "Crittografia video disattivata": "Video encryption is off",
+  "Codice di verifica salvato nell’app Vistoda EZVIZ": "Verification code saved in the Vistoda EZVIZ app",
+  "Crittografia attiva senza codice di verifica nell’app Vistoda EZVIZ":
+    "Encryption is on without a verification code in the Vistoda EZVIZ app",
+  "Chiave letta dal cloud EZVIZ: annota comunque il codice di verifica":
+    "Key read from the EZVIZ cloud: write down the verification code anyway",
+  "microSD funzionante": "microSD card working", "Nessuna microSD inserita": "No microSD card inserted",
+  "microSD da formattare": "microSD card needs formatting", "Errore della microSD": "microSD card error",
 };

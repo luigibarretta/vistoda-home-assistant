@@ -8,6 +8,7 @@ import "./provider-recordings.js";
 import "./system-arm-control.js";
 import "./ezviz-settings.js";
 import "./ezviz-alarms.js";
+import "./ezviz-media.js";
 import {
   devicesWithDomain,
   entityState,
@@ -86,7 +87,7 @@ class VistodaEzvizView extends HTMLElement {
             <div><span>Snapshot</span><strong id="snapshot-state"><span data-copy="Verifica…">Verifica…</span></strong></div></div></div>
           <button id="details" class="wide"><ha-icon icon="mdi:cog-outline"></ha-icon>
             <span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
-          <div class="muted" id="message" role="status"></div><vistoda-ezviz-alarms id="alarms"></vistoda-ezviz-alarms>
+          <div class="muted" id="message" role="status"></div><vistoda-ezviz-alarms id="alarms"></vistoda-ezviz-alarms><vistoda-ezviz-media id="media"></vistoda-ezviz-media>
           <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
           <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details>
           <div class="notice muted"><span data-copy="Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.">Questo archivio è standalone e separato da SceneTrove:
@@ -171,6 +172,7 @@ class VistodaEzvizView extends HTMLElement {
     if (!device) {
       this.$("recordings").configure(this._hass, null);
       this.$("alarms").configure(this._hass, null);
+      this.$("media").configure(this._hass, null);
       return;
     }
     setText(this.shadowRoot, "camera-name", entry?.device_name || device.name);
@@ -202,6 +204,7 @@ class VistodaEzvizView extends HTMLElement {
     ));
     this.$("refresh").disabled = !entry || this._snapshotPending;
     this.$("alarms").configure(this._hass, entry, entityState(this._hass, firstEntity(device, "event"))?.state ?? null);
+    this.$("media").configure(this._hass, entry);
     this.$("recordings").configure(this._hass, entry ? {
       provider: "ezviz", entryId: entry.entry_id, alias: entry.alias,
     } : null);

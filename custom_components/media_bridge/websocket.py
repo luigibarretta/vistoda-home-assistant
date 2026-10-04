@@ -11,6 +11,7 @@ from . import BridgeRuntime
 from .blink_usb_backup import async_register as async_register_blink_usb_backup
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
+from .ezviz_media_websocket import async_register as async_register_ezviz_media
 from .ezviz_settings_websocket import async_register as async_register_ezviz_settings
 from .panel_info import async_register as async_register_panel_info
 from .provider_recording_list_websocket import (
@@ -25,6 +26,7 @@ from .ring_history_websocket import async_register as async_register_ring_histor
 from .ring_recording_list_websocket import async_register as async_register_recording_lists
 from .ring_recording_websocket import async_register as async_register_recordings
 from .ring_session_log import async_ended, async_started
+from .ring_unlock import unlock_mode_unique_id
 
 CONTROL_KEYS = (
     "open_door",
@@ -58,6 +60,7 @@ def async_register(hass: HomeAssistant) -> None:
     async_register_recording_lists(hass)
     async_register_provider_recordings(hass)
     async_register_ezviz_settings(hass)
+    async_register_ezviz_media(hass)
     async_register_provider_recording_lists(hass)
     async_register_blink_usb_backup(hass)
     async_register_recording_backup(hass)
@@ -84,10 +87,12 @@ def ws_ring_info(
         controls = {}
         prefix = f"{entity_prefix(entry)}facade-"
         for entity in registry.entities.values():
-            if entity.config_entry_id != entry.entry_id or not entity.unique_id.startswith(prefix):
+            if entity.config_entry_id != entry.entry_id:
                 continue
+            if entity.unique_id == unlock_mode_unique_id(entry):
+                controls["unlock_mode"] = entity.entity_id  # read-only, Ring 0.16+
             key = entity.unique_id.removeprefix(prefix)
-            if key in CONTROL_KEYS:
+            if entity.unique_id.startswith(prefix) and key in CONTROL_KEYS:
                 controls[key] = entity.entity_id
         entries.append(
             {

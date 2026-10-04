@@ -195,7 +195,8 @@
     "binary_sensor": {
       "connectivity": {"name": "Connessione"},
       "ring_intercom_connectivity": {"name": "Connessione citofono"},
-      "ezviz_camera_connectivity": {"name": "Connessione telecamera"}
+      "ezviz_camera_connectivity": {"name": "Connessione telecamera"},
+      "ezviz_microsd_problem": {"name": "Problema microSD"}
     },
     "button": {
       "ring_open_door": {"name": "Apri portone"}
@@ -223,7 +224,12 @@
     "sensor": {
       "ring_battery": {"name": "Batteria"},
       "ring_last_activity": {"name": "Ultima attività"},
-      "recordings": {"name": "Registrazioni chiamate"}
+      "recordings": {"name": "Registrazioni chiamate"},
+      "ring_unlock_mode": {"name": "Modalità apertura", "state": {"direct": "Diretta", "ring_to_open": "Ring-to-Open"},
+        "state_attributes": {"duration_seconds": {"name": "Durata apertura"},
+          "ring_to_open_enabled": {"name": "Ring-to-Open attivo"}}},
+      "ezviz_microsd": {"name": "Scheda microSD", "state": {"ok": "OK", "no_card": "Nessuna scheda", "unformatted": "Non formattata",
+        "error": "Errore", "unknown": "Sconosciuto"}, "state_attributes": {"capacity_mb": {"name": "Capacità (MB)"}}}
     },
     "switch": {
       "ring_auto_record": {"name": "Registra automaticamente le comunicazioni"},

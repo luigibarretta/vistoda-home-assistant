@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from .ring_binding import valid_device_id
+from .ring_unlock import RingUnlockSettings, parse_unlock_settings
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +81,7 @@ class RingStatus:
     voice_volume: int | None
     last_activity: int | None
     device_id: str | None = None
+    unlock_settings: RingUnlockSettings | None = None
 
 
 def parse_ring_status(payload: dict) -> RingStatus:
@@ -95,6 +97,7 @@ def parse_ring_status(payload: dict) -> RingStatus:
             voice_volume=_optional_int(payload["voice_volume"]),
             last_activity=_optional_int(payload["last_activity"]),
             device_id=payload.get("device_id"),
+            unlock_settings=parse_unlock_settings(payload.get("unlock_settings")),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error

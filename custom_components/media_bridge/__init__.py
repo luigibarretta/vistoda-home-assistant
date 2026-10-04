@@ -24,6 +24,7 @@ from .const import (
 )
 from .coordinator import BridgeCoordinator
 from .ezviz_alarm_listener import EzvizAlarmListener
+from .ezviz_media import EzvizMediaCoordinator
 from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
 from .ring_history import RingHistoryManager
@@ -56,6 +57,7 @@ class BridgeRuntime:
     ring_events: RingEventListener | None = None
     ring_history: RingHistoryManager | None = None
     ezviz_alarms: EzvizAlarmListener | None = None
+    ezviz_media: EzvizMediaCoordinator | None = None
     panel_url: str | None = None
     snapshots: dict[str, bytes] = field(default_factory=dict)
     snapshot_updated_at: dict[str, str] = field(default_factory=dict)
@@ -135,10 +137,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     snapshots = {}
     snapshot_updated_at = {}
     ezviz_alarms = None
+    ezviz_media = None
     if provider == PROVIDER_EZVIZ:
         ezviz_alarms = EzvizAlarmListener(
             hass, entry, client, entry.data[CONF_ALIAS], verified=True
         )
+        # Constructed only: the sensor platform starts the first (deferred) poll.
+        ezviz_media = EzvizMediaCoordinator(hass, entry, client, coordinator)
         from .ezviz_identity import async_migrate_registry
         from .ezviz_snapshot_cache import async_load
 
@@ -155,6 +160,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ring_events=ring_events,
         ring_history=ring_history,
         ezviz_alarms=ezviz_alarms,
+        ezviz_media=ezviz_media,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
         snapshots=snapshots,
         snapshot_updated_at=snapshot_updated_at,

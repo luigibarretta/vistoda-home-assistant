@@ -9,11 +9,15 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ, PROVIDER_RING
+from .entity_gate import async_add_when_supported
 from .errors import BridgeError
+from .ezviz_media import reports_storage
+from .ezviz_media_entities import EzvizMicroSdSensor
 from .ring_binding import entity_prefix
 from .ring_contract import BATTERY, LAST_ACTIVITY, RingSourceSpec
 from .ring_facade import RingFacadeEntity, ring_device_info
+from .ring_unlock_sensor import RingUnlockModeSensor, reports_unlock_settings
 
 RING_SENSORS = (
     (BATTERY, "ring_battery", SensorDeviceClass.BATTERY),
@@ -26,15 +30,39 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add private archive and provider-owned Ring sensors."""
+    """Add private archive, provider-owned Ring and optional diagnostic sensors."""
+    runtime = hass.data[DOMAIN][entry.entry_id]
     if entry.data[CONF_PROVIDER] == PROVIDER_RING:
         async_add_entities(
-            [RingRecordingArchive(hass.data[DOMAIN][entry.entry_id], entry)]
+            [RingRecordingArchive(runtime, entry)]
             + [
                 RingOfficialSensor(hass, entry, spec, translation_key, device_class)
                 for spec, translation_key, device_class in RING_SENSORS
             ]
         )
+        status = runtime.ring_status
+        if status is not None:
+            async_add_when_supported(
+                entry,
+                status,
+                reports_unlock_settings,
+                lambda: [RingUnlockModeSensor(status, entry)],
+                async_add_entities,
+            )
+    media = getattr(runtime, "ezviz_media", None)
+    if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ and media is not None:
+        async_add_when_supported(
+            entry,
+            media,
+            reports_storage,
+            lambda: [EzvizMicroSdSensor(media, entry)],
+            async_add_entities,
+        )
+        if media.data is None:
+            # Off the setup path: an older app answers 404 and adds nothing.
+            entry.async_create_background_task(
+                hass, media.async_refresh(), f"Vistoda EZVIZ media {entry.entry_id}"
+            )
 
 
 class RingOfficialSensor(RingFacadeEntity, SensorEntity):

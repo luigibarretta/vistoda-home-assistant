@@ -25,6 +25,20 @@ async def async_setup_entry(
     if provider == PROVIDER_EZVIZ:
         entities.append(EzvizCameraConnectivity(entry))
     async_add_entities(entities)
+    media = getattr(runtime, "ezviz_media", None)
+    if provider == PROVIDER_EZVIZ and media is not None:
+        from .entity_gate import async_add_when_supported
+        from .ezviz_media import reports_storage
+        from .ezviz_media_entities import EzvizMicroSdProblem
+
+        # The sensor platform starts the first poll; this only waits for support.
+        async_add_when_supported(
+            entry,
+            media,
+            reports_storage,
+            lambda: [EzvizMicroSdProblem(media, entry)],
+            async_add_entities,
+        )
 
 
 class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):

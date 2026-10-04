@@ -1,5 +1,6 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
+import { ringUnlockView } from "./ring-unlock-model.js";
 
 class RingControls extends HTMLElement {
   constructor() {
@@ -44,7 +45,9 @@ class RingControls extends HTMLElement {
           padding-bottom:17px;border-bottom:1px solid var(--divider-color)}.policy input{width:22px;height:22px}
         .feedback{min-height:18px;margin-top:13px;color:var(--secondary-text-color);font-size:13px}
         .battery{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-weight:650}
-        .battery ha-icon{--mdc-icon-size:19px}
+        .battery ha-icon{--mdc-icon-size:19px}#unlock-info{margin-top:6px}
+        .unlock-hint{margin-top:6px;padding:8px 10px;border-radius:10px;max-width:46ch;
+          background:color-mix(in srgb,var(--warning-color,#ffa600) 14%,transparent)}
         @media(max-width:520px){.card{padding:18px}.door{align-items:start;flex-direction:column}
           label{grid-template-columns:1fr 34px}label span{grid-column:1/-1}}
       </style>
@@ -55,7 +58,9 @@ class RingControls extends HTMLElement {
         <div class="door"><div><h2><span data-copy="Portone e volumi">Portone e volumi</span></h2>
           <div class="hint" id="control-source"><span data-copy="Sorgente controlli in verifica">Sorgente controlli in verifica</span></div>
           <div class="battery"><ha-icon icon="mdi:battery"></ha-icon>
-            <span id="battery"><span data-copy="Batteria —">Batteria —</span></span></div></div>
+            <span id="battery"><span data-copy="Batteria —">Batteria —</span></span></div>
+          <div class="hint" id="unlock-info" hidden></div><div class="hint unlock-hint" id="unlock-hint" role="note" hidden>
+            <span data-copy="Ring-to-Open attivo: «Apri portone» da remoto potrebbe funzionare solo dopo che qualcuno ha suonato il citofono.">Ring-to-Open attivo: «Apri portone» da remoto potrebbe funzionare solo dopo che qualcuno ha suonato il citofono.</span></div></div>
           <button id="door"><ha-icon id="door-icon" icon="mdi:lock"></ha-icon>
             <span id="door-label"><span data-copy="Apri portone">Apri portone</span></span></button></div>
         <div class="levels">
@@ -97,6 +102,7 @@ class RingControls extends HTMLElement {
     this.$("battery").textContent = battery && !["unknown", "unavailable"].includes(battery.state)
       ? copy(this, "Batteria {p0}%", { p0: battery.state }) : copy(this, "Batteria non disponibile");
     this.$("door").disabled = this._doorBusy || !this._usable("open_door");
+    this._renderUnlock(ringUnlockView(this._state("unlock_mode")));
     for (const key of ["doorbell_volume", "mic_volume", "voice_volume"]) {
       const state = this._state(key);
       const slider = this.$(key);
@@ -111,6 +117,15 @@ class RingControls extends HTMLElement {
   }
 
   _state(key) { return this._hass?.states?.[this._controls[key]]; }
+
+  // Read-only unlock settings; hidden quietly when the engine does not report them.
+  _renderUnlock(view) {
+    const parts = view ? [view.label ? copy(this, "Tipo di apertura: {p0}", { p0: copy(this, view.label) }) : "",
+      view.duration === null ? "" : copy(this, "Durata apertura: {p0} s", { p0: view.duration })].filter(Boolean) : [];
+    this.$("unlock-info").textContent = parts.join(" · ");
+    this.$("unlock-info").hidden = !parts.length;
+    this.$("unlock-hint").hidden = !view?.ringToOpen;
+  }
 
   _usable(key) {
     const state = this._state(key);
