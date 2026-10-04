@@ -14,7 +14,7 @@ def test_unlock_notification_matches_requested_dynamic_sentence() -> None:
     )
     assert message == (
         "Your Front Entrance in Home in Casoria was used to unlock the entrance "
-        "on 10/09/2026 at 19:30"
+        "on 09/10/2026 at 19:30"
     )
 
 
@@ -29,14 +29,14 @@ def test_unlock_notification_does_not_repeat_city_in_ring_location_label() -> No
     )
     assert message == (
         "Your Front Entrance in Home in Casoria was used to unlock the entrance "
-        "on 10/09/2026 at 19:30"
+        "on 09/10/2026 at 19:30"
     )
 
 
 def test_unlock_notification_names_who_unlocked_like_the_official_app() -> None:
     identity = {"device_name": "Front Entrance", "location_name": "Home", "city": ""}
     local = datetime(2026, 9, 10, 19, 30, tzinfo=ZoneInfo("Europe/Rome"))
-    base = "Your Front Entrance in Home was used to unlock the entrance on 10/09/2026 at 19:30"
+    base = "Your Front Entrance in Home was used to unlock the entrance on 09/10/2026 at 19:30"
     assert unlock_message(identity, local, "user", "Luigi") == f"{base} by Luigi"
     assert unlock_message(identity, local, "user", "") == base
     assert unlock_message(identity, local, "device", "Luigi") == f"{base} from the handset"

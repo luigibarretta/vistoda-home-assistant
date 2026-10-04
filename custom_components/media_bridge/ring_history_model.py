@@ -15,7 +15,8 @@ def unlock_message(
     city_suffix = "" if _already_contains_city(location, city) else f" in {city}" if city else ""
     return (
         f"Your {identity['device_name']} in {location}{city_suffix} was used to "
-        f"unlock the entrance on {local:%d/%m/%Y} at {local:%H:%M}"
+        # Ring's own unlock push uses month/day/year with a 24-hour time.
+        f"unlock the entrance on {local:%m/%d/%Y} at {local:%H:%M}"
         f"{_unlocked_by(origin, actor)}"
     )
 
