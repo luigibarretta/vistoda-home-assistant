@@ -8,6 +8,7 @@ from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 from .client_enrollment import EnrollmentClientMixin
+from .client_ezviz_alarms import EzvizAlarmClientMixin
 from .client_helpers import error_code, normalize_url
 from .client_provider_recordings import ProviderRecordingClientMixin
 from .client_ring_audio import RingAudioClientMixin
@@ -40,6 +41,7 @@ RECORDING_LIST_LIMIT, RECORDING_UPLOAD_LIMIT = 512 * 1024, 8 * 1024 * 1024
 
 
 class BridgeClient(
+    EzvizAlarmClientMixin,
     ProviderRecordingClientMixin,
     RingAudioClientMixin,
     RingControlClientMixin,

@@ -23,6 +23,7 @@ from .const import (
     PROVIDER_RING,
 )
 from .coordinator import BridgeCoordinator
+from .ezviz_alarm_listener import EzvizAlarmListener
 from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
 from .ring_history import RingHistoryManager
@@ -54,6 +55,7 @@ class BridgeRuntime:
     ring_status: RingStatusCoordinator | None = None
     ring_events: RingEventListener | None = None
     ring_history: RingHistoryManager | None = None
+    ezviz_alarms: EzvizAlarmListener | None = None
     panel_url: str | None = None
     snapshots: dict[str, bytes] = field(default_factory=dict)
     snapshot_updated_at: dict[str, str] = field(default_factory=dict)
@@ -63,6 +65,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Load optional secret bootstrap tokens for zero-copy discovery."""
     from .apple_config_view import async_register as async_register_apple_config
     from .apple_oauth_view import async_register as async_register_apple_oauth
+    from .ezviz_alarm_api import async_register as async_register_ezviz_alarms
     from .panel import async_register as async_register_panel
     from .provider_recording_proxy import async_register as async_register_provider_recording_proxy
     from .ring_audio_proxy import async_register as async_register_ring_audio_proxy
@@ -80,6 +83,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async_register_apple_oauth(hass)
     async_register_ring_audio_proxy(hass)
     async_register_provider_recording_proxy(hass)
+    async_register_ezviz_alarms(hass)
     async_register_services(hass)
     async_register_websocket(hass)
     return True
@@ -130,7 +134,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     base_url = hass.config.external_url or hass.config.internal_url
     snapshots = {}
     snapshot_updated_at = {}
+    ezviz_alarms = None
     if provider == PROVIDER_EZVIZ:
+        ezviz_alarms = EzvizAlarmListener(hass, entry, client, entry.data[CONF_ALIAS])
         from .ezviz_identity import async_migrate_registry
         from .ezviz_snapshot_cache import async_load
 
@@ -146,6 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ring_status=ring_status,
         ring_events=ring_events,
         ring_history=ring_history,
+        ezviz_alarms=ezviz_alarms,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
         snapshots=snapshots,
         snapshot_updated_at=snapshot_updated_at,
@@ -160,6 +167,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     if ring_events:
         ring_events.start()
+    if ezviz_alarms:
+        ezviz_alarms.start()
     if provider == PROVIDER_BLINK:
         from .blink_usb_auto_backup import async_setup as async_setup_usb_backup
 
@@ -172,6 +181,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = hass.data[DOMAIN].get(entry.entry_id)
     if runtime and runtime.ring_events:
         await runtime.ring_events.stop()
+    if runtime and runtime.ezviz_alarms:
+        await runtime.ezviz_alarms.stop()
     if not entry.data.get(
         "ring_camera_account"
     ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):

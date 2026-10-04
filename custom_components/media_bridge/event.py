@@ -10,7 +10,14 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .client_ring_events import RingPushEvent
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING, ring_event_signal
+from .const import (
+    CONF_ALIAS,
+    CONF_PROVIDER,
+    DOMAIN,
+    PROVIDER_EZVIZ,
+    PROVIDER_RING,
+    ring_event_signal,
+)
 from .ring_contract import (
     DING,
     INTERCOM_UNLOCK,
@@ -30,7 +37,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add active Ring events without synthesizing historical events."""
+    """Add active Ring and EZVIZ events without synthesizing historical events."""
+    if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ:
+        from .ezviz_alarm_event import EzvizAlarmEvent
+
+        runtime = hass.data[DOMAIN][entry.entry_id]
+        if runtime.client is not None:
+            async_add_entities([EzvizAlarmEvent(runtime, entry)])
     if entry.data[CONF_PROVIDER] == PROVIDER_RING:
         async_add_entities(
             RingEvent(hass, entry, spec, translation_key, event_type, device_class)

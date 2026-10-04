@@ -198,52 +198,36 @@
       "ezviz_camera_connectivity": {"name": "Camera connection"}
     },
     "button": {
-      "ring_open_door": {
-        "name": "Open door"
-      }
+      "ring_open_door": {"name": "Open door"}
     },
     "camera": {
-      "live": {
-        "name": "Live"
-      }
+      "live": {"name": "Live"}
     },
     "event": {
-      "ring_ding": {
-        "name": "Doorbell call"
-      },
-      "ring_intercom_unlock": {
-        "name": "Door unlock"
+      "ring_ding": {"name": "Doorbell call"},
+      "ring_intercom_unlock": {"name": "Door unlock"},
+      "ezviz_alarm": {
+        "name": "Alarm",
+        "state_attributes": {"event_type": {"state": {
+          "motion": "Motion", "person": "Person", "vehicle": "Vehicle", "doorbell": "Doorbell",
+          "sound": "Sound", "pet": "Pet", "offline": "Offline", "tamper": "Tampering",
+          "other": "Other alarm"
+        }}}
       }
     },
     "number": {
-      "ring_doorbell_volume": {
-        "name": "Doorbell volume"
-      },
-      "ring_mic_volume": {
-        "name": "Microphone volume"
-      },
-      "ring_voice_volume": {
-        "name": "Voice volume"
-      }
+      "ring_doorbell_volume": {"name": "Doorbell volume"},
+      "ring_mic_volume": {"name": "Microphone volume"},
+      "ring_voice_volume": {"name": "Voice volume"}
     },
     "sensor": {
-      "ring_battery": {
-        "name": "Battery"
-      },
-      "ring_last_activity": {
-        "name": "Last activity"
-      },
-      "recordings": {
-        "name": "Call recordings"
-      }
+      "ring_battery": {"name": "Battery"},
+      "ring_last_activity": {"name": "Last activity"},
+      "recordings": {"name": "Call recordings"}
     },
     "switch": {
-      "ring_auto_record": {
-        "name": "Automatically record communications"
-      },
-      "ring_delegate_controls": {
-        "name": "Delegate controls to official Ring"
-      }
+      "ring_auto_record": {"name": "Automatically record communications"},
+      "ring_delegate_controls": {"name": "Delegate controls to official Ring"}
     }
   }
 }

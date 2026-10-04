@@ -143,4 +143,10 @@ export const COMMON_COPY = {
   "Archivio locale ({p0})": "Local archive ({p0})",
   "Nessuna registrazione locale per questa telecamera.": "No local recordings for this camera.",
   "Data non disponibile": "Date unavailable",
+  "Eventi": "Events", "Aggiorna eventi": "Refresh events", "Nessun evento recente.": "No recent events.",
+  "Eventi non disponibili. Riprova più tardi.": "Events unavailable. Try again later.",
+  "Aggiorna l’app Vistoda EZVIZ per ricevere gli eventi.": "Update the Vistoda EZVIZ app to receive events.",
+  "Immagine evento: {p0}": "Event picture: {p0}", "Persona": "Person", "Veicolo": "Vehicle",
+  "Campanello": "Doorbell", "Suono": "Sound", "Animale": "Pet", "Manomissione": "Tampering",
+  "Altro allarme": "Other alarm",
 };

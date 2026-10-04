@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.37.0"
+INTEGRATION_VERSION = "0.38.0"
 PLATFORMS = ["binary_sensor", "button", "camera", "event", "number", "sensor", "switch"]
 
 CONF_PROVIDER = "provider"
@@ -30,3 +30,11 @@ SIGNAL_RING_POLICY_CHANGED = f"{DOMAIN}_ring_policy_changed"
 def ring_event_signal(entry_id: str) -> str:
     """Return the private dispatcher signal for one Ring config entry."""
     return f"{DOMAIN}_ring_event_{entry_id}"
+
+
+EVENT_EZVIZ_ALARM = "vistoda_ezviz_alarm"
+
+
+def ezviz_alarm_signal(entry_id: str) -> str:
+    """Return the private dispatcher signal for one EZVIZ camera entry."""
+    return f"{DOMAIN}_ezviz_alarm_{entry_id}"

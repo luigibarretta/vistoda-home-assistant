@@ -198,52 +198,36 @@
       "ezviz_camera_connectivity": {"name": "Connessione telecamera"}
     },
     "button": {
-      "ring_open_door": {
-        "name": "Apri portone"
-      }
+      "ring_open_door": {"name": "Apri portone"}
     },
     "camera": {
-      "live": {
-        "name": "Live"
-      }
+      "live": {"name": "Live"}
     },
     "event": {
-      "ring_ding": {
-        "name": "Chiamata al citofono"
-      },
-      "ring_intercom_unlock": {
-        "name": "Apertura portone"
+      "ring_ding": {"name": "Chiamata al citofono"},
+      "ring_intercom_unlock": {"name": "Apertura portone"},
+      "ezviz_alarm": {
+        "name": "Allarme",
+        "state_attributes": {"event_type": {"state": {
+          "motion": "Movimento", "person": "Persona", "vehicle": "Veicolo", "doorbell": "Campanello",
+          "sound": "Suono", "pet": "Animale", "offline": "Offline", "tamper": "Manomissione",
+          "other": "Altro allarme"
+        }}}
       }
     },
     "number": {
-      "ring_doorbell_volume": {
-        "name": "Volume citofono"
-      },
-      "ring_mic_volume": {
-        "name": "Volume microfono"
-      },
-      "ring_voice_volume": {
-        "name": "Volume voce"
-      }
+      "ring_doorbell_volume": {"name": "Volume citofono"},
+      "ring_mic_volume": {"name": "Volume microfono"},
+      "ring_voice_volume": {"name": "Volume voce"}
     },
     "sensor": {
-      "ring_battery": {
-        "name": "Batteria"
-      },
-      "ring_last_activity": {
-        "name": "Ultima attività"
-      },
-      "recordings": {
-        "name": "Registrazioni chiamate"
-      }
+      "ring_battery": {"name": "Batteria"},
+      "ring_last_activity": {"name": "Ultima attività"},
+      "recordings": {"name": "Registrazioni chiamate"}
     },
     "switch": {
-      "ring_auto_record": {
-        "name": "Registra automaticamente le comunicazioni"
-      },
-      "ring_delegate_controls": {
-        "name": "Delega controlli a Ring ufficiale"
-      }
+      "ring_auto_record": {"name": "Registra automaticamente le comunicazioni"},
+      "ring_delegate_controls": {"name": "Delega controlli a Ring ufficiale"}
     }
   }
 }
