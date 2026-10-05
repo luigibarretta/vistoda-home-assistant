@@ -88,3 +88,32 @@ export function settingsSections(entities = [], provider = []) {
   }
   return sections;
 }
+
+// Each EZVIZ entry explicitly uses either the Vistoda EZVIZ app (standalone, the
+// default) or the official Home Assistant EZVIZ integration (delegated).
+const SOURCE_LABELS = { vistoda: "Vistoda", native: "Integrazione ufficiale" };
+const SOURCE_HINTS = {
+  app_outdated: "L’app Vistoda EZVIZ non offre ancora questi comandi: aggiornala alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale.",
+  native_unavailable: "L’integrazione EZVIZ ufficiale non è disponibile: ripristinala o disattiva la delega per usare l’app Vistoda EZVIZ.",
+};
+
+export function controlSource(entry, errorCode) {
+  const source = entry?.control_source === "native" ? "native" : "vistoda";
+  return {
+    source, label: SOURCE_LABELS[source], hint: SOURCE_HINTS[errorCode] || "",
+    // Standalone never lists the official integration's entities as controls.
+    entities: source === "native" ? entry?.native_entities || [] : [],
+    switchEntityId: entry?.delegate_entity_id || null,
+  };
+}
+
+// Explains the system arm/disarm card for the entry's control source.
+export function systemScopeCopy(entry) {
+  if (entry?.alarm_entity_id) return "Il comando Arma/Disarma si applica all’account EZVIZ associato.";
+  if (entry?.control_source === "native") {
+    return "Il pannello allarme dell’integrazione EZVIZ ufficiale non è disponibile: ripristinala o disattiva la delega.";
+  }
+  return entry?.controls?.supported === false
+    ? "Aggiorna l’app Vistoda EZVIZ alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale per il controllo del sistema."
+    : "Controllo del sistema non ancora disponibile dall’app Vistoda EZVIZ.";
+}

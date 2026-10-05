@@ -1,5 +1,6 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
+import { SOURCE_CHANGED_COPY } from "./ezviz-control-source.js";
 
 // Shared, observed-state control. Never optimistically label a system armed.
 class SystemArmControl extends HTMLElement {
@@ -13,9 +14,10 @@ class SystemArmControl extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("toggle").addEventListener("click", () => this.toggle());
   }
-  configure(hass, entityId, name) {
+  // allowed(): optional call-time guard (EZVIZ control source) checked before writing.
+  configure(hass, entityId, name, allowed = null) {
     if (entityId !== this.entityId) this.clearPending();
-    this._hass = hass; this.entityId = entityId; this.name = name; this.render();
+    this._hass = hass; this.entityId = entityId; this.name = name; this.allowed = allowed; this.render();
   }
   render() {
     localizeCopy(this.shadowRoot, this);
@@ -40,6 +42,7 @@ class SystemArmControl extends HTMLElement {
   }
   async toggle() {
     if (this.$("toggle").disabled || this.pending) return;
+    if (this.allowed && !this.allowed()) { this.$("status").textContent = copy(this, SOURCE_CHANGED_COPY); return; }
     const state = this._hass.states[this.entityId];
     const arm = state.state === "disarmed";
     const pending = { expected: arm ? "armed_away" : "disarmed", accepted: false };

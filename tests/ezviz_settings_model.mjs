@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ADVANCED_COPY } from "../custom_components/media_bridge/frontend/panel-copy.js";
 import {
-  GROUPS, OPTION_LABELS, PROVIDER_LABELS, infoText, numberValue, providerLabel, saveErrorCopy, settingsSections,
+  GROUPS, OPTION_LABELS, PROVIDER_LABELS, controlSource, infoText, numberValue, providerLabel, saveErrorCopy,
+  settingsSections, systemScopeCopy,
 } from "../custom_components/media_bridge/frontend/ezviz-settings-model.js";
 
 const entity = (entity_id, extra = {}) => ({ entity_id, domain: entity_id.split(".")[0], name: entity_id, ...extra });
@@ -71,4 +72,35 @@ test("read-only values and save errors use translated copy", () => {
   }
   assert.notEqual(saveErrorCopy("conflict"), saveErrorCopy("unconfirmed"));
   for (const label of ["Sì", "No"]) assert.ok(Object.hasOwn(ADVANCED_COPY, label));
+});
+
+test("the control source is explicit: standalone hides native entities, delegation shows them", () => {
+  const native = [entity("switch.cam_notify")];
+  const standalone = controlSource({ native_entities: native, delegate_entity_id: "switch.delegate" });
+  assert.deepEqual([standalone.source, standalone.label, standalone.entities, standalone.switchEntityId],
+    ["vistoda", "Vistoda", [], "switch.delegate"]);
+  const delegated = controlSource({ control_source: "native", native_entities: native });
+  assert.deepEqual([delegated.source, delegated.label, delegated.entities], ["native", "Integrazione ufficiale", native]);
+  assert.match(controlSource({}, "app_outdated").hint, /aggiornala alla 0\.10 o attiva la delega/);
+  assert.match(controlSource({ control_source: "native" }, "native_unavailable").hint, /disattiva la delega/);
+  assert.equal(controlSource(null, "unavailable").hint, "");
+  for (const text of [standalone.label, delegated.label, "Origine dei comandi",
+    controlSource({}, "app_outdated").hint, controlSource({}, "native_unavailable").hint]) {
+    assert.ok(Object.hasOwn(ADVANCED_COPY, text), text);
+  }
+});
+
+test("the system card explains the arm/disarm source for each mode", () => {
+  const texts = [
+    systemScopeCopy({ alarm_entity_id: "alarm_control_panel.x" }),
+    systemScopeCopy({ control_source: "native" }),
+    systemScopeCopy({ controls: { supported: false } }),
+    systemScopeCopy({ controls: { supported: true } }),
+    systemScopeCopy(null),
+  ];
+  assert.match(texts[0], /account EZVIZ/);
+  assert.match(texts[1], /integrazione EZVIZ ufficiale/);
+  assert.match(texts[2], /Aggiorna l’app Vistoda EZVIZ alla 0\.10/);
+  assert.equal(texts[3], texts[4]);
+  for (const text of texts) assert.ok(Object.hasOwn(ADVANCED_COPY, text), text);
 });

@@ -1,7 +1,7 @@
 import { copy } from "./panel-copy.js";
 import { openMoreInfo } from "./panel-helpers.js";
 import {
-  OPTION_LABELS, infoText, isActionable, numberValue, providerLabel, saveErrorCopy, settingsSections,
+  OPTION_LABELS, controlSource, infoText, isActionable, numberValue, providerLabel, saveErrorCopy, settingsSections,
 } from "./ezviz-settings-model.js";
 
 const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -15,9 +15,10 @@ class VistodaEzvizSettings extends HTMLElement {
   // Called on every HA state update: reload provider values only for a new
   // camera or after a quiet interval, so staged edits are never wiped.
   configure(hass, entry) {
-    const changed = entry?.entry_id !== this._entry?.entry_id;
+    // A new camera or a switched control source (delegation toggled) reloads at once.
+    const changed = entry?.entry_id !== this._entry?.entry_id || entry?.control_source !== this._entry?.control_source;
     this._hass = hass; this._entry = entry;
-    if (changed) { this._provider = []; this._draft.clear(); this._error = false; }
+    if (changed) { this._provider = []; this._draft.clear(); this._error = false; this._sourceError = null; }
     const stale = Date.now() - (this._loadedAt || 0) > RELOAD_MS;
     if (entry?.entry_id && (changed || (stale && !this._draft.size && !this._saving))) this._loadProvider();
     this._render();
@@ -29,8 +30,10 @@ class VistodaEzvizSettings extends HTMLElement {
     try {
       const result = await this._hass.callWS({ type: "media_bridge/ezviz/settings/info", entry_id: this._entry.entry_id });
       if (entryId !== this._entry?.entry_id) return;
-      this._provider = result.settings || []; this._draft.clear(); this._error = false; this._render();
-    } catch { if (entryId === this._entry?.entry_id) { this._provider = []; this._render(); } }
+      this._provider = result.settings || []; this._draft.clear(); this._error = false; this._sourceError = null; this._render();
+    } catch (error) {
+      if (entryId === this._entry?.entry_id) { this._provider = []; this._sourceError = error?.code; this._render(); }
+    }
   }
 
   _render() {
@@ -39,7 +42,8 @@ class VistodaEzvizSettings extends HTMLElement {
       || ["SELECT", "INPUT"].includes(this.shadowRoot.activeElement?.tagName)) return;
     const opened = new Set([...this.shadowRoot.querySelectorAll("details[open]")]
       .map((item) => item.dataset.group));
-    const sections = settingsSections(this._entry?.native_entities || [], this._provider);
+    const source = controlSource(this._entry, this._sourceError);
+    const sections = settingsSections(source.entities, this._provider);
     this.shadowRoot.innerHTML = `<style>
       :host{display:block}.group{border-top:1px solid var(--divider-color,#ffffff1f)}
       details>summary{display:flex;align-items:center;gap:12px;min-height:58px;padding:4px 2px;cursor:pointer;list-style:none}
@@ -56,8 +60,8 @@ class VistodaEzvizSettings extends HTMLElement {
       dialog{max-width:360px;border:1px solid var(--divider-color);border-radius:16px;padding:20px;color:var(--primary-text-color);
         background:var(--card-background-color)}dialog::backdrop{background:#0009}.confirm-actions{display:flex;gap:8px;margin-top:18px}
       .empty{color:var(--secondary-text-color);font-size:13px;padding:0 0 12px 36px;margin:0}
-      input[type=range]{flex:1;max-width:46%;accent-color:var(--primary-color)}
-    </style>${this._error ? `<p class="empty" role="alert">${copy(this, this._error)}</p>` : ""}${sections.map((section) => `<details class="group" data-group="${section.key}"><summary>
+      input[type=range]{flex:1;max-width:46%;accent-color:var(--primary-color)}.source{border-top:0}.source ha-icon{color:var(--primary-color)}
+    </style>${this._sourceRow(source)}${this._error ? `<p class="empty" role="alert">${copy(this, this._error)}</p>` : ""}${sections.map((section) => `<details class="group" data-group="${section.key}"><summary>
       <ha-icon icon="${section.icon}"></ha-icon><strong>${copy(this, section.label)}</strong>
       <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon></summary>
       ${section.rows.length || section.provider.length ? `<div class="rows">${section.rows.map((entity) => {
@@ -88,6 +92,16 @@ class VistodaEzvizSettings extends HTMLElement {
     this.shadowRoot.querySelector("#save")?.addEventListener("click", () => this.shadowRoot.querySelector("#confirm").showModal());
     this.shadowRoot.querySelector("#cancel")?.addEventListener("click", () => this.shadowRoot.querySelector("#confirm").close());
     this.shadowRoot.querySelector("#apply")?.addEventListener("click", () => this._save());
+  }
+
+  // The entry's control source; the row opens the delegation switch when it exists.
+  _sourceRow(source) {
+    const tag = source.switchEntityId ? "button" : "div";
+    const target = source.switchEntityId ? ` data-entity="${html(source.switchEntityId)}"` : "";
+    return `<${tag} class="row source"${target}><ha-icon icon="mdi:swap-horizontal"></ha-icon>
+      <span class="name">${copy(this, "Origine dei comandi")}</span><span class="value">${html(copy(this, source.label))}</span>
+      ${source.switchEntityId ? '<ha-icon icon="mdi:chevron-right"></ha-icon>' : ""}</${tag}>
+      ${source.hint ? `<p class="empty" role="status">${html(copy(this, source.hint))}</p>` : ""}`;
   }
 
   _providerRow(setting) {

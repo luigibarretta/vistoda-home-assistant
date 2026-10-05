@@ -178,8 +178,8 @@
       "description": "The Vistoda Ring engine is connected, but Ring is no longer delivering real-time call notifications, so calls may be missed. In your Ring account settings, check the authorized client devices, keep the Vistoda device authorized and make sure notifications are enabled for this Intercom; if needed, sign in again from this integration. Vistoda keeps checking and removes this issue when notifications resume."
     },
     "ezviz_core_unavailable": {
-      "title": "The Home Assistant EZVIZ integration is needed by an older Vistoda EZVIZ app",
-      "description": "At least one Vistoda EZVIZ app predates version 0.10, so its camera settings, system arming and camera connectivity still depend on the official Home Assistant EZVIZ integration, which is missing, disabled or failed to load. Update the Vistoda EZVIZ app to 0.10 or later to use its own EZVIZ login (the native integration then becomes optional), or add or repair the EZVIZ integration in Settings → Devices & services. Live video and snapshots through the Vistoda EZVIZ app keep working."
+      "title": "A Vistoda EZVIZ camera is delegated to the Home Assistant EZVIZ integration",
+      "description": "At least one Vistoda EZVIZ camera has \"Delegate controls to the official EZVIZ integration\" turned on, so its camera settings, arming, detection, PTZ and camera connectivity use the official Home Assistant EZVIZ integration, which is missing, disabled or failed to load. Add or repair the EZVIZ integration in Settings → Devices & services, or turn the delegation switch off on the Vistoda EZVIZ camera device to use the Vistoda EZVIZ app's own EZVIZ login (standalone mode, the default). Standalone cameras never need the official integration. Live video and snapshots through the Vistoda EZVIZ app keep working."
     }
   },
   "selector": {
@@ -234,7 +234,8 @@
     },
     "switch": {
       "ring_auto_record": {"name": "Automatically record communications"},
-      "ring_delegate_controls": {"name": "Delegate controls to official Ring"}
+      "ring_delegate_controls": {"name": "Delegate controls to official Ring"},
+      "ezviz_delegate_controls": {"name": "Delegate controls to the official EZVIZ integration"}
     }
   }
 }

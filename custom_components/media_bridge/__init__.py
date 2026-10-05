@@ -122,6 +122,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             update_ezviz_binding_issue(hass, entry, available=False)
             raise ConfigEntryNotReady("EZVIZ physical camera identity is unavailable") from error
         update_ezviz_binding_issue(hass, entry, available=True)
+        from .ezviz_policy import enforce_delegate_policy
+
+        # Before the platforms: the alarm panel follows the corrected option.
+        enforce_delegate_policy(hass, entry)
     ring_status = None
     ring_events = None
     ring_history = None

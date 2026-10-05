@@ -19,7 +19,7 @@ BATTERY_SUFFIX = "battery"
 
 @dataclass(frozen=True, slots=True)
 class EzvizControlsStatus:
-    """supported=False: the app predates /controls, so the native path stays in use."""
+    """supported=False: the app predates /controls; standalone controls are unavailable."""
 
     supported: bool
     controls: EzvizControls | None = None
@@ -103,18 +103,7 @@ class EzvizControlsCoordinator(DataUpdateCoordinator):
             raise ConfigEntryAuthFailed("EZVIZ session requires a new login") from error
         except BridgeError as error:
             raise UpdateFailed("EZVIZ controls check failed") from error
-        self._refresh_core_issue(status)
         return status
-
-    def _refresh_core_issue(self, status: EzvizControlsStatus) -> None:
-        """Re-evaluate the native-integration repair as soon as support is known."""
-        if self.data is not None and supports_controls(self.data) == status.supported:
-            return
-        from .ezviz_core import refresh_core_issue
-
-        # Publish early: refresh_core_issue reads every entry's current status.
-        self.data = status
-        refresh_core_issue(self.hass)
 
     def async_apply(self, controls: EzvizControls) -> None:
         """Publish the controls the app confirmed after a write."""

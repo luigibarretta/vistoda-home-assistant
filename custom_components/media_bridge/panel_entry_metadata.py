@@ -5,6 +5,8 @@ from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN, PROVIDER_EZVIZ, PROVIDER_RING
 from .ezviz_account import account_owner_id, defence_unique_id, reports_defence
 from .ezviz_controls import BATTERY_SUFFIX, controls_payload
+from .ezviz_core import delegated, native_controls_available
+from .ezviz_identity import delegate_unique_id
 from .ezviz_identity import entity_prefix as ezviz_prefix
 from .ezviz_media import MICROSD_PROBLEM_SUFFIX, MICROSD_SUFFIX, media_payload
 from .ezviz_panel_metadata import panel_metadata
@@ -34,14 +36,30 @@ def entry_metadata(hass, entry, provider: str) -> dict:
     controls = controls_payload(getattr(getattr(runtime, "ezviz_controls", None), "data", None))
     if controls is not None:
         result["controls"] = controls
-        _prefer_vistoda_entities(hass, registry, entry, result)
+    _control_source(hass, registry, entry, result)
     return result
+
+
+def _control_source(hass, registry, entry, result: dict) -> None:
+    """Publish the user's EZVIZ control source and the entities that belong to it."""
+    is_delegated = delegated(entry)
+    result["control_source"] = "native" if is_delegated else "vistoda"
+    result["delegate_available"] = native_controls_available(hass, entry)
+    switch = registry.async_get_entity_id("switch", DOMAIN, delegate_unique_id(entry))
+    if switch:
+        result["delegate_entity_id"] = switch
+    if is_delegated:
+        return  # Native alarm panel, battery and entities from panel_metadata.
+    # Standalone shows Vistoda data only: never the official integration's alarm
+    # panel, battery or entities (camera name and HA area stay display-only).
+    for key in ("alarm_entity_id", "alarm_scope", "battery_entity_id", "native_entities"):
+        result.pop(key, None)
+    if result.get("controls", {}).get("supported"):
+        _prefer_vistoda_entities(hass, registry, entry, result)
 
 
 def _prefer_vistoda_entities(hass, registry, entry, result: dict) -> None:
     """With app controls, Vistoda's own alarm panel and battery replace native ones."""
-    if not result["controls"]["supported"]:
-        return
     owner = account_owner_id(hass, entry)
     runtime = hass.data.get(DOMAIN, {}).get(owner) if owner else None
     if reports_defence(getattr(getattr(runtime, "ezviz_defence", None), "data", None)):

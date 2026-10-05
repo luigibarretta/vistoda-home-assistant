@@ -7,6 +7,11 @@ def entity_prefix(entry) -> str:
     return f"ezviz-{entry.entry_id}-"
 
 
+def delegate_unique_id(entry) -> str:
+    """The per-camera "delegate controls to the official EZVIZ integration" switch."""
+    return f"{entity_prefix(entry)}delegate-controls"
+
+
 def device_identifier(entry) -> tuple[str, str]:
     return DOMAIN, f"ezviz:{entry.entry_id}"
 

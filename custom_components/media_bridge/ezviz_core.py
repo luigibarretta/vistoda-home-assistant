@@ -1,6 +1,6 @@
 """Read-only view of Home Assistant's native EZVIZ integration for one camera."""
 
-from .const import CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_EZVIZ_DELEGATE_CONTROLS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
 
 EZVIZ_DOMAIN = "ezviz"
@@ -9,6 +9,17 @@ STATUS_ONLINE = 1
 STATUS_OFFLINE = 2
 # Entries still starting are not failures; every other non-loaded state is.
 PENDING_STATES = {"loaded", "setup_in_progress"}
+# RTSP-only native entries: no cloud coordinator, settings, arming or connectivity.
+CAMERA_ACCOUNT = "CAMERA_ACCOUNT"
+
+
+def delegated(entry) -> bool:
+    """Return the user's explicit choice; standalone (False) is the default."""
+    return bool((getattr(entry, "options", None) or {}).get(CONF_EZVIZ_DELEGATE_CONTROLS, False))
+
+
+def _cloud_entry(native) -> bool:
+    return (getattr(native, "data", None) or {}).get("type") != CAMERA_ACCOUNT
 
 
 def native_camera(hass, entry):
@@ -21,9 +32,15 @@ def native_camera(hass, entry):
     for native in hass.config_entries.async_entries(EZVIZ_DOMAIN):
         coordinator = getattr(native, "runtime_data", None)
         data = getattr(coordinator, "data", None)
-        if isinstance(data, dict) and isinstance(data.get(serial), dict):
+        if _cloud_entry(native) and isinstance(data, dict) and isinstance(data.get(serial), dict):
             matches.append((coordinator, serial))
     return matches[0] if len(matches) == 1 else None
+
+
+def native_controls_available(hass, entry) -> bool:
+    """Return whether a healthy native cloud coordinator owns the bound serial."""
+    resolved = native_camera(hass, entry)
+    return resolved is not None and bool(getattr(resolved[0], "last_update_success", False))
 
 
 def camera_online(data) -> bool | None:
@@ -51,23 +68,19 @@ def native_camera_online(hass, entry) -> bool | None:
 
 def core_available(hass) -> bool:
     """Return whether a native EZVIZ cloud entry is loaded or still starting."""
-    # RTSP-only "CAMERA_ACCOUNT" entries have no cloud coordinator, so they
-    # cannot provide settings, arming or connectivity.
     return any(
         getattr(getattr(native, "state", None), "value", None) in PENDING_STATES
-        and (getattr(native, "data", None) or {}).get("type") != "CAMERA_ACCOUNT"
+        and _cloud_entry(native)
         for native in hass.config_entries.async_entries(EZVIZ_DOMAIN)
     )
 
 
 def refresh_core_issue(hass, *, exclude_entry_id: str | None = None) -> None:
-    """Raise one global repair while any Vistoda EZVIZ entry depends on the native one.
+    """Raise one global repair only while a delegated entry lacks the native integration.
 
-    An entry whose Vistoda EZVIZ app answers /controls (0.10+) reads and writes
-    settings, arming and connectivity through the app, so it no longer needs the
-    native integration. Until the app has answered, the entry still counts.
+    Standalone entries (the default) use the Vistoda EZVIZ app's own login and
+    never require Home Assistant's EZVIZ integration.
     """
-    from .ezviz_controls import runtime_controls, supports_controls
     from .repairs import update_ezviz_core_issue
 
     if not getattr(hass, "is_running", True):
@@ -76,7 +89,7 @@ def refresh_core_issue(hass, *, exclude_entry_id: str | None = None) -> None:
         entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ
         and entry.entry_id != exclude_entry_id
         and getattr(entry, "disabled_by", None) is None
-        and not supports_controls(getattr(runtime_controls(hass, entry.entry_id), "data", None))
+        and delegated(entry)
         for entry in hass.config_entries.async_entries(DOMAIN)
     )
     update_ezviz_core_issue(hass, available=not needed or core_available(hass))

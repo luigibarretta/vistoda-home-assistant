@@ -13,20 +13,26 @@ test("only configured providers get a checklist section", () => {
 });
 
 test("EZVIZ status is computed from already loaded native metadata only", () => {
-  const linked = { device_name: "Spioncino",
+  const linked = { device_name: "Spioncino", control_source: "native",
     native_entities: [{ entity_id: "binary_sensor.cam_enc", role: "encrypted" }] };
   const [ok] = checklistSections(info({ ezviz: { configured: true, entries: [linked] } }),
     { "binary_sensor.cam_enc": { state: "on" } });
   assert.deepEqual(ok.items.map((item) => item.state), ["warn", "ok", "todo"]);
   assert.equal(ok.items[0].note, "Crittografia video attiva");
-  const [missing] = checklistSections(info({ ezviz: { configured: true, entries: [{ entry_id: "x" }] } }));
+  // Delegated without the official integration: needs attention.
+  const [missing] = checklistSections(info({ ezviz: { configured: true,
+    entries: [{ entry_id: "x", control_source: "native" }] } }));
   assert.deepEqual(missing.items.map((item) => item.state), ["todo", "warn", "todo"]);
+  // Standalone before the app answered: still to verify, never "native missing".
+  const [pending] = checklistSections(info({ ezviz: { configured: true, entries: [{ entry_id: "y" }] } }));
+  assert.deepEqual(pending.items.map((item) => item.state), ["todo", "todo", "todo"]);
   const [none] = checklistSections(info({ ezviz: { configured: true, entries: [] } }));
   assert.equal(none.items[1].state, "todo");
 });
 
 test("every checklist text and note is translated", () => {
-  const notes = ["Integrazione nativa collegata", "Integrazione nativa non collegata", "Crittografia video attiva",
+  const notes = ["Comandi delegati all’integrazione EZVIZ ufficiale",
+    "Integrazione EZVIZ ufficiale non disponibile: ripristinala o disattiva la delega", "Crittografia video attiva",
     "Verificato", "Da controllare", "Da fare"];
   for (const text of [...Object.values(CHECKLIST).flat(), ...notes]) assert.ok(Object.hasOwn(ADVANCED_COPY, text), text);
 });
@@ -60,7 +66,8 @@ test("Ring unlock type feeds the unlock item", () => {
 
 test("EZVIZ encryption and microSD come from the app status when known", () => {
   const ezviz = (media, states = {}) => checklistSections(info({ ezviz: { configured: true,
-    entries: [{ device_name: "Spioncino", media, microsd_entity_id: "sensor.sd" }] } }), states)[0].items;
+    entries: [{ device_name: "Spioncino", media, microsd_entity_id: "sensor.sd", controls: { supported: true } }] } }),
+    states)[0].items;
   const none = ezviz({ encryption: { video_encrypted: true, key_source: "none" }, storage: { status: "ok" } });
   assert.deepEqual(none.map((item) => item.state), ["warn", "ok", "ok"]);
   const option = ezviz({ encryption: { video_encrypted: true, key_source: "option" }, storage: { status: "no_card" } });
@@ -74,15 +81,28 @@ test("EZVIZ encryption and microSD come from the app status when known", () => {
   for (const note of notes) assert.ok(Object.hasOwn(ADVANCED_COPY, note), note);
 });
 
-test("EZVIZ controls through the Vistoda app no longer require the native integration", () => {
+test("EZVIZ controls item: ok when standalone works, explicit hints otherwise", () => {
   const ezviz = (entries) => checklistSections(info({ ezviz: { configured: true, entries } }))[0].items[1];
-  const app = { entry_id: "a", controls: { supported: true } };
-  const old = { entry_id: "b", controls: { supported: false } };
+  const app = { entry_id: "a", control_source: "vistoda", controls: { supported: true } };
+  const old = { entry_id: "b", control_source: "vistoda", controls: { supported: false } };
+  const outdated = "Aggiorna l’app Vistoda EZVIZ alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale";
   assert.deepEqual(ezviz([app]), { text: CHECKLIST.ezviz[1], state: "ok",
     note: "Controlli tramite l’app Vistoda EZVIZ", links: [] });
-  assert.equal(ezviz([app, old]).note, "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa");
-  assert.equal(ezviz([app, { ...old, device_name: "Spioncino" }]).note, "Integrazione nativa collegata");
-  for (const note of ["Controlli tramite l’app Vistoda EZVIZ", "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa"]) {
-    assert.ok(Object.hasOwn(ADVANCED_COPY, note), note);
-  }
+  // A standalone entry never counts the native integration, even when linked.
+  assert.deepEqual([ezviz([app, old]).state, ezviz([app, old]).note], ["warn", outdated]);
+  assert.equal(ezviz([app, { ...old, device_name: "Spioncino" }]).note, outdated);
+  const delegated = { entry_id: "c", control_source: "native", device_name: "Spioncino", delegate_available: true };
+  assert.equal(ezviz([app, delegated]).note, "Controlli tramite l’app Vistoda EZVIZ");
+  assert.equal(ezviz([delegated]).note, "Comandi delegati all’integrazione EZVIZ ufficiale");
+  assert.equal(ezviz([{ ...delegated, delegate_available: false }]).state, "warn");
+  assert.equal(ezviz([app, { entry_id: "d" }]).state, "todo");
+  for (const note of ["Controlli tramite l’app Vistoda EZVIZ", outdated]) assert.ok(Object.hasOwn(ADVANCED_COPY, note), note);
+});
+
+test("standalone entries never use the official integration's encryption sensor", () => {
+  const native = [{ entity_id: "binary_sensor.cam_enc", role: "encrypted" }];
+  const item = (control_source) => checklistSections(info({ ezviz: { configured: true,
+    entries: [{ control_source, native_entities: native }] } }), { "binary_sensor.cam_enc": { state: "on" } })[0].items[0];
+  assert.equal(item("vistoda").state, "todo");
+  assert.equal(item("native").note, "Crittografia video attiva");
 });

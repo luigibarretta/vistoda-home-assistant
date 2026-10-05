@@ -10,4 +10,11 @@ export const EZVIZ_COPY = {
     "EZVIZ did not confirm the change: check the current value before trying again.",
   "Accedi di nuovo a EZVIZ dall’integrazione Vistoda per modificare le impostazioni.":
     "Sign in to EZVIZ again from the Vistoda integration to change settings.",
+  "Origine dei comandi cambiata: aggiornamento del pannello in corso, riprova.":
+    "Control source changed: the panel is refreshing, try again.",
+  "Origine dei comandi": "Control source", "Vistoda": "Vistoda", "Integrazione ufficiale": "Official integration",
+  "L’app Vistoda EZVIZ non offre ancora questi comandi: aggiornala alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale.":
+    "The Vistoda EZVIZ app does not offer these controls yet: update it to 0.10 or turn on delegation to the official EZVIZ integration.",
+  "L’integrazione EZVIZ ufficiale non è disponibile: ripristinala o disattiva la delega per usare l’app Vistoda EZVIZ.":
+    "The official EZVIZ integration is unavailable: restore it or turn delegation off to use the Vistoda EZVIZ app.",
 };

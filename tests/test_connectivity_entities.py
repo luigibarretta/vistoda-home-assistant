@@ -9,8 +9,10 @@ LOADED = SimpleNamespace(value="loaded")
 RETRY = SimpleNamespace(value="setup_retry")
 
 
-def ezviz_entry(entry_id="ez-1"):
-    return config_entry("ezviz", entry_id, ezviz_source_id="SERIAL1:1")
+def ezviz_entry(entry_id="ez-1", delegate=False):
+    entry = config_entry("ezviz", entry_id, ezviz_source_id="SERIAL1:1")
+    entry.options = {"ezviz_delegate_controls": True} if delegate else {}
+    return entry
 
 
 def hass_with(native_entries, vistoda_entries=(), running=True):
@@ -52,7 +54,7 @@ async def test_ezviz_camera_connectivity_entity(monkeypatch) -> None:
     stub_ha(monkeypatch)
     load(monkeypatch, "ezviz_core")
     platform = load(monkeypatch, "binary_sensor")
-    entry = ezviz_entry()
+    entry = ezviz_entry(delegate=True)
     entity = platform.EzvizCameraConnectivity(entry)
     assert entity.unique_id == "ezviz-ez-1-camera-connectivity"
     assert entity._attr_translation_key == "ezviz_camera_connectivity"
@@ -116,17 +118,20 @@ async def test_setup_adds_device_connectivity_and_keeps_bridge_ids(monkeypatch) 
 @pytest.mark.parametrize(
     ("natives", "vistoda", "running", "expected"),
     [
-        ([native(1)], [ezviz_entry()], True, "delete"),
+        ([native(1)], [ezviz_entry(delegate=True)], True, "delete"),
         (
             [native(1, state=SimpleNamespace(value="setup_in_progress"))],
-            [ezviz_entry()],
+            [ezviz_entry(delegate=True)],
             True,
             "delete",
         ),
-        ([native(1, state=RETRY)], [ezviz_entry()], True, "create"),
-        ([], [ezviz_entry()], True, "create"),
+        ([native(1, state=RETRY)], [ezviz_entry(delegate=True)], True, "create"),
+        ([], [ezviz_entry(delegate=True)], True, "create"),
+        # Standalone entries (the default) never require the native integration.
+        ([], [ezviz_entry()], True, "delete"),
+        ([], [ezviz_entry(), ezviz_entry("ez-2", delegate=True)], True, "create"),
         ([], [config_entry("ring")], True, "delete"),
-        ([], [ezviz_entry()], False, None),
+        ([], [ezviz_entry(delegate=True)], False, None),
     ],
 )
 def test_ezviz_core_issue_tracks_native_integration(
@@ -151,5 +156,6 @@ def test_unloading_last_ezviz_entry_clears_core_issue(monkeypatch) -> None:
     issues = stub_ha(monkeypatch)
     load(monkeypatch, "repairs")
     core = load(monkeypatch, "ezviz_core")
-    core.refresh_core_issue(hass_with([], [ezviz_entry()]), exclude_entry_id="ez-1")
+    entries = [ezviz_entry(delegate=True)]
+    core.refresh_core_issue(hass_with([], entries), exclude_entry_id="ez-1")
     assert issues.async_delete_issue.call_args.args[2] == "ezviz_core_unavailable"

@@ -193,16 +193,18 @@ def test_panel_metadata_references_vistoda_entities_without_io(monkeypatch) -> N
     status = media.EzvizMediaStatus(EzvizEncryption(False, None), EzvizStorage("ok", 512))
     runtime = SimpleNamespace(ezviz_media=SimpleNamespace(data=status))
     hass = SimpleNamespace(data={"media_bridge": {"01J9ENTRY": runtime}})
-    assert module.entry_metadata(hass, ezviz_entry(), "ezviz") == {
+    unbound = config_entry("ezviz", "01J9ENTRY", alias="front-door")  # No native lookup.
+    assert module.entry_metadata(hass, unbound, "ezviz") == {
         "device_name": "Spioncino",
+        "control_source": "vistoda",
+        "delegate_available": False,
         "microsd_entity_id": "sensor.spioncino_scheda_microsd",
         "media": {
             "encryption": {"video_encrypted": False, "key_source": None},
             "storage": {"status": "ok", "capacity_mb": 512},
         },
     }
-    ring = config_entry("ring")
-    assert module.entry_metadata(hass, ring, "ring") == {
+    assert module.entry_metadata(hass, config_entry("ring"), "ring") == {
         "unlock_entity_id": "sensor.vistoda_ring_modalita_apertura"
     }
     assert module.entry_metadata(hass, config_entry("ring", "other"), "ring") == {}

@@ -2,9 +2,11 @@
 
 One Vistoda EZVIZ app holds exactly one EZVIZ login, and several camera entries
 can point at the same app (same URL). The account alarm panel therefore belongs
-to a single owner: the enabled EZVIZ entry with the smallest entry_id among the
-entries sharing that app URL. Its unique_id carries the owner's entry_id, so it
-stays stable when the app URL changes and never duplicates across entries.
+to a single owner: the enabled standalone EZVIZ entry with the smallest entry_id
+among the entries sharing that app URL. Entries delegated to the official EZVIZ
+integration rely on its own alarm panel, so they never own a duplicate one. The
+unique_id carries the owner's entry_id, so it stays stable when the app URL
+changes and never duplicates across entries.
 """
 
 import logging
@@ -30,7 +32,9 @@ STATE_MODES = {state: mode for mode, state in MODE_STATES.items()}
 
 
 def account_owner_id(hass, entry) -> str | None:
-    """Pick the one enabled EZVIZ entry that owns the app's account entities."""
+    """Pick the one enabled standalone EZVIZ entry that owns the app's account entities."""
+    from .ezviz_core import delegated
+
     url = entry.data.get(CONF_URL)
     owners = sorted(
         candidate.entry_id
@@ -38,6 +42,7 @@ def account_owner_id(hass, entry) -> str | None:
         if candidate.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ
         and candidate.data.get(CONF_URL) == url
         and getattr(candidate, "disabled_by", None) is None
+        and not delegated(candidate)
     )
     return owners[0] if owners else None
 

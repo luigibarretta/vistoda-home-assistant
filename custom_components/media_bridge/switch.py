@@ -1,4 +1,4 @@
-"""Global Vistoda Ring policy switches persisted in config entry options."""
+"""Vistoda policy switches persisted in config entry options (Ring and EZVIZ)."""
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -12,6 +12,7 @@ from .const import (
     CONF_PROVIDER,
     CONF_RING_AUTO_RECORD,
     CONF_RING_DELEGATE_CONTROLS,
+    PROVIDER_EZVIZ,
     PROVIDER_RING,
     SIGNAL_RING_POLICY_CHANGED,
 )
@@ -25,7 +26,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Expose global policies only for Ring entries."""
+    """Expose global Ring policies and the per-camera EZVIZ control source."""
+    if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ:
+        from .ezviz_policy import EzvizDelegateSwitch
+
+        async_add_entities([EzvizDelegateSwitch(hass, entry)])
+        return
     if entry.data[CONF_PROVIDER] != PROVIDER_RING:
         return
     official_available = official_controls_available(hass, entry)

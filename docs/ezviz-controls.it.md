@@ -1,29 +1,55 @@
 # Controlli EZVIZ
 
-Da Vistoda 0.41 con l'app Vistoda EZVIZ 0.10 o successiva, impostazioni EZVIZ,
-inserimento, PTZ e connessione delle telecamere usano l'accesso EZVIZ
-dell'app. L'integrazione ufficiale `ezviz` di Home Assistant diventa
-facoltativa: la sua sessione separata può scadere senza bloccare impostazioni o
-inserimento. Se la sessione EZVIZ dell'app viene revocata, Vistoda apre il
-normale flusso **Ricollega account** per quella entry (lo stesso passaggio con
-le credenziali EZVIZ usato in configurazione).
+Ogni entry EZVIZ sceglie esplicitamente da dove arrivano i suoi comandi,
+esattamente come l'interruttore di delega di Ring:
 
-## Rilevamento e ripiego
+- **Autonoma (predefinita)**: impostazioni, inserimento, rilevamento,
+  sensibilità, PTZ, connessione della telecamera e pannello d'allarme
+  dell'account usano l'accesso EZVIZ dell'app Vistoda EZVIZ (app 0.10 o
+  successiva). L'integrazione ufficiale `ezviz` di Home Assistant non serve e la
+  sua sessione separata può scadere liberamente. Se la sessione EZVIZ dell'app
+  viene revocata, Vistoda apre il normale flusso **Ricollega account** per
+  quella entry.
+- **Delegata**: l'interruttore di configurazione **Delega comandi
+  all'integrazione EZVIZ ufficiale** (`ezviz_delegate_controls`, sul
+  dispositivo **Vistoda · EZVIZ · <alias>** della telecamera) instrada gli
+  stessi comandi tramite l'integrazione `ezviz` di Home Assistant, associata
+  per numero di serie. Si può attivare solo mentre il coordinatore cloud di
+  quell'integrazione per la telecamera associata è caricato e funzionante (le
+  entry solo RTSP `CAMERA_ACCOUNT` non contano mai).
+
+La scelta ha effetto senza riavvio: l'instradamento segue subito l'opzione e
+le entry che condividono la stessa app si ricaricano per aggiungere o togliere
+il pannello d'allarme dell'account Vistoda. Se l'integrazione ufficiale non è
+disponibile quando la entry si configura (verificato dopo l'avvio di Home
+Assistant), l'opzione viene riportata a disattivata, come fa Ring.
+L'interruttore resta disponibile mentre è attivo, così la delega si può sempre
+disattivare. La pagina dei dettagli EZVIZ mostra l'**Origine dei comandi**
+attuale (Vistoda o Integrazione ufficiale) e apre l'interruttore.
+Il pannello aperto ricarica i dati quando l'interruttore cambia, e ogni comando
+PTZ o Arma/Disarma ricontrolla prima l'interruttore attuale, così una pagina non
+aggiornata non scrive mai sull'altra fonte. Le entry autonome mostrano solo dati
+Vistoda (nessuna batteria, pannello d'allarme, entità o sensore di crittografia
+nativi).
+
+## Matrice di instradamento
 
 Ogni entry EZVIZ interroga `GET /v1/cameras/{camera}/controls` una volta al
 minuto, in background e solo mentre salute del bridge e associazione della
 telecamera sono verificate. La configurazione non la attende mai.
 
-- **App 0.10+** (`/controls` risponde): pagina dei dettagli, comandi PTZ,
-  pannello d'allarme dell'account, sensore batteria e sensore di connessione
-  leggono e scrivono tramite l'app.
-- **App precedente** (`/controls` risponde HTTP 404): resta il percorso nativo:
-  impostazioni e PTZ tramite l'integrazione `ezviz` di Home Assistant,
-  associata per numero di serie. La riparazione `ezviz_core_unavailable` viene
-  segnalata solo in questo caso, finché l'integrazione nativa non è caricata.
+| Modalità | Integrazione ufficiale | `/controls` dell'app | Impostazioni, inserimento, PTZ, connessione |
+| --- | --- | --- | --- |
+| Autonoma | qualsiasi | risponde | app Vistoda EZVIZ |
+| Autonoma | qualsiasi | HTTP 404 (app precedente) | non disponibili; aggiorna l'app alla 0.10 o attiva la delega |
+| Delegata | caricata e funzionante | qualsiasi | integrazione ufficiale `ezviz` |
+| Delegata | non disponibile | qualsiasi | non disponibili; ripristinala o disattiva la delega |
 
-Un'app che supporta `/controls` ma è temporaneamente in errore risulta non
-disponibile; Vistoda non passa mai in silenzio alla sessione nativa.
+Vistoda non passa mai in silenzio da una fonte all'altra: un'app in errore
+risulta non disponibile, e così un'integrazione ufficiale assente. La
+riparazione `ezviz_core_unavailable` viene segnalata solo finché una entry
+attiva è delegata e l'integrazione ufficiale non è caricata; le entry autonome
+non la richiedono mai.
 
 ## Pagina dei dettagli
 
@@ -44,7 +70,8 @@ interruttori come `human_detection`, `wide_dynamic_range` (`wdr`),
 `distortion_correction`, `logo_watermark` (`logo`), `privacy_mode`,
 `sleep_mode`, `status_light` e `infrared_light`. Gli interruttori sconosciuti
 compaiono in **Altre impostazioni**. Programmazione allarme, batteria e
-firmware sono in sola lettura. Le notifiche esistono solo nel percorso nativo.
+firmware sono in sola lettura. Le notifiche e le entità proprie
+dell'integrazione ufficiale compaiono solo in modalità delegata.
 
 ## Pannello d'allarme dell'account
 
@@ -57,19 +84,23 @@ Un `alarm_control_panel` per ogni app Vistoda EZVIZ legge e imposta
 | `alarm_arm_home` | `sleep` | `armed_home` |
 | `alarm_arm_away` | `away` | `armed_away` |
 
-Più entry di telecamere possono condividere un'app (un solo accesso EZVIZ).
-Per evitare duplicati, il pannello appartiene alla entry EZVIZ attiva con
+Il pannello esiste solo in modalità autonoma; le entry delegate usano il
+pannello d'allarme dell'integrazione ufficiale, quindi non si crea alcun
+duplicato e un pannello rimasto dalla modalità autonoma viene rimosso. Più
+entry di telecamere possono condividere un'app (un solo accesso EZVIZ). Per
+evitare duplicati, il pannello appartiene alla entry EZVIZ autonoma attiva con
 l'entry ID minore tra quelle con lo stesso URL dell'app. Lo unique ID è
 `ezviz-<entry_id proprietaria>-account-defence` sul dispositivo
 **Vistoda · EZVIZ · Account**, quindi l'entity ID è normalmente
 `alarm_control_panel.vistoda_ezviz_account`. Se la entry proprietaria viene
-rimossa o disattivata, la successiva subentra dopo un ricaricamento con un
-nuovo unique ID. Le app precedenti (HTTP 404) non hanno il pannello; la pagina
-EZVIZ usa allora quello nativo.
+rimossa, disattivata o delegata, la successiva entry autonoma subentra dopo un
+ricaricamento con un nuovo unique ID. Le app precedenti (HTTP 404) non hanno il
+pannello.
 
 ## Entità per telecamera
 
 | Entità | Unique ID | Origine |
 | --- | --- | --- |
-| Connessione telecamera | `ezviz-<entry_id>-camera-connectivity` | `online`, altrimenti stato nativo |
+| Connessione telecamera | `ezviz-<entry_id>-camera-connectivity` | `online` dell'app (autonoma) o stato nativo (delegata) |
+| Delega comandi all'integrazione EZVIZ ufficiale | `ezviz-<entry_id>-delegate-controls` | opzione della entry `ezviz_delegate_controls`, disattivata per impostazione predefinita |
 | Batteria | `ezviz-<entry_id>-battery` | `battery.percent`, creata solo se riportata |

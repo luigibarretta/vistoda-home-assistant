@@ -1,4 +1,8 @@
-"""Verified EZVIZ settings: the Vistoda EZVIZ app first, else HA's native EZVIZ session."""
+"""Verified EZVIZ settings from the source the user chose for each entry.
+
+Standalone entries (the default) use the Vistoda EZVIZ app; entries delegated
+to Home Assistant's EZVIZ integration use its native session below.
+"""
 
 from typing import Any
 
@@ -7,9 +11,9 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
-from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
 from .ezviz_bounded_call import bounded_call
 from .ezviz_controls_websocket import async_app_info, async_app_set, ws_ptz
+from .ezviz_core import native_camera, native_controls_available
 from .ezviz_provider_settings import (
     current_value,
     provider_value,
@@ -24,20 +28,19 @@ VALUE = vol.Any(bool, int, str)
 
 
 def _resolve(hass: HomeAssistant, entry_id: str):
+    """Return the healthy native (coordinator, serial) for a delegated entry, else None."""
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ:
         return None
-    source = entry.data.get(CONF_EZVIZ_SOURCE_ID)
-    if not valid_source_id(source):
+    if not native_controls_available(hass, entry):
         return None
-    serial = source.rsplit(":", 1)[0]
-    matches = []
-    for native in hass.config_entries.async_entries("ezviz"):
-        coordinator = getattr(native, "runtime_data", None)
-        data = getattr(coordinator, "data", None)
-        if isinstance(data, dict) and isinstance(data.get(serial), dict):
-            matches.append((coordinator, serial))
-    return matches[0] if len(matches) == 1 else None
+    return native_camera(hass, entry)
+
+
+def _native_unavailable(connection, msg_id) -> None:
+    connection.send_error(
+        msg_id, "native_unavailable", "The official EZVIZ integration is unavailable"
+    )
 
 
 # The poll itself failed: the write is neither confirmed nor disproved.
@@ -72,7 +75,7 @@ async def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
         return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
-        connection.send_error(msg["id"], "unavailable", "EZVIZ settings are unavailable")
+        _native_unavailable(connection, msg["id"])
         return
     coordinator, serial = resolved
     settings = settings_from_data(coordinator.data[serial])
@@ -100,7 +103,7 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
         return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
-        connection.send_error(msg["id"], "unavailable", "EZVIZ settings are unavailable")
+        _native_unavailable(connection, msg["id"])
         return
     coordinator, serial = resolved
     # pyezvizapi ships with HA's EZVIZ integration, which owns the resolved

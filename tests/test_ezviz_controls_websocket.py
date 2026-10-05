@@ -1,4 +1,4 @@
-"""EZVIZ settings and PTZ through the Vistoda EZVIZ app, with the native 404 fallback."""
+"""EZVIZ settings and PTZ through the Vistoda EZVIZ app (standalone mode)."""
 
 import sys
 from types import ModuleType, SimpleNamespace
@@ -179,15 +179,14 @@ async def test_failing_app_is_never_replaced_by_the_native_session(monkeypatch) 
     assert connection.send_error.call_args.args[1] == "unavailable"
 
 
-async def test_older_app_falls_back_to_the_native_coordinator(monkeypatch) -> None:
+async def test_older_app_never_falls_back_to_the_native_coordinator(monkeypatch) -> None:
     native = SimpleNamespace(data={"BC1234567": {"alarm_notify": True}}, last_update_success=True)
     module, hass, connection, runtime = env(
         monkeypatch, controls=None, native=SimpleNamespace(runtime_data=native)
     )
     await module.ws_settings_info(hass, connection, {"id": 1, "entry_id": "E1"})
-    result = connection.send_result.call_args.args[1]
-    assert result["source"] == "native"
-    assert result["settings"][0]["key"] == "camera_defence"
+    assert connection.send_error.call_args.args[1] == "app_outdated"
+    connection.send_result.assert_not_called()
     runtime.client.ezviz_set_control.assert_not_awaited()
 
 

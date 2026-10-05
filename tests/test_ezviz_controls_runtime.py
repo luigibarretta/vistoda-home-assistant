@@ -1,4 +1,4 @@
-"""EZVIZ controls coordinator, repair suppression, connectivity and account alarm panel."""
+"""EZVIZ controls coordinator, connectivity and account alarm panel."""
 
 import enum
 import sys
@@ -83,27 +83,7 @@ async def test_coordinator_detects_support_404_and_skips_unhealthy_bridge(monkey
     client.ezviz_controls.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("status", "expected"),
-    [("supported", "delete"), ("unsupported", "create"), ("unknown", "create")],
-)
-def test_core_repair_is_suppressed_once_the_app_supports_controls(
-    monkeypatch, status, expected
-) -> None:
-    issues, controls = stub(monkeypatch)
-    data = {
-        "supported": controls.EzvizControlsStatus(True, EzvizControls()),
-        "unsupported": controls.UNSUPPORTED,
-        "unknown": None,
-    }[status]
-    runtime = SimpleNamespace(ezviz_controls=SimpleNamespace(data=data))
-    core = sys.modules["custom_components.media_bridge.ezviz_core"]
-    core.refresh_core_issue(hass_with([ezviz_entry()], {"E1": runtime}))
-    call = issues.async_delete_issue if expected == "delete" else issues.async_create_issue
-    assert call.call_args.args[2] == "ezviz_core_unavailable"
-
-
-async def test_connectivity_prefers_app_online_and_falls_back_to_native(monkeypatch) -> None:
+async def test_connectivity_follows_the_chosen_source_only(monkeypatch) -> None:
     _issues, controls = stub(monkeypatch)
     platform = load(monkeypatch, "binary_sensor")
     coordinator = SimpleNamespace(
@@ -114,14 +94,18 @@ async def test_connectivity_prefers_app_online_and_falls_back_to_native(monkeypa
         runtime_data=SimpleNamespace(data={"SERIAL1": {"status": 1}}, last_update_success=True),
         state=SimpleNamespace(value="loaded"),
     )
-    entity = platform.EzvizCameraConnectivity(ezviz_entry())
+    entry = ezviz_entry()
+    entity = platform.EzvizCameraConnectivity(entry)
     entity.hass = hass_with([], {"E1": SimpleNamespace(ezviz_controls=coordinator)}, [native])
     await entity.async_update()
     assert (entity.available, entity.is_on) == (True, False)
     assert entity.extra_state_attributes["source_integration"] == "media_bridge"
-    coordinator.data = controls.UNSUPPORTED
+    coordinator.data = controls.UNSUPPORTED  # Standalone with an older app: no native fallback.
     await entity.async_update()
-    assert entity.is_on is True
+    assert entity.available is False
+    entry.options = {"ezviz_delegate_controls": True}
+    await entity.async_update()
+    assert (entity.available, entity.is_on) == (True, True)
     assert entity.extra_state_attributes["source_integration"] == "ezviz"
 
 
@@ -217,7 +201,11 @@ def test_panel_metadata_prefers_vistoda_alarm_and_battery(monkeypatch) -> None:
     _issues, controls = stub(monkeypatch)
     account = load(monkeypatch, "ezviz_account")
     native = ModuleType("custom_components.media_bridge.ezviz_panel_metadata")
-    native.panel_metadata = lambda _hass, _entry: {"alarm_entity_id": "alarm_control_panel.n"}
+    native.panel_metadata = lambda _hass, _entry: {
+        "alarm_entity_id": "alarm_control_panel.n",
+        "battery_entity_id": "sensor.n_battery",
+        "native_entities": [{"entity_id": "binary_sensor.n_encrypted", "role": "encrypted"}],
+    }
     monkeypatch.setitem(sys.modules, native.__name__, native)
     ids = {
         ("alarm_control_panel", "ezviz-E1-account-defence"): "alarm_control_panel.vistoda",
@@ -241,7 +229,16 @@ def test_panel_metadata_prefers_vistoda_alarm_and_battery(monkeypatch) -> None:
     }
     assert result["alarm_entity_id"] == "alarm_control_panel.vistoda"
     assert result["battery_entity_id"] == "sensor.vistoda_battery"
+    assert result["control_source"] == "vistoda"
     runtime.ezviz_controls.data = controls.UNSUPPORTED
     result = module.entry_metadata(hass, ezviz_entry(), "ezviz")
+    # Standalone never shows the official integration's alarm panel, battery or entities.
+    assert not {"alarm_entity_id", "battery_entity_id", "native_entities"} & set(result)
+    delegated = ezviz_entry()
+    delegated.options = {"ezviz_delegate_controls": True}
+    result = module.entry_metadata(hass, delegated, "ezviz")
     assert result["alarm_entity_id"] == "alarm_control_panel.n"
-    assert result["controls"]["supported"] is False and "battery_entity_id" not in result
+    assert (
+        result["control_source"] == "native" and result["battery_entity_id"] == "sensor.n_battery"
+    )
+    assert result["native_entities"][0]["role"] == "encrypted"

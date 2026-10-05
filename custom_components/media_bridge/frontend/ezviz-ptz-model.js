@@ -6,9 +6,8 @@ export const PTZ_DIRECTIONS = [
   { direction: "down", role: "ptz_down", icon: "mdi:chevron-down", label: "Muovi giù" },
 ];
 
-// With Vistoda EZVIZ 0.10+ reporting PTZ, every direction goes through the app
-// (appEntryId); otherwise only usable native buttons count, and a camera
-// without PTZ entities gets no overlay at all.
+// With appEntryId every direction goes through the Vistoda EZVIZ app; otherwise
+// only usable native buttons count, and a camera without them gets no overlay.
 export function ptzTargets(entities = [], states = {}, appEntryId = null) {
   if (appEntryId) return PTZ_DIRECTIONS.map((item) => ({ ...item, entryId: appEntryId }));
   return PTZ_DIRECTIONS.flatMap((item) => {
@@ -28,4 +27,12 @@ export function ptzServiceCall(target) {
 export function ptzRequest(target) {
   if (target.entryId) return ["ws", { type: "media_bridge/ezviz/ptz", entry_id: target.entryId, direction: target.direction }];
   return ["service", ptzServiceCall(target)];
+}
+
+// The entry's control source decides: the app in standalone mode (never the
+// native buttons, even for an older app), the native buttons when delegated.
+export function entryPtzTargets(entry, states = {}) {
+  if (!entry) return [];
+  if (entry.control_source === "native") return ptzTargets(entry.native_entities, states);
+  return entry.controls?.ptz ? ptzTargets([], states, entry.entry_id) : [];
 }

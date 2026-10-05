@@ -62,7 +62,9 @@ def stub_ha(monkeypatch):
         async_delete_issue=issues.async_delete_issue,
         IssueSeverity=SimpleNamespace(WARNING="warning", ERROR="error"),
     )
-    registry = SimpleNamespace(entities={}, async_get=lambda _key: None)
+    registry = SimpleNamespace(
+        entities={}, async_get=lambda _key: None, async_get_entity_id=lambda *_args: None
+    )
     dr = module("homeassistant.helpers.device_registry", async_get=lambda _hass: registry)
     er = module("homeassistant.helpers.entity_registry", async_get=lambda _hass: registry)
     module("homeassistant")

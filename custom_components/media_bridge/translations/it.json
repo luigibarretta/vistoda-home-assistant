@@ -178,8 +178,8 @@
       "description": "Il motore Vistoda Ring è connesso, ma Ring non sta più consegnando le notifiche di chiamata in tempo reale: alcune chiamate potrebbero andare perse. Nelle impostazioni dell'account Ring controlla i dispositivi client autorizzati, mantieni autorizzato il dispositivo Vistoda e verifica che le notifiche di questo citofono siano attive; se necessario, ripeti l'accesso da questa integrazione. Vistoda continua a controllare e rimuove questo avviso quando le notifiche riprendono."
     },
     "ezviz_core_unavailable": {
-      "title": "Un'app Vistoda EZVIZ meno recente richiede l'integrazione EZVIZ di Home Assistant",
-      "description": "Almeno un'app Vistoda EZVIZ è precedente alla versione 0.10, quindi impostazioni delle telecamere, inserimento del sistema e stato di connessione delle telecamere dipendono ancora dall'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiorna l'app Vistoda EZVIZ alla 0.10 o successiva per usare il suo accesso EZVIZ (l'integrazione nativa diventa facoltativa), oppure aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
+      "title": "Una telecamera Vistoda EZVIZ è delegata all'integrazione EZVIZ di Home Assistant",
+      "description": "Almeno una telecamera Vistoda EZVIZ ha attivo \"Delega comandi all'integrazione EZVIZ ufficiale\", quindi impostazioni, inserimento, rilevamento, PTZ e stato di connessione della telecamera usano l'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi, oppure disattiva la delega sul dispositivo Vistoda EZVIZ della telecamera per usare l'accesso EZVIZ dell'app Vistoda EZVIZ (modalità autonoma, quella predefinita). Le telecamere in modalità autonoma non richiedono mai l'integrazione ufficiale. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
     }
   },
   "selector": {
@@ -234,7 +234,8 @@
     },
     "switch": {
       "ring_auto_record": {"name": "Registra automaticamente le comunicazioni"},
-      "ring_delegate_controls": {"name": "Delega controlli a Ring ufficiale"}
+      "ring_delegate_controls": {"name": "Delega controlli a Ring ufficiale"},
+      "ezviz_delegate_controls": {"name": "Delega comandi all'integrazione EZVIZ ufficiale"}
     }
   }
 }

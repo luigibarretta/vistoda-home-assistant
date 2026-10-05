@@ -65,6 +65,7 @@ def env(monkeypatch, coordinator, admin=True):
     monkeypatch.setitem(sys.modules, components.__name__, components)
     module = load(monkeypatch, "ezviz_settings_websocket")
     entry = config_entry(provider="ezviz", entry_id="E1", ezviz_source_id=f"{SERIAL}:1")
+    entry.options = {"ezviz_delegate_controls": True}  # The native path is opt-in.
 
     async def executor(func, *args):
         return func(*args)

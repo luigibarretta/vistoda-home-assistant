@@ -56,7 +56,7 @@ export const ezvizViewNavigation = {
 
   _dragSwipe(event) { dragMove(this, event); },
   _cancelSwipe() { dragReset(this); },
-  disconnectedCallback() { this._liveDialog?.close(); },
+  disconnectedCallback() { this._liveDialog?.close(); clearTimeout(this._settleTimer); },
 
   _finishSwipe(event) {
     const start = this._swipeStart;

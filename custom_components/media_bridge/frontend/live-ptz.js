@@ -1,5 +1,6 @@
 import { copy } from "./panel-copy.js";
 import { ptzRequest } from "./ezviz-ptz-model.js";
+import { SOURCE_CHANGED_COPY } from "./ezviz-control-source.js";
 
 const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 const STYLE = `.ptz{position:absolute;z-index:3;left:50%;bottom:calc(56px + env(safe-area-inset-bottom));
@@ -13,7 +14,8 @@ const STYLE = `.ptz{position:absolute;z-index:3;left:50%;bottom:calc(56px + env(
 // Accessible D-pad over the live video. Each press is one PTZ step, through the
 // Vistoda EZVIZ app or a native button (HA core presses START then STOP);
 // presses never queue while one is pending.
-export function mountPtz(stage, hass, targets, status) {
+// allowed(): optional call-time guard; a refused press never reaches any source.
+export function mountPtz(stage, hass, targets, status, allowed = null) {
   if (!stage || !targets?.length) return;
   const doc = stage.ownerDocument;
   const style = doc.createElement("style"); style.textContent = STYLE;
@@ -22,6 +24,10 @@ export function mountPtz(stage, hass, targets, status) {
   let pending = false;
   const press = async (target) => {
     if (pending) return;
+    if (allowed && !allowed()) {
+      if (status) status.textContent = copy({ hass }, SOURCE_CHANGED_COPY);
+      return;
+    }
     pending = true; pad.setAttribute("aria-busy", "true");
     try {
       const [kind, payload] = ptzRequest(target);

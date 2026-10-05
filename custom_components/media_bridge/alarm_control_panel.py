@@ -1,4 +1,4 @@
-"""One EZVIZ account alarm panel per Vistoda EZVIZ app (Vistoda EZVIZ 0.10+)."""
+"""One EZVIZ account alarm panel per Vistoda EZVIZ app, in standalone mode only (0.10+)."""
 
 from homeassistant.components.alarm_control_panel import (
     AlarmControlPanelEntity,
@@ -35,11 +35,14 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Only the owner entry of an app creates the panel, and only once supported."""
+    """Only the standalone owner entry of an app creates the panel, once supported."""
     if entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ:
         return
     runtime = hass.data[DOMAIN][entry.entry_id]
     if getattr(runtime, "client", None) is None or account_owner_id(hass, entry) != entry.entry_id:
+        # Delegated or no longer the owner: drop a panel left from an earlier
+        # mode so it never lingers as a duplicate next to the official one.
+        _remove_stale_panel(hass, entry)
         return
     defence = EzvizDefenceCoordinator(hass, entry, runtime.client, runtime.coordinator)
     runtime.ezviz_defence = defence
@@ -54,6 +57,23 @@ async def async_setup_entry(
     entry.async_create_background_task(
         hass, defence.async_refresh(), f"Vistoda EZVIZ defence {entry.entry_id}"
     )
+
+
+def _remove_stale_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    unique_id = defence_unique_id(entry.entry_id)
+    entity_id = registry.async_get_entity_id("alarm_control_panel", DOMAIN, unique_id)
+    if entity_id is None:
+        return
+    registry.async_remove(entity_id)
+    devices = dr.async_get(hass)
+    identifiers = account_device_info(entry.entry_id)["identifiers"]
+    device = devices.async_get_device(identifiers=identifiers)
+    if device is not None:
+        devices.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
 
 
 class EzvizAccountAlarm(CoordinatorEntity, AlarmControlPanelEntity):

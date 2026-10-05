@@ -4,6 +4,7 @@ import { localize, localizeElements } from "./panel-localize.js";
 import { ezvizViewNavigation } from "./ezviz-view-navigation.js";
 import { ezvizViewActions } from "./ezviz-view-actions.js";
 import { connectionCopyKey, ezvizConnectivity } from "./ezviz-connectivity.js";
+import { systemScopeCopy } from "./ezviz-settings-model.js";
 import "./provider-recordings.js";
 import "./system-arm-control.js";
 import "./ezviz-settings.js";
@@ -35,7 +36,7 @@ class VistodaEzvizView extends HTMLElement {
     this._detailOpen = false;
   }
 
-  set hass(value) { this._hass = value; this._render(); }
+  set hass(value) { this._hass = value; this._render(); this._syncSource(); }
   set info(value) { this._info = value; this._render(); }
 
   _mount() {
@@ -159,11 +160,9 @@ class VistodaEzvizView extends HTMLElement {
     this.$("camera-card").hidden = this._detailOpen || !device;
     this.$("pager").hidden = this._detailOpen || !device;
     this.$("details-page").hidden = !this._detailOpen || !device;
-    this.$("system-control").configure(this._hass, entry?.alarm_entity_id, entry?.device_name || device?.name || "EZVIZ");
-    setText(this.shadowRoot, "system-scope", copy(this, entry?.alarm_entity_id
-      ? "Il comando Arma/Disarma si applica all’account EZVIZ associato."
-      : entry?.controls?.supported ? "Controllo del sistema non ancora disponibile dall’app Vistoda EZVIZ."
-        : "Aggiorna l’app Vistoda EZVIZ alla versione 0.10 o collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema."));
+    this.$("system-control").configure(this._hass, entry?.alarm_entity_id, entry?.device_name || device?.name || "EZVIZ",
+      this._writeGuard(entry));
+    setText(this.shadowRoot, "system-scope", copy(this, systemScopeCopy(entry)));
     setText(this.shadowRoot, "camera-room", entry?.room_name
       ? copy(this, "Area Home Assistant: {p0}", { p0: entry.room_name }) : "");
     const providerAvailable = entry?.available ?? provider?.available;

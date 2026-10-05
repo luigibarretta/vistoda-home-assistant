@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.41.0"
+INTEGRATION_VERSION = "0.41.1"
 PLATFORMS = [
     "alarm_control_panel",
     "binary_sensor",
@@ -21,6 +21,7 @@ CONF_DISCOVERY_TOKENS = "discovery_tokens"
 CONF_MANAGED_APP = "managed_app"
 CONF_RING_AUTO_RECORD = "ring_auto_record"
 CONF_RING_DELEGATE_CONTROLS = "ring_delegate_controls"
+CONF_EZVIZ_DELEGATE_CONTROLS = "ezviz_delegate_controls"
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"

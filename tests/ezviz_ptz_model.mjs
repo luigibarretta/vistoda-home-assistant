@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ADVANCED_COPY } from "../custom_components/media_bridge/frontend/panel-copy.js";
-import { PTZ_DIRECTIONS, ptzRequest, ptzServiceCall, ptzTargets } from "../custom_components/media_bridge/frontend/ezviz-ptz-model.js";
+import { PTZ_DIRECTIONS, entryPtzTargets, ptzRequest, ptzServiceCall, ptzTargets } from "../custom_components/media_bridge/frontend/ezviz-ptz-model.js";
 
 const button = (direction) => ({ entity_id: `button.cam_${direction}`, domain: "button", role: `ptz_${direction}` });
 const states = (ids, state = "unknown") => Object.fromEntries(ids.map((id) => [id, { state }]));
@@ -35,4 +35,17 @@ test("app-reported PTZ drives every direction through the Vistoda EZVIZ app", ()
   assert.deepEqual(ptzRequest(targets[0]), ["ws", { type: "media_bridge/ezviz/ptz", entry_id: "entry-1", direction: "up" }]);
   const native = ptzTargets([button("up")], states(["button.cam_up"]))[0];
   assert.deepEqual(ptzRequest(native), ["service", ["button", "press", { entity_id: "button.cam_up" }]]);
+});
+
+test("PTZ follows the entry's control source and never mixes the two", () => {
+  const entities = ["up", "down", "left", "right"].map(button);
+  const live = states(entities.map((item) => item.entity_id));
+  const app = entryPtzTargets({ entry_id: "e1", controls: { ptz: true }, native_entities: entities }, live);
+  assert.ok(app.length === 4 && app.every((item) => item.entryId === "e1" && !item.entityId));
+  // Standalone with an older app (or no app PTZ): no silent native buttons.
+  assert.deepEqual(entryPtzTargets({ entry_id: "e1", controls: { supported: false }, native_entities: entities }, live), []);
+  const delegated = entryPtzTargets({ entry_id: "e1", control_source: "native", controls: { ptz: true },
+    native_entities: entities }, live);
+  assert.ok(delegated.length === 4 && delegated.every((item) => item.entityId && !item.entryId));
+  assert.deepEqual(entryPtzTargets(null, live), []);
 });

@@ -27,7 +27,7 @@ async def async_setup_entry(
     async_add_entities(entities)
     controls = getattr(runtime, "ezviz_controls", None)
     if provider == PROVIDER_EZVIZ and controls is not None and controls.data is None:
-        # Off the setup path: an older app answers 404 and keeps the native path.
+        # Off the setup path: an older app answers 404 (standalone controls unavailable).
         entry.async_create_background_task(
             hass, controls.async_refresh(), f"Vistoda EZVIZ controls {entry.entry_id}"
         )
@@ -138,7 +138,7 @@ class RingIntercomConnectivity(CoordinatorEntity, BinarySensorEntity):
 
 
 class EzvizCameraConnectivity(BinarySensorEntity):
-    """Camera reachability from the Vistoda EZVIZ app, else the native coordinator."""
+    """Camera reachability from the Vistoda EZVIZ app, or the native one when delegated."""
 
     _attr_has_entity_name = True
     _attr_translation_key = "ezviz_camera_connectivity"
@@ -165,12 +165,13 @@ class EzvizCameraConnectivity(BinarySensorEntity):
     async def async_update(self) -> None:
         """Read in-memory polls only; this never calls the app or the EZVIZ cloud."""
         from .ezviz_controls import app_camera_online
-        from .ezviz_core import native_camera_online
+        from .ezviz_core import delegated, native_camera_online
 
-        online = app_camera_online(self.hass, self._entry.entry_id)
-        source = "media_bridge"
-        if online is None:
+        # The entry's explicit choice decides the source; never mix the two.
+        if delegated(self._entry):
             online, source = native_camera_online(self.hass, self._entry), "ezviz"
+        else:
+            online, source = app_camera_online(self.hass, self._entry.entry_id), "media_bridge"
         self._attr_available = online is not None
         self._attr_is_on = online
         self._attr_extra_state_attributes = {

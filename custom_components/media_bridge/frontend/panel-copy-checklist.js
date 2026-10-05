@@ -18,15 +18,16 @@ export const CHECKLIST_COPY = {
     "Make a test call: it must reach Home Assistant.",
   "Annota il codice di verifica del dispositivo (etichetta) e la password di crittografia video.":
     "Write down the device verification code (on the label) and the video encryption password.",
-  "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+ oppure integrazione EZVIZ nativa).":
-    "Check that EZVIZ arming, settings and camera connectivity work in Home Assistant (Vistoda EZVIZ app 0.10+ or the native EZVIZ integration).",
+  "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+, oppure integrazione EZVIZ ufficiale se hai attivato la delega).":
+    "Check that EZVIZ arming, settings and camera connectivity work in Home Assistant (Vistoda EZVIZ app 0.10+, or the official EZVIZ integration if you turned on delegation).",
   "Controlli tramite l’app Vistoda EZVIZ": "Controls through the Vistoda EZVIZ app",
-  "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa":
-    "Update the Vistoda EZVIZ app to 0.10 or connect the native integration",
+  "Aggiorna l’app Vistoda EZVIZ alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale":
+    "Update the Vistoda EZVIZ app to 0.10 or turn on delegation to the official EZVIZ integration",
+  "Comandi delegati all’integrazione EZVIZ ufficiale": "Controls delegated to the official EZVIZ integration",
+  "Integrazione EZVIZ ufficiale non disponibile: ripristinala o disattiva la delega":
+    "Official EZVIZ integration unavailable: restore it or turn delegation off",
   "Controlla lo stato della microSD prima di perdere l’accesso dall’app.":
     "Check the microSD card status before you lose access from the app.",
-  "Integrazione nativa collegata": "Native integration connected",
-  "Integrazione nativa non collegata": "Native integration not connected",
   "Crittografia video attiva": "Video encryption is on",
   "Programmi ancora attivi: aprili per disattivarli.": "Schedules still enabled: open them to turn them off.",
   "Nessun programma attivo": "No schedule enabled", "Apri {p0}": "Open {p0}",

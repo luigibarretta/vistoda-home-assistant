@@ -16,7 +16,7 @@ export const CHECKLIST = {
   ],
   ezviz: [
     "Annota il codice di verifica del dispositivo (etichetta) e la password di crittografia video.",
-    "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+ oppure integrazione EZVIZ nativa).",
+    "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+, oppure integrazione EZVIZ ufficiale se hai attivato la delega).",
     "Controlla lo stato della microSD prima di perdere l’accesso dall’app.",
   ],
 };
@@ -63,8 +63,8 @@ function encryptionItem(entry, states) {
     if (view.keySource === "none") return { state: "warn", note: "Crittografia attiva senza codice di verifica nell’app Vistoda EZVIZ" };
     if (view.keySource === "cloud") return { state: "warn", note: "Chiave letta dal cloud EZVIZ: annota comunque il codice di verifica" };
   }
-  // Older apps: fall back to the native HA EZVIZ "encrypted" binary sensor.
-  const native = (entry.native_entities || [])
+  // Delegated entries only: the official integration's "encrypted" binary sensor.
+  const native = (entry.control_source === "native" ? entry.native_entities || [] : [])
     .some((entity) => entity.role === "encrypted" && states?.[entity.entity_id]?.state === "on");
   return native || view?.encrypted === true ? { state: "warn", note: "Crittografia video attiva" } : null;
 }
@@ -76,22 +76,32 @@ function storageItem(entry, states) {
   return view.status === "ok" ? { state: "ok", note: "microSD funzionante" } : { state: "warn", note: SD_NOTES[view.status] };
 }
 
-// Vistoda EZVIZ 0.10+ controls use the app's own login; only older apps still
-// need the native integration. Native metadata only resolves while the HA core
-// EZVIZ coordinator owns the camera.
+// Each entry explicitly uses the Vistoda EZVIZ app (standalone, the default) or
+// the official EZVIZ integration (delegated). Standalone never needs the native
+// integration; native metadata only resolves while its coordinator owns the camera.
+function controlsEntryItem(entry) {
+  if (entry.control_source === "native") {
+    const linked = entry.device_name || entry.native_entities?.length;
+    return linked && entry.delegate_available !== false
+      ? { state: "ok", note: "Comandi delegati all’integrazione EZVIZ ufficiale" }
+      : { state: "warn", note: "Integrazione EZVIZ ufficiale non disponibile: ripristinala o disattiva la delega" };
+  }
+  if (entry.controls?.supported) return { state: "ok", note: "Controlli tramite l’app Vistoda EZVIZ" };
+  return entry.controls?.supported === false
+    ? { state: "warn", note: "Aggiorna l’app Vistoda EZVIZ alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale" }
+    : null; // The app has not answered yet: still to verify.
+}
+
 function controlsItem(entries) {
-  const legacy = entries.filter((entry) => !entry.controls?.supported);
-  if (!legacy.length) return { state: "ok", note: "Controlli tramite l’app Vistoda EZVIZ" };
-  const unknown = legacy.every((entry) => !entry.controls);
-  const linked = legacy.every((entry) => entry.device_name || entry.native_entities?.length);
-  if (linked) return { state: "ok", note: "Integrazione nativa collegata" };
-  return { state: "warn", note: unknown ? "Integrazione nativa non collegata"
-    : "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa" };
+  const items = entries.map(controlsEntryItem);
+  const result = worst(items);
+  return result?.state === "warn" || items.every(Boolean) ? result : null;
 }
 
 function ezvizStatus(entries, states) {
   const status = {};
-  if (entries.length) status[EZVIZ_CORE] = controlsItem(entries);
+  const controls = entries.length ? controlsItem(entries) : null;
+  if (controls) status[EZVIZ_CORE] = controls;
   const code = worst(entries.map((entry) => encryptionItem(entry, states)));
   if (code) status[EZVIZ_CODE] = code;
   const card = worst(entries.map((entry) => storageItem(entry, states)));

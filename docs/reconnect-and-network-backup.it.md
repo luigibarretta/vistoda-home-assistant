@@ -130,13 +130,14 @@ Un token bridge errato resta HTTP 401 con l'errore esistente.
 `binary_sensor.*_connessione_citofono` (Ring) segue lo stato `online` del
 motore ogni minuto ed è non disponibile quando il bridge non risponde. Ogni
 telecamera EZVIZ ha `binary_sensor.*_connessione_telecamera`, letto da
-`/controls` dell'app Vistoda EZVIZ (`online`, app 0.10+) oppure, per le app
-precedenti, dall'integrazione EZVIZ nativa di Home Assistant (stato 1 online,
+`/controls` dell'app Vistoda EZVIZ (`online`, app 0.10+, modalità autonoma,
+quella predefinita) oppure, se la telecamera è delegata all'integrazione
+ufficiale, dall'integrazione EZVIZ nativa di Home Assistant (stato 1 online,
 2 offline). Il badge e la voce **Connessione** del pannello EZVIZ mostrano la
 telecamera; **App Vistoda** mostra il bridge. Riparazioni segnala
-`ezviz_core_unavailable` solo finché una entry EZVIZ con app precedente alla
-0.10 non ha l'integrazione nativa caricata; con l'app 0.10+ l'integrazione
-nativa è facoltativa. Vedi [Controlli EZVIZ](ezviz-controls.it.md).
+`ezviz_core_unavailable` solo finché una entry EZVIZ delegata non ha
+l'integrazione nativa caricata; le entry autonome non la richiedono mai. Vedi
+[Controlli EZVIZ](ezviz-controls.it.md).
 
 I motori Ring dalla 0.15.0 riportano `push_degraded` e `last_missed_ding_at`.
 Riparazioni mostra `ring_push_silent_<entry_id>` finché Ring non consegna le
