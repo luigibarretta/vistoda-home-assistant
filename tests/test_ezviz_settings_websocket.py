@@ -59,6 +59,7 @@ def env(monkeypatch, coordinator, admin=True):
         module.__dict__.update(values)
         monkeypatch.setitem(sys.modules, name, module)
     sys.modules["voluptuous"].Any = lambda *a: a
+    sys.modules["voluptuous"].In = lambda values: values
     components = ModuleType("homeassistant.components")
     components.websocket_api = sys.modules["homeassistant.components.websocket_api"]
     monkeypatch.setitem(sys.modules, components.__name__, components)

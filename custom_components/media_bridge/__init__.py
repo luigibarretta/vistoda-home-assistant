@@ -23,7 +23,9 @@ from .const import (
     PROVIDER_RING,
 )
 from .coordinator import BridgeCoordinator
+from .ezviz_account import EzvizDefenceCoordinator
 from .ezviz_alarm_listener import EzvizAlarmListener
+from .ezviz_controls import EzvizControlsCoordinator
 from .ezviz_media import EzvizMediaCoordinator
 from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
@@ -58,6 +60,8 @@ class BridgeRuntime:
     ring_history: RingHistoryManager | None = None
     ezviz_alarms: EzvizAlarmListener | None = None
     ezviz_media: EzvizMediaCoordinator | None = None
+    ezviz_controls: EzvizControlsCoordinator | None = None
+    ezviz_defence: EzvizDefenceCoordinator | None = None
     panel_url: str | None = None
     snapshots: dict[str, bytes] = field(default_factory=dict)
     snapshot_updated_at: dict[str, str] = field(default_factory=dict)
@@ -138,12 +142,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     snapshot_updated_at = {}
     ezviz_alarms = None
     ezviz_media = None
+    ezviz_controls = None
     if provider == PROVIDER_EZVIZ:
         ezviz_alarms = EzvizAlarmListener(
             hass, entry, client, entry.data[CONF_ALIAS], verified=True
         )
-        # Constructed only: the sensor platform starts the first (deferred) poll.
+        # Constructed only: the sensor and binary_sensor platforms start the first
+        # (deferred) polls, so setup never awaits these optional app routes.
         ezviz_media = EzvizMediaCoordinator(hass, entry, client, coordinator)
+        ezviz_controls = EzvizControlsCoordinator(hass, entry, client, coordinator)
         from .ezviz_identity import async_migrate_registry
         from .ezviz_snapshot_cache import async_load
 
@@ -161,6 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ring_history=ring_history,
         ezviz_alarms=ezviz_alarms,
         ezviz_media=ezviz_media,
+        ezviz_controls=ezviz_controls,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
         snapshots=snapshots,
         snapshot_updated_at=snapshot_updated_at,

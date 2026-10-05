@@ -162,7 +162,8 @@ class VistodaEzvizView extends HTMLElement {
     this.$("system-control").configure(this._hass, entry?.alarm_entity_id, entry?.device_name || device?.name || "EZVIZ");
     setText(this.shadowRoot, "system-scope", copy(this, entry?.alarm_entity_id
       ? "Il comando Arma/Disarma si applica all’account EZVIZ associato."
-      : "Collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema."));
+      : entry?.controls?.supported ? "Controllo del sistema non ancora disponibile dall’app Vistoda EZVIZ."
+        : "Aggiorna l’app Vistoda EZVIZ alla versione 0.10 o collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema."));
     setText(this.shadowRoot, "camera-room", entry?.room_name
       ? copy(this, "Area Home Assistant: {p0}", { p0: entry.room_name }) : "");
     const providerAvailable = entry?.available ?? provider?.available;
@@ -182,7 +183,7 @@ class VistodaEzvizView extends HTMLElement {
       p0: this._cameraIndex + 1, p1: cameras.length,
     }));
     const available = state && state.state !== "unavailable";
-    // The badge follows the camera itself when the native EZVIZ status is known.
+    // The badge follows the camera itself when its status (app or native) is known.
     const online = links.camera === "unknown" ? null : links.camera === "on";
     setText(this.shadowRoot, "camera-state", online === null
       ? (available ? copy(this, "Disponibile") : copy(this, "Non disponibile"))

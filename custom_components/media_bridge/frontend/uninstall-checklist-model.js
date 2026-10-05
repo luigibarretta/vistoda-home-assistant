@@ -16,7 +16,7 @@ export const CHECKLIST = {
   ],
   ezviz: [
     "Annota il codice di verifica del dispositivo (etichetta) e la password di crittografia video.",
-    "Verifica che l’integrazione EZVIZ di Home Assistant sia connessa e che non ci sia la riparazione «L’integrazione EZVIZ di Home Assistant non è attiva».",
+    "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+ oppure integrazione EZVIZ nativa).",
     "Controlla lo stato della microSD prima di perdere l’accesso dall’app.",
   ],
 };
@@ -76,15 +76,22 @@ function storageItem(entry, states) {
   return view.status === "ok" ? { state: "ok", note: "microSD funzionante" } : { state: "warn", note: SD_NOTES[view.status] };
 }
 
+// Vistoda EZVIZ 0.10+ controls use the app's own login; only older apps still
+// need the native integration. Native metadata only resolves while the HA core
+// EZVIZ coordinator owns the camera.
+function controlsItem(entries) {
+  const legacy = entries.filter((entry) => !entry.controls?.supported);
+  if (!legacy.length) return { state: "ok", note: "Controlli tramite l’app Vistoda EZVIZ" };
+  const unknown = legacy.every((entry) => !entry.controls);
+  const linked = legacy.every((entry) => entry.device_name || entry.native_entities?.length);
+  if (linked) return { state: "ok", note: "Integrazione nativa collegata" };
+  return { state: "warn", note: unknown ? "Integrazione nativa non collegata"
+    : "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa" };
+}
+
 function ezvizStatus(entries, states) {
   const status = {};
-  if (entries.length) {
-    // Native metadata only resolves while the HA core EZVIZ coordinator owns the camera.
-    const linked = entries.every((entry) => entry.device_name || entry.native_entities?.length);
-    status[EZVIZ_CORE] = linked
-      ? { state: "ok", note: "Integrazione nativa collegata" }
-      : { state: "warn", note: "Integrazione nativa non collegata" };
-  }
+  if (entries.length) status[EZVIZ_CORE] = controlsItem(entries);
   const code = worst(entries.map((entry) => encryptionItem(entry, states)));
   if (code) status[EZVIZ_CODE] = code;
   const card = worst(entries.map((entry) => storageItem(entry, states)));

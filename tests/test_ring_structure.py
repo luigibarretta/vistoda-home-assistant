@@ -11,7 +11,9 @@ def test_ring_facade_supports_native_and_official_control_paths() -> None:
     contract = (COMPONENT / "ring_contract.py").read_text(encoding="utf-8")
     button = (COMPONENT / "button.py").read_text(encoding="utf-8")
     event = (COMPONENT / "event.py").read_text(encoding="utf-8")
-    assert '"button", "camera", "event", "number", "sensor"' in constants
+    platforms = constants.split("PLATFORMS = [", 1)[1].split("]", 1)[0]
+    for platform in ("button", "camera", "event", "number", "sensor"):
+        assert f'"{platform}"' in platforms
     assert 'candidate.platform == "ring"' in contract
     assert 'candidate.manufacturer == "Ring"' in contract
     assert 'candidate.model == "Intercom"' in contract

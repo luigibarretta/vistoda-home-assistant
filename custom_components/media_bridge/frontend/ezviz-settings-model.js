@@ -2,7 +2,7 @@
 // Roles come from native unique_ids (server side), never from entity_id text.
 const PTZ_ROLES = new Set(["ptz_up", "ptz_down", "ptz_left", "ptz_right"]);
 // A native entity whose value Vistoda already shows as a provider setting.
-const PROVIDER_DUPLICATES = { alarm_schedule: "alarm_schedule" };
+const PROVIDER_DUPLICATES = { alarm_schedule: "alarm_schedule", detection_sensitivity: "detection_sensitivity" };
 
 const has = (entity, ...parts) => parts.some((part) => entity.entity_id.includes(part));
 
@@ -28,6 +28,9 @@ export const PROVIDER_LABELS = {
   answer_doorbell_call: "Rispondi alle chiamate citofono", offline_notification: "Notifica dispositivo offline",
   human_detection: "Rilevamento sagoma umana", wide_dynamic_range: "WDR",
   distortion_correction: "Correzione distorsione", logo_watermark: "Filigrana logo",
+  detection_sensitivity: "Sensibilità di rilevamento", battery_level: "Livello batteria",
+  infrared_light: "Luce infrarossa", status_light: "Spia di stato", privacy_mode: "Modalità privacy",
+  sleep_mode: "Modalità riposo", firmware_version: "Versione firmware", firmware_update: "Aggiornamento firmware disponibile",
 };
 
 export const OPTION_LABELS = {
@@ -35,6 +38,31 @@ export const OPTION_LABELS = {
   super_power_saving: "Super risparmio energetico", user_customization: "Personalizzazione utente",
   human_shape: "Sagoma umana", image_change: "Variazione immagine", pir: "Sensore PIR",
 };
+
+// Errors the settings/set command reports; anything else gets the generic message.
+const SAVE_ERRORS = {
+  conflict: "L’impostazione è cambiata su EZVIZ nel frattempo: controlla il valore attuale e riprova.",
+  unconfirmed: "EZVIZ non ha confermato la modifica: controlla il valore attuale prima di riprovare.",
+  reauth_required: "Accedi di nuovo a EZVIZ dall’integrazione Vistoda per modificare le impostazioni.",
+};
+export const saveErrorCopy = (code) => SAVE_ERRORS[code] || "Impossibile applicare le impostazioni EZVIZ.";
+
+// Unknown app switches ("switch.<name>") get a readable, untranslated name.
+export const providerLabel = (key) => PROVIDER_LABELS[key]
+  || String(key).replace(/^switch\./, "").replace(/_/g, " ");
+
+// Read-only values: booleans become Yes/No, numbers keep their unit.
+export function infoText(setting) {
+  if (typeof setting.value === "boolean") return setting.value ? "Sì" : "No";
+  if (typeof setting.value === "number") return `${setting.value}${setting.unit || ""}`;
+  return OPTION_LABELS[setting.value] || String(setting.value ?? "");
+}
+
+// A range input yields text; keep only integers inside the reported bounds.
+export function numberValue(setting, raw) {
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= setting.min && value <= setting.max ? value : null;
+}
 
 export const isActionable = (entity) => ["switch", "select", "number", "button", "light"].includes(entity.domain);
 
@@ -54,8 +82,9 @@ export function settingsSections(entities = [], provider = []) {
     return { key, icon, label, rows, provider: provider.filter((item) => item.group === key) };
   });
   const remainder = visible.filter((entity) => !claimed.has(entity.entity_id));
-  if (remainder.length) {
-    sections.push({ key: "other", icon: "mdi:tune", label: "Altre impostazioni", rows: remainder, provider: [] });
+  const other = provider.filter((item) => item.group === "other");
+  if (remainder.length || other.length) {
+    sections.push({ key: "other", icon: "mdi:tune", label: "Altre impostazioni", rows: remainder, provider: other });
   }
   return sections;
 }

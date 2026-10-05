@@ -39,7 +39,7 @@ users.
 | --- | --- | --- |
 | Ring | Multiple intercom selection, status, controls, event history, full-duplex browser audio and local call recordings; experimental native camera viewer | Experimental consumer APIs; Ring does not support this third-party use. Camera live remains hardware-unverified; see [camera scope](docs/RING_CAMERAS.md). Physical actions require an exact device binding; the Vistoda panel adds confirmation. |
 | Blink | Multiple cameras, gesture-only snapshot paging, mobile fullscreen, Walnut live, hold-to-talk, supported settings/zones, versioned settings backups, provider-managed live saving, camera-filtered USB archives and NFS backup | Use Blink 0.19.0+ (0.18.0+ without USB eject/reconnect and status refresh). Blink routes a saved live to USB only when Local Storage is active; HA-local recording remains separate. Voice requires a supported offer, HTTPS and permission. Duplex is conditional on camera/browser AEC, not guaranteed by model. Validate sound and echo on your hardware. Cayuga remains disabled by provider policy. |
-| EZVIZ | Multiple cameras, stored/manual snapshots, battery state, native HA controls and verified provider settings, compatible live streams, local recordings and NFS backup | Vistoda adds only settings with a readable current cloud value and an exact `pyezvizapi` operation. Writes require an administrator, explicit save confirmation, optimistic concurrency and read-after-write verification with rollback. Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
+| EZVIZ | Multiple cameras, stored/manual snapshots, battery state, account arming, verified settings and PTZ through Vistoda's own EZVIZ login (app 0.10+; native HA EZVIZ optional), compatible live streams, local recordings and NFS backup | Vistoda shows only settings the app (or, for older apps, `pyezvizapi`) reports with a readable current value. Writes require an administrator, explicit save confirmation, optimistic concurrency and read-after-write verification with rollback. Talk and direct microSD access are unavailable. Encrypted-stream compatibility is not universal. |
 | Apple | Separate iPhone/watchOS project | Excluded from this release and its readiness claims. |
 
 Vistoda is not a complete replacement for every vendor app. Keep the official
@@ -89,8 +89,9 @@ Vistoda can replace the vendor apps for day-to-day alerts: a revoked Ring
 session opens Home Assistant's standard re-authentication flow, the
 `Intercom connection` and per-camera EZVIZ `Camera connection` sensors report
 the device itself (the EZVIZ panel shows the Vistoda app link separately), and
-Repairs warns when Ring stops delivering call notifications or when the native
-EZVIZ integration needed for settings and arming is not loaded. Automations can
+Repairs warns when Ring stops delivering call notifications or when an older
+Vistoda EZVIZ app (before 0.10) still needs the native EZVIZ integration for
+settings and arming and it is not loaded. Automations can
 listen for `vistoda_ring_missed_call`; see
 [Reconnect accounts](docs/reconnect-and-network-backup.md#vendor-session-and-device-health).
 
@@ -107,10 +108,12 @@ On narrow touch screens a long press enters selection mode; dragging across
 cards extends the selection, while the always-visible counter and selection
 button provide an explicit keyboard and screen-reader alternative.
 System cards share one Arm/Disarm button, updated only after the state is
-confirmed, with a success toast. EZVIZ system control requires the native HA
-EZVIZ integration, matched by camera identity; it controls the associated
-account. Its camera name comes from that integration. An HA area is explicitly
-labeled as such, not presented as the room name from the vendor app.
+confirmed, with a success toast. EZVIZ system control uses Vistoda's own
+account alarm panel with Vistoda EZVIZ 0.10+ (the native HA EZVIZ integration is
+then optional) and falls back to the native integration, matched by camera
+identity, for older apps; see [EZVIZ controls](docs/ezviz-controls.md). The
+camera name comes from the native integration when present. An HA area is
+explicitly labeled as such, not presented as the room name from the vendor app.
 
 In **Blink → Camera detail → General settings**, supported battery cameras expose
 their native temperature alert switch and cold/hot thresholds. Temperatures use

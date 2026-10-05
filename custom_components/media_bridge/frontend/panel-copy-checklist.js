@@ -18,8 +18,11 @@ export const CHECKLIST_COPY = {
     "Make a test call: it must reach Home Assistant.",
   "Annota il codice di verifica del dispositivo (etichetta) e la password di crittografia video.":
     "Write down the device verification code (on the label) and the video encryption password.",
-  "Verifica che l’integrazione EZVIZ di Home Assistant sia connessa e che non ci sia la riparazione «L’integrazione EZVIZ di Home Assistant non è attiva».":
-    "Check that the Home Assistant EZVIZ integration is logged in and that the “The Home Assistant EZVIZ integration is not running” repair is absent.",
+  "Verifica che inserimento, impostazioni e connessione delle telecamere EZVIZ funzionino in Home Assistant (app Vistoda EZVIZ 0.10+ oppure integrazione EZVIZ nativa).":
+    "Check that EZVIZ arming, settings and camera connectivity work in Home Assistant (Vistoda EZVIZ app 0.10+ or the native EZVIZ integration).",
+  "Controlli tramite l’app Vistoda EZVIZ": "Controls through the Vistoda EZVIZ app",
+  "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa":
+    "Update the Vistoda EZVIZ app to 0.10 or connect the native integration",
   "Controlla lo stato della microSD prima di perdere l’accesso dall’app.":
     "Check the microSD card status before you lose access from the app.",
   "Integrazione nativa collegata": "Native integration connected",

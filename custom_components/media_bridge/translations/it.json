@@ -178,8 +178,8 @@
       "description": "Il motore Vistoda Ring è connesso, ma Ring non sta più consegnando le notifiche di chiamata in tempo reale: alcune chiamate potrebbero andare perse. Nelle impostazioni dell'account Ring controlla i dispositivi client autorizzati, mantieni autorizzato il dispositivo Vistoda e verifica che le notifiche di questo citofono siano attive; se necessario, ripeti l'accesso da questa integrazione. Vistoda continua a controllare e rimuove questo avviso quando le notifiche riprendono."
     },
     "ezviz_core_unavailable": {
-      "title": "L'integrazione EZVIZ di Home Assistant non è attiva",
-      "description": "Le impostazioni delle telecamere, l'inserimento del sistema e lo stato di connessione delle telecamere di Vistoda EZVIZ dipendono dall'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
+      "title": "Un'app Vistoda EZVIZ meno recente richiede l'integrazione EZVIZ di Home Assistant",
+      "description": "Almeno un'app Vistoda EZVIZ è precedente alla versione 0.10, quindi impostazioni delle telecamere, inserimento del sistema e stato di connessione delle telecamere dipendono ancora dall'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiorna l'app Vistoda EZVIZ alla 0.10 o successiva per usare il suo accesso EZVIZ (l'integrazione nativa diventa facoltativa), oppure aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
     }
   },
   "selector": {
@@ -228,6 +228,7 @@
       "ring_unlock_mode": {"name": "Modalità apertura", "state": {"direct": "Diretta", "ring_to_open": "Ring-to-Open"},
         "state_attributes": {"duration_seconds": {"name": "Durata apertura"},
           "ring_to_open_enabled": {"name": "Ring-to-Open attivo"}}},
+      "ezviz_battery": {"name": "Batteria", "state_attributes": {"work_mode": {"name": "Modalità di lavoro"}}},
       "ezviz_microsd": {"name": "Scheda microSD", "state": {"ok": "OK", "no_card": "Nessuna scheda", "unformatted": "Non formattata",
         "error": "Errore", "unknown": "Sconosciuto"}, "state_attributes": {"capacity_mb": {"name": "Capacità (MB)"}}}
     },

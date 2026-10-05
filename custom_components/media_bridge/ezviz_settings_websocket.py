@@ -1,4 +1,4 @@
-"""Verified settings boundary over Home Assistant's native EZVIZ session."""
+"""Verified EZVIZ settings: the Vistoda EZVIZ app first, else HA's native EZVIZ session."""
 
 from typing import Any
 
@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
 from .ezviz_bounded_call import bounded_call
+from .ezviz_controls_websocket import async_app_info, async_app_set, ws_ptz
 from .ezviz_provider_settings import (
     current_value,
     provider_value,
@@ -18,6 +19,8 @@ from .ezviz_provider_settings import (
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 KEY = vol.All(str, vol.Length(min=1, max=64))
+# Integers are only valid for the app's sensitivity range.
+VALUE = vol.Any(bool, int, str)
 
 
 def _resolve(hass: HomeAssistant, entry_id: str):
@@ -57,19 +60,23 @@ async def _read_back(coordinator, serial: str, key: str) -> Any:
 def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_settings_info)
     websocket_api.async_register_command(hass, ws_settings_set)
+    websocket_api.async_register_command(hass, ws_ptz)
 
 
 @websocket_api.websocket_command(
     {vol.Required("type"): "media_bridge/ezviz/settings/info", vol.Required("entry_id"): ENTRY_ID}
 )
-@callback
-def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
+@websocket_api.async_response
+async def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
+    if await async_app_info(hass, connection, msg):
+        return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "unavailable", "EZVIZ settings are unavailable")
         return
     coordinator, serial = resolved
-    connection.send_result(msg["id"], {"settings": settings_from_data(coordinator.data[serial])})
+    settings = settings_from_data(coordinator.data[serial])
+    connection.send_result(msg["id"], {"settings": settings, "source": "native"})
 
 
 @websocket_api.websocket_command(
@@ -77,14 +84,16 @@ def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
         vol.Required("type"): "media_bridge/ezviz/settings/set",
         vol.Required("entry_id"): ENTRY_ID,
         vol.Required("key"): KEY,
-        vol.Required("value"): vol.Any(bool, str),
-        vol.Required("expected_value"): vol.Any(bool, str),
+        vol.Required("value"): VALUE,
+        vol.Required("expected_value"): VALUE,
     }
 )
 @websocket_api.async_response
 async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
     if not connection.user.is_admin:
         connection.send_error(msg["id"], "unauthorized", "Administrator access required")
+        return
+    if await async_app_set(hass, connection, msg):
         return
     if not writable(msg["key"]):
         connection.send_error(msg["id"], "not_supported", "EZVIZ setting is read-only")
@@ -135,4 +144,5 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
         await coordinator.async_refresh()
         connection.send_error(msg["id"], "unavailable", "EZVIZ rejected the setting")
         return
-    connection.send_result(msg["id"], {"settings": settings_from_data(coordinator.data[serial])})
+    settings = settings_from_data(coordinator.data[serial])
+    connection.send_result(msg["id"], {"settings": settings, "source": "native"})

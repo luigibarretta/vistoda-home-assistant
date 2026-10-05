@@ -61,7 +61,13 @@ def core_available(hass) -> bool:
 
 
 def refresh_core_issue(hass, *, exclude_entry_id: str | None = None) -> None:
-    """Raise one global repair while any Vistoda EZVIZ entry depends on the native one."""
+    """Raise one global repair while any Vistoda EZVIZ entry depends on the native one.
+
+    An entry whose Vistoda EZVIZ app answers /controls (0.10+) reads and writes
+    settings, arming and connectivity through the app, so it no longer needs the
+    native integration. Until the app has answered, the entry still counts.
+    """
+    from .ezviz_controls import runtime_controls, supports_controls
     from .repairs import update_ezviz_core_issue
 
     if not getattr(hass, "is_running", True):
@@ -70,6 +76,7 @@ def refresh_core_issue(hass, *, exclude_entry_id: str | None = None) -> None:
         entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ
         and entry.entry_id != exclude_entry_id
         and getattr(entry, "disabled_by", None) is None
+        and not supports_controls(getattr(runtime_controls(hass, entry.entry_id), "data", None))
         for entry in hass.config_entries.async_entries(DOMAIN)
     )
     update_ezviz_core_issue(hass, available=not needed or core_available(hass))

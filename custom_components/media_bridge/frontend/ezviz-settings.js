@@ -1,6 +1,8 @@
 import { copy } from "./panel-copy.js";
 import { openMoreInfo } from "./panel-helpers.js";
-import { OPTION_LABELS, PROVIDER_LABELS, isActionable, settingsSections } from "./ezviz-settings-model.js";
+import {
+  OPTION_LABELS, infoText, isActionable, numberValue, providerLabel, saveErrorCopy, settingsSections,
+} from "./ezviz-settings-model.js";
 
 const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -33,7 +35,8 @@ class VistodaEzvizSettings extends HTMLElement {
 
   _render() {
     // Rebuilding would close an open confirmation or a native select picker.
-    if (this.shadowRoot.querySelector("#confirm")?.open || this.shadowRoot.activeElement?.tagName === "SELECT") return;
+    if (this.shadowRoot.querySelector("#confirm")?.open
+      || ["SELECT", "INPUT"].includes(this.shadowRoot.activeElement?.tagName)) return;
     const opened = new Set([...this.shadowRoot.querySelectorAll("details[open]")]
       .map((item) => item.dataset.group));
     const sections = settingsSections(this._entry?.native_entities || [], this._provider);
@@ -53,7 +56,8 @@ class VistodaEzvizSettings extends HTMLElement {
       dialog{max-width:360px;border:1px solid var(--divider-color);border-radius:16px;padding:20px;color:var(--primary-text-color);
         background:var(--card-background-color)}dialog::backdrop{background:#0009}.confirm-actions{display:flex;gap:8px;margin-top:18px}
       .empty{color:var(--secondary-text-color);font-size:13px;padding:0 0 12px 36px;margin:0}
-    </style>${this._error ? `<p class="empty" role="alert">${copy(this, "Impossibile applicare le impostazioni EZVIZ.")}</p>` : ""}${sections.map((section) => `<details class="group" data-group="${section.key}"><summary>
+      input[type=range]{flex:1;max-width:46%;accent-color:var(--primary-color)}
+    </style>${this._error ? `<p class="empty" role="alert">${copy(this, this._error)}</p>` : ""}${sections.map((section) => `<details class="group" data-group="${section.key}"><summary>
       <ha-icon icon="${section.icon}"></ha-icon><strong>${copy(this, section.label)}</strong>
       <ha-icon class="chevron" icon="mdi:chevron-right"></ha-icon></summary>
       ${section.rows.length || section.provider.length ? `<div class="rows">${section.rows.map((entity) => {
@@ -73,8 +77,12 @@ class VistodaEzvizSettings extends HTMLElement {
     this.shadowRoot.querySelectorAll("details").forEach((item) => { item.open = opened.has(item.dataset.group); });
     this.shadowRoot.querySelectorAll("button[data-entity]").forEach((button) => button.addEventListener("click", () =>
       openMoreInfo(this, button.dataset.entity)));
-    this.shadowRoot.querySelectorAll("[data-setting]").forEach((control) => control.addEventListener("change", () =>
-      this._stage(control.dataset.setting, control.tagName === "SELECT" ? control.value : control.getAttribute("aria-pressed") !== "true")));
+    this.shadowRoot.querySelectorAll("select[data-setting]").forEach((control) => control.addEventListener("change", () =>
+      this._stage(control.dataset.setting, control.value)));
+    this.shadowRoot.querySelectorAll("input[data-setting]").forEach((control) => control.addEventListener("change", () => {
+      const value = numberValue(this._provider.find((item) => item.key === control.dataset.setting) || {}, control.value);
+      if (value !== null) this._stage(control.dataset.setting, value);
+    }));
     this.shadowRoot.querySelectorAll("button.provider-toggle").forEach((control) => control.addEventListener("click", () =>
       this._stage(control.dataset.setting, control.getAttribute("aria-pressed") !== "true")));
     this.shadowRoot.querySelector("#save")?.addEventListener("click", () => this.shadowRoot.querySelector("#confirm").showModal());
@@ -84,10 +92,15 @@ class VistodaEzvizSettings extends HTMLElement {
 
   _providerRow(setting) {
     const value = this._draft.has(setting.key) ? this._draft.get(setting.key) : setting.value;
-    const label = copy(this, PROVIDER_LABELS[setting.key] || setting.key);
+    const label = copy(this, providerLabel(setting.key));
     // Read-only provider state (e.g. the alarm schedule) is shown, never staged.
     if (setting.kind === "status") return `<div class="row" data-status="${setting.key}"><span class="name">${label}</span>
       <span class="value">${copy(this, value ? "Attivata" : "Disattivata")}</span></div>`;
+    if (setting.kind === "info") return `<div class="row" data-status="${html(setting.key)}"><span class="name">${html(label)}</span>
+      <span class="value">${html(copy(this, infoText(setting)))}</span></div>`;
+    if (setting.kind === "number") return `<label class="row"><span class="name">${html(label)}</span>
+      <input type="range" data-setting="${html(setting.key)}" min="${Number(setting.min)}" max="${Number(setting.max)}" step="1"
+        value="${Number(value)}" aria-valuetext="${Number(value)}"><span class="value">${Number(value)}</span></label>`;
     if (setting.kind === "select") return `<label class="row"><span class="name">${label}</span><select data-setting="${setting.key}">
       ${setting.options.map((option) => `<option value="${option}"${option === value ? " selected" : ""}>${copy(this, OPTION_LABELS[option] || option)}</option>`).join("")}</select></label>`;
     return `<button class="row provider-toggle" data-setting="${setting.key}" aria-pressed="${value}"><span class="name">${label}</span>
@@ -106,7 +119,9 @@ class VistodaEzvizSettings extends HTMLElement {
         this._provider = result.settings;
       }
       this._draft.clear(); this._render();
-    } catch { this._draft.clear(); await this._loadProvider(); this._error = true; this._render(); }
+    } catch (error) {
+      this._draft.clear(); await this._loadProvider(); this._error = saveErrorCopy(error?.code); this._render();
+    }
     finally { this._saving = false; }
   }
 }

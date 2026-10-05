@@ -1,5 +1,5 @@
 import { copy } from "./panel-copy.js";
-import { ptzServiceCall } from "./ezviz-ptz-model.js";
+import { ptzRequest } from "./ezviz-ptz-model.js";
 
 const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 const STYLE = `.ptz{position:absolute;z-index:3;left:50%;bottom:calc(56px + env(safe-area-inset-bottom));
@@ -10,8 +10,9 @@ const STYLE = `.ptz{position:absolute;z-index:3;left:50%;bottom:calc(56px + env(
   .ptz [data-direction="up"]{grid-area:up}.ptz [data-direction="down"]{grid-area:down}
   .ptz [data-direction="left"]{grid-area:left}.ptz [data-direction="right"]{grid-area:right}`;
 
-// Accessible D-pad over the live video. Each press is one native PTZ step
-// (HA core presses START then STOP); presses never queue while one is pending.
+// Accessible D-pad over the live video. Each press is one PTZ step, through the
+// Vistoda EZVIZ app or a native button (HA core presses START then STOP);
+// presses never queue while one is pending.
 export function mountPtz(stage, hass, targets, status) {
   if (!stage || !targets?.length) return;
   const doc = stage.ownerDocument;
@@ -23,7 +24,8 @@ export function mountPtz(stage, hass, targets, status) {
     if (pending) return;
     pending = true; pad.setAttribute("aria-busy", "true");
     try {
-      await hass.callService(...ptzServiceCall(target));
+      const [kind, payload] = ptzRequest(target);
+      if (kind === "ws") await hass.callWS(payload); else await hass.callService(...payload);
       if (status) status.textContent = "";
     } catch {
       if (status) status.textContent = copy({ hass }, "Comando PTZ non riuscito");

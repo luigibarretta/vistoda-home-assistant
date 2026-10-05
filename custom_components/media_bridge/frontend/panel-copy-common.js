@@ -4,7 +4,9 @@ export const COMMON_COPY = {
   "Tema colori": "Color theme", "Tema Vistoda": "Vistoda theme", "Tema provider": "Provider theme",
   "Area Home Assistant: {p0}": "Home Assistant area: {p0}",
   "Il comando Arma/Disarma si applica all’account EZVIZ associato.": "Arm/Disarm applies to the linked EZVIZ account.",
-  "Collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema.": "Connect the EZVIZ integration in Home Assistant to control the system.",
+  "Aggiorna l’app Vistoda EZVIZ alla versione 0.10 o collega l’integrazione EZVIZ in Home Assistant per il controllo del sistema.":
+    "Update the Vistoda EZVIZ app to version 0.10 or connect the EZVIZ integration in Home Assistant to control the system.",
+  "Controllo del sistema non ancora disponibile dall’app Vistoda EZVIZ.": "System control is not available from the Vistoda EZVIZ app yet.",
   "Stato non confermato. Verifica il sistema prima di riprovare.": "State not confirmed. Check the system before trying again.",
   "Armato": "Armed",
   "Il microfono è già usato da un’altra sessione Vistoda": "The microphone is already in use by another Vistoda session",

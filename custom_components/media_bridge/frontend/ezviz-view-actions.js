@@ -6,8 +6,10 @@ import { ptzTargets } from "./ezviz-ptz-model.js";
 export const ezvizViewActions = {
   _openLive() {
     this._liveDialog ||= new CameraLiveDialog(this);
-    // PTZ buttons belong to the native camera bound to this Vistoda entry.
-    const ptz = ptzTargets(this._cameraEntry()?.native_entities, this._hass?.states);
+    // PTZ goes through the Vistoda EZVIZ app when it reports PTZ; otherwise the
+    // native buttons of the camera bound to this Vistoda entry are used.
+    const entry = this._cameraEntry();
+    const ptz = ptzTargets(entry?.native_entities, this._hass?.states, entry?.controls?.ptz ? entry.entry_id : null);
     this._liveDialog.open(this._hass, firstEntity(this._cameraDevice(), "camera")?.entity_id, { ptz });
   },
 

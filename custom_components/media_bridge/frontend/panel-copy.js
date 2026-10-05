@@ -6,9 +6,10 @@ import { BLINK_COPY } from "./panel-copy-blink.js";
 import { STORAGE_COPY } from "./panel-copy-storage.js";
 import { CHECKLIST_COPY } from "./panel-copy-checklist.js";
 import { DEVICE_COPY } from "./panel-copy-devices.js";
+import { EZVIZ_COPY } from "./panel-copy-ezviz.js";
 
 export const ADVANCED_COPY = Object.freeze({ ...COMMON_COPY, ...RING_COPY, ...BLINK_COPY, ...STORAGE_COPY,
-  ...CHECKLIST_COPY, ...DEVICE_COPY });
+  ...CHECKLIST_COPY, ...DEVICE_COPY, ...EZVIZ_COPY });
 export function copyLocale(context) {
   return context?._hass || context?.hass || context?.host?._hass || context?.host?.hass || context;
 }

@@ -124,10 +124,12 @@ remains HTTP 401 and keeps its existing error.
 `binary_sensor.*_intercom_connection` (Ring) follows the engine's `online`
 status every minute and is unavailable when the bridge cannot be reached.
 Each EZVIZ camera gets `binary_sensor.*_camera_connection`, read from the
-native Home Assistant EZVIZ integration (status 1 online, 2 offline). The EZVIZ
-panel badge and **Connection** fact show the camera; **Vistoda app** shows the
-bridge. Repairs raises `ezviz_core_unavailable` while that native integration
-is missing, disabled or failed, because EZVIZ settings and arming depend on it.
+Vistoda EZVIZ app's `/controls` (`online`, app 0.10+) or, for older apps, from
+the native Home Assistant EZVIZ integration (status 1 online, 2 offline). The
+EZVIZ panel badge and **Connection** fact show the camera; **Vistoda app** shows
+the bridge. Repairs raises `ezviz_core_unavailable` only while an EZVIZ entry
+whose app predates 0.10 has no loaded native integration; with app 0.10+ the
+native integration is optional. See [EZVIZ controls](ezviz-controls.md).
 
 Ring engines from 0.15.0 report `push_degraded` and `last_missed_ding_at`.
 Repairs shows `ring_push_silent_<entry_id>` while Ring stops delivering call

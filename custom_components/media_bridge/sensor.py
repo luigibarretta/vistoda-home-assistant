@@ -49,6 +49,19 @@ async def async_setup_entry(
                 lambda: [RingUnlockModeSensor(status, entry)],
                 async_add_entities,
             )
+    controls = getattr(runtime, "ezviz_controls", None)
+    if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ and controls is not None:
+        from .ezviz_controls import reports_battery
+        from .ezviz_controls_entities import EzvizBatterySensor
+
+        # The binary_sensor platform starts the first poll; this only waits for it.
+        async_add_when_supported(
+            entry,
+            controls,
+            reports_battery,
+            lambda: [EzvizBatterySensor(controls, entry)],
+            async_add_entities,
+        )
     media = getattr(runtime, "ezviz_media", None)
     if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ and media is not None:
         async_add_when_supported(

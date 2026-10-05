@@ -25,6 +25,12 @@ async def async_setup_entry(
     if provider == PROVIDER_EZVIZ:
         entities.append(EzvizCameraConnectivity(entry))
     async_add_entities(entities)
+    controls = getattr(runtime, "ezviz_controls", None)
+    if provider == PROVIDER_EZVIZ and controls is not None and controls.data is None:
+        # Off the setup path: an older app answers 404 and keeps the native path.
+        entry.async_create_background_task(
+            hass, controls.async_refresh(), f"Vistoda EZVIZ controls {entry.entry_id}"
+        )
     media = getattr(runtime, "ezviz_media", None)
     if provider == PROVIDER_EZVIZ and media is not None:
         from .entity_gate import async_add_when_supported
@@ -132,7 +138,7 @@ class RingIntercomConnectivity(CoordinatorEntity, BinarySensorEntity):
 
 
 class EzvizCameraConnectivity(BinarySensorEntity):
-    """Report camera reachability from Home Assistant's native EZVIZ coordinator."""
+    """Camera reachability from the Vistoda EZVIZ app, else the native coordinator."""
 
     _attr_has_entity_name = True
     _attr_translation_key = "ezviz_camera_connectivity"
@@ -157,9 +163,17 @@ class EzvizCameraConnectivity(BinarySensorEntity):
         await self.async_update()
 
     async def async_update(self) -> None:
-        """Read the in-memory native snapshot; this never calls the EZVIZ cloud."""
+        """Read in-memory polls only; this never calls the app or the EZVIZ cloud."""
+        from .ezviz_controls import app_camera_online
         from .ezviz_core import native_camera_online
 
-        online = native_camera_online(self.hass, self._entry)
+        online = app_camera_online(self.hass, self._entry.entry_id)
+        source = "media_bridge"
+        if online is None:
+            online, source = native_camera_online(self.hass, self._entry), "ezviz"
         self._attr_available = online is not None
         self._attr_is_on = online
+        self._attr_extra_state_attributes = {
+            "connectivity_scope": "camera",
+            "source_integration": source,
+        }

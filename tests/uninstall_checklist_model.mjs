@@ -73,3 +73,16 @@ test("EZVIZ encryption and microSD come from the app status when known", () => {
     ...option, ...none].map((item) => item.note).filter(Boolean);
   for (const note of notes) assert.ok(Object.hasOwn(ADVANCED_COPY, note), note);
 });
+
+test("EZVIZ controls through the Vistoda app no longer require the native integration", () => {
+  const ezviz = (entries) => checklistSections(info({ ezviz: { configured: true, entries } }))[0].items[1];
+  const app = { entry_id: "a", controls: { supported: true } };
+  const old = { entry_id: "b", controls: { supported: false } };
+  assert.deepEqual(ezviz([app]), { text: CHECKLIST.ezviz[1], state: "ok",
+    note: "Controlli tramite l’app Vistoda EZVIZ", links: [] });
+  assert.equal(ezviz([app, old]).note, "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa");
+  assert.equal(ezviz([app, { ...old, device_name: "Spioncino" }]).note, "Integrazione nativa collegata");
+  for (const note of ["Controlli tramite l’app Vistoda EZVIZ", "Aggiorna l’app Vistoda EZVIZ alla 0.10 o collega l’integrazione nativa"]) {
+    assert.ok(Object.hasOwn(ADVANCED_COPY, note), note);
+  }
+});
