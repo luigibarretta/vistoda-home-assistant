@@ -174,8 +174,8 @@
       "description": "Il bridge Ring è raggiungibile, ma il suo canale eventi nativo è rimasto disconnesso. Le notifiche del citofono continuano a usare l'integrazione Ring ufficiale quando disponibile. Controlla l'accesso di rete e i log dell'app Vistoda Ring."
     },
     "ring_push_silent": {
-      "title": "Ring ha smesso di inviare le notifiche di chiamata per {name}",
-      "description": "Il motore Vistoda Ring è connesso, ma Ring non sta più consegnando le notifiche di chiamata in tempo reale: alcune chiamate potrebbero andare perse. Nelle impostazioni dell'account Ring controlla i dispositivi client autorizzati, mantieni autorizzato il dispositivo Vistoda e verifica che le notifiche di questo citofono siano attive; se necessario, ripeti l'accesso da questa integrazione. Vistoda continua a controllare e rimuove questo avviso quando le notifiche riprendono."
+      "title": "Ring non invia le chiamate in tempo reale per {name}",
+      "description": "Ring non consegna a Vistoda le chiamate del citofono in tempo reale. Vistoda controlla la cronologia Ring e segnala una chiamata persa con l'orario poco dopo; più chiamate ravvicinate possono essere segnalate una volta sola. Vistoda rinnova già da sé la registrazione per le notifiche. Se l'avviso resta per giorni, ripetere l'accesso da questa integrazione rinnova la sessione Ring. L'avviso si chiude da solo quando Ring torna a consegnare le chiamate in tempo reale."
     },
     "ezviz_core_unavailable": {
       "title": "Una telecamera Vistoda EZVIZ è delegata all'integrazione EZVIZ di Home Assistant",
