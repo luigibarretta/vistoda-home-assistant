@@ -4,11 +4,12 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client_ezviz_media import EzvizEncryption, EzvizFeatureUnsupportedError, EzvizStorage
 from .const import CONF_ALIAS
-from .errors import BridgeError
+from .errors import BridgeError, ReauthRequiredError
 
 _LOGGER = logging.getLogger(__name__)
 # The Vistoda EZVIZ app caches both documents for ten minutes as well.
@@ -80,5 +81,7 @@ class EzvizMediaCoordinator(DataUpdateCoordinator):
                 encryption=await self._optional(self.client.ezviz_encryption),
                 storage=await self._optional(self.client.ezviz_storage),
             )
+        except ReauthRequiredError as error:
+            raise ConfigEntryAuthFailed("EZVIZ session requires a new login") from error
         except BridgeError as error:
             raise UpdateFailed("EZVIZ media status check failed") from error

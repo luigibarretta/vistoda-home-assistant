@@ -16,6 +16,9 @@ class UpdateFailedError(Exception):
 
 
 class Coordinator:
+    def __class_getitem__(cls, _item):
+        return cls
+
     def __init__(self, hass, *, logger=None, name="", update_interval=None, config_entry=None):
         self.hass = hass
         self.config_entry = config_entry

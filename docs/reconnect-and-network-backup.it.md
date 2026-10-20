@@ -139,6 +139,17 @@ telecamera; **App Vistoda** mostra il bridge. Riparazioni segnala
 l'integrazione nativa caricata; le entry autonome non la richiedono mai. Vedi
 [Controlli EZVIZ](ezviz-controls.it.md).
 
+Le segnalazioni di guasto ignorano riavvii e interruzioni brevi:
+`bridge_unavailable_<entry_id>`, `ring_push_unavailable_<entry_id>`,
+`ezviz_core_unavailable` e una verifica d'identità EZVIZ senza risposta
+(`ezviz_binding_unavailable_<entry_id>`) compaiono solo dopo 15 minuti di guasto
+continuo e si chiudono al primo successo; le entità diventano comunque subito
+non disponibili. Una telecamera diversa dietro un alias EZVIZ apre
+`ezviz_binding_unavailable_<entry_id>` subito. Un'app Ring irraggiungibile non
+apre mai la segnalazione push. Una sessione EZVIZ revocata (HTTP 403
+`reauth_required`) avvia la nuova autenticazione come per Ring; HTTP 401 resta
+un errore del token bridge.
+
 I motori Ring dalla 0.15.0 riportano `push_degraded` e `last_missed_ding_at`.
 Riparazioni mostra `ring_push_silent_<entry_id>` finché Ring non consegna le
 notifiche di chiamata e lo rimuove quando riprendono. Ogni nuova chiamata persa

@@ -182,9 +182,22 @@ def api_env(monkeypatch, runtime_client):
             async_get_entry=lambda key: entry if key == entry.entry_id else None
         ),
     )
-    return SimpleNamespace(
-        api=api, hass=hass, runtime=runtime, request=SimpleNamespace(app={"hass": hass})
-    )
+    return SimpleNamespace(api=api, hass=hass, runtime=runtime, request=request(hass, ADMIN))
+
+
+ADMIN = SimpleNamespace(is_active=True, is_admin=True)
+
+
+class Request(dict):
+    """aiohttp requests are mappings that carry the authenticated user."""
+
+    def __init__(self, hass, user) -> None:
+        super().__init__(hass_user=user)
+        self.app = {"hass": hass}
+
+
+def request(hass, user) -> Request:
+    return Request(hass, user)
 
 
 async def test_picture_view_validates_ids_and_marks_cache_private(monkeypatch) -> None:
@@ -220,7 +233,7 @@ async def test_history_command_reports_old_apps_without_errors(monkeypatch) -> N
         ezviz_alarms=AsyncMock(side_effect=[batch([4, 5], 5), AlarmsUnsupportedError()]),
     )
     env = api_env(monkeypatch, client)
-    connection = SimpleNamespace(send_result=Mock(), send_error=Mock())
+    connection = SimpleNamespace(user=ADMIN, send_result=Mock(), send_error=Mock())
     await env.api.ws_list_alarms(env.hass, connection, {"id": 1, "entry_id": "01J9ENTRY"})
     result = connection.send_result.call_args.args[1]
     assert result["supported"] is True

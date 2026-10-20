@@ -162,16 +162,20 @@
   },
   "issues": {
     "bridge_unavailable": {
-      "title": "Vistoda {provider} is unavailable",
-      "description": "Home Assistant cannot reach the private Vistoda {provider} bridge. Check the matching app status and logs, then reload this integration. Credentials and private addresses are intentionally omitted from this issue."
+      "title": "The Vistoda {provider} app cannot be reached",
+      "description": "For more than 15 minutes Home Assistant has not been able to reach the Vistoda {provider} app, so its devices show as unavailable. Vistoda keeps trying every minute and this issue clears automatically as soon as the app answers again. If it persists, open Settings → Apps → Vistoda {provider}, check that the app is running and look at its logs. Credentials and private addresses are intentionally omitted from this issue."
     },
     "ezviz_binding_unavailable": {
       "title": "Vistoda cannot verify the selected EZVIZ camera",
-      "description": "The app is reachable, but its camera identity is unavailable or no longer matches this Home Assistant entry. Update Vistoda EZVIZ first, restore the camera serial and channel assigned to this alias, then reload the integration. Vistoda blocks live media and camera operations until the binding matches."
+      "description": "For more than 15 minutes the Vistoda EZVIZ app has not confirmed which camera this entry is bound to. Nothing indicates that the camera changed, but until the check succeeds Vistoda keeps live video and camera operations blocked for safety. This issue clears automatically as soon as the check succeeds. If it persists, open Settings → Apps → Vistoda EZVIZ, check that the app is running and up to date, and look at its logs."
+    },
+    "ezviz_binding_mismatch": {
+      "title": "The Vistoda EZVIZ camera for this entry has changed",
+      "description": "The Vistoda EZVIZ app now reports a different camera (serial number or channel) for this entry than the one Home Assistant was set up with. Vistoda blocks live video and camera operations so it never shows or controls the wrong camera. Restore the original camera for this alias in the Vistoda EZVIZ app configuration (Settings → Apps → Vistoda EZVIZ); this issue clears automatically within a minute of the next successful check. If you replaced the camera on purpose, delete this entry and add the new camera again."
     },
     "ring_push_unavailable": {
       "title": "Vistoda Ring is not receiving intercom calls in real time",
-      "description": "For more than 15 minutes Ring has not accepted the Vistoda Ring app's registration for real-time notifications. The app keeps retrying on its own and this issue closes as soon as it succeeds. Meanwhile calls are still found in the Ring history and reported with their time a few minutes later. If it lasts for hours, check the Vistoda Ring app logs and its internet access."
+      "description": "For more than 15 minutes the Vistoda Ring app has reported that Ring is not delivering real-time notifications to it (Ring has not accepted its push registration, or the app cannot reach Ring). The app keeps retrying on its own and this issue closes as soon as it succeeds. Meanwhile calls are still found in the Ring history and reported with their time a few minutes later. If it lasts for hours, open Settings → Apps → Vistoda Ring and check its logs and its internet access."
     },
     "ring_push_silent": {
       "title": "Ring is not sending instant call notifications for {name}",
@@ -179,7 +183,7 @@
     },
     "ezviz_core_unavailable": {
       "title": "A Vistoda EZVIZ camera is delegated to the Home Assistant EZVIZ integration",
-      "description": "At least one Vistoda EZVIZ camera has \"Delegate controls to the official EZVIZ integration\" turned on, so its camera settings, arming, detection, PTZ and camera connectivity use the official Home Assistant EZVIZ integration, which is missing, disabled or failed to load. Add or repair the EZVIZ integration in Settings → Devices & services, or turn the delegation switch off on the Vistoda EZVIZ camera device to use the Vistoda EZVIZ app's own EZVIZ login (standalone mode, the default). Standalone cameras never need the official integration. Live video and snapshots through the Vistoda EZVIZ app keep working."
+      "description": "At least one Vistoda EZVIZ camera has \"Delegate controls to the official EZVIZ integration\" turned on, so its camera settings, arming, detection, PTZ and camera connectivity use the official Home Assistant EZVIZ integration, which has been missing, disabled or not loaded for more than 15 minutes. This issue clears automatically as soon as that integration loads again. Otherwise add or repair the EZVIZ integration in Settings → Devices & services, or turn the delegation switch off on the Vistoda EZVIZ camera device to use the Vistoda EZVIZ app's own EZVIZ login (standalone mode, the default). Standalone cameras never need the official integration. Live video and snapshots through the Vistoda EZVIZ app keep working."
     }
   },
   "selector": {
@@ -196,7 +200,8 @@
       "connectivity": {"name": "Connection"},
       "ring_intercom_connectivity": {"name": "Intercom connection"},
       "ezviz_camera_connectivity": {"name": "Camera connection"},
-      "ezviz_microsd_problem": {"name": "microSD problem"}
+      "ezviz_microsd_problem": {"name": "microSD problem"},
+      "vistoda_audio": {"name": "Vistoda audio"}
     },
     "button": {
       "ring_open_door": {"name": "Open door"}

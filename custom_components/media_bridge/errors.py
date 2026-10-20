@@ -35,3 +35,7 @@ class RateLimitedError(BridgeError):
 
 class ReauthRequiredError(BridgeError):
     """The bridge token is valid, but the vendor session was revoked."""
+
+
+class BindingMismatchError(CannotConnectError):
+    """The app answered, but the alias no longer names the pinned physical camera."""

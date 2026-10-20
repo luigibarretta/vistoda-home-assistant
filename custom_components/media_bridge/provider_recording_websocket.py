@@ -10,6 +10,7 @@ from . import BridgeRuntime
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 from .ezviz_binding import async_verify_native
+from .ring_access import can_access_ezviz_entry
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 RECORDING_ID = vol.All(str, vol.Match(r"^[0-9a-f-]{36}$"))
@@ -34,6 +35,8 @@ def async_register(hass: HomeAssistant) -> None:
 @websocket_api.async_response
 async def ws_refresh_snapshot(hass, connection, msg: dict[str, Any]) -> None:
     """Fetch and persist one snapshot only after an explicit UI action."""
+    if not _permitted(hass, connection, msg):
+        return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
@@ -67,6 +70,8 @@ async def ws_refresh_snapshot(hass, connection, msg: dict[str, Any]) -> None:
 @websocket_api.async_response
 async def ws_list_recordings(hass, connection, msg: dict[str, Any]) -> None:
     """Return redacted provider-local manifests."""
+    if not _permitted(hass, connection, msg):
+        return
     resolved = _resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
@@ -167,3 +172,11 @@ def _resolve(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str] | 
     ):
         return None
     return runtime, entry.data[CONF_ALIAS]
+
+
+def _permitted(hass, connection, msg) -> bool:
+    """Non-admin users need read access to this camera's entity."""
+    if can_access_ezviz_entry(hass, connection.user, msg["entry_id"]):
+        return True
+    connection.send_error(msg["id"], "unauthorized", "EZVIZ access is not permitted")
+    return False

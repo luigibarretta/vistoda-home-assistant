@@ -162,16 +162,20 @@
   },
   "issues": {
     "bridge_unavailable": {
-      "title": "Vistoda {provider} non è disponibile",
-      "description": "Home Assistant non riesce a raggiungere il bridge privato Vistoda {provider}. Controlla lo stato e i log dell'app corrispondente, quindi ricarica l'integrazione. Credenziali e indirizzi privati sono intenzionalmente esclusi dal problema."
+      "title": "L'app Vistoda {provider} non è raggiungibile",
+      "description": "Da oltre 15 minuti Home Assistant non riesce a contattare l'app Vistoda {provider}, quindi i suoi dispositivi risultano non disponibili. Vistoda riprova ogni minuto e questa segnalazione si chiude da sola appena l'app torna a rispondere. Se persiste, apri Impostazioni → App → Vistoda {provider}, controlla che l'app sia avviata e guardane i log. Credenziali e indirizzi privati sono intenzionalmente esclusi da questa segnalazione."
     },
     "ezviz_binding_unavailable": {
       "title": "Vistoda non può verificare la telecamera EZVIZ selezionata",
-      "description": "L'app è raggiungibile, ma l'identità della telecamera non è disponibile o non corrisponde più a questa voce di Home Assistant. Aggiorna prima Vistoda EZVIZ, ripristina seriale e canale assegnati a questo alias, quindi ricarica l'integrazione. Vistoda blocca live e operazioni finché l'associazione non coincide."
+      "description": "Da oltre 15 minuti l'app Vistoda EZVIZ non conferma a quale telecamera è associata questa voce. Nulla indica che la telecamera sia cambiata, ma finché la verifica non riesce Vistoda tiene bloccati live e comandi per sicurezza. La segnalazione si chiude da sola appena la verifica riesce. Se persiste, apri Impostazioni → App → Vistoda EZVIZ, controlla che l'app sia avviata e aggiornata e guardane i log."
+    },
+    "ezviz_binding_mismatch": {
+      "title": "La telecamera Vistoda EZVIZ di questa voce è cambiata",
+      "description": "L'app Vistoda EZVIZ indica ora per questa voce una telecamera diversa (numero di serie o canale) da quella configurata in Home Assistant. Vistoda blocca live e comandi per non mostrare né comandare mai la telecamera sbagliata. Ripristina la telecamera originale per questo alias nella configurazione dell'app Vistoda EZVIZ (Impostazioni → App → Vistoda EZVIZ); la segnalazione si chiude da sola entro un minuto dalla verifica riuscita. Se hai sostituito la telecamera di proposito, elimina questa voce e aggiungi di nuovo la nuova telecamera."
     },
     "ring_push_unavailable": {
       "title": "Vistoda Ring non riceve le chiamate del citofono in tempo reale",
-      "description": "Da oltre 15 minuti Ring non accetta la registrazione dell'app Vistoda Ring per le notifiche in tempo reale. L'app riprova da sola e questo avviso si chiude appena ci riesce. Nel frattempo le chiamate vengono comunque trovate nella cronologia Ring e segnalate con l'orario qualche minuto dopo. Se dura per ore, controlla i log dell'app Vistoda Ring e il suo accesso a internet."
+      "description": "Da oltre 15 minuti l'app Vistoda Ring segnala che Ring non le consegna le notifiche in tempo reale (Ring non accetta la sua registrazione push, oppure l'app non riesce a raggiungere Ring). L'app riprova da sola e questo avviso si chiude appena ci riesce. Nel frattempo le chiamate vengono comunque trovate nella cronologia Ring e segnalate con l'orario qualche minuto dopo. Se dura per ore, apri Impostazioni → App → Vistoda Ring e controlla i log e il suo accesso a internet."
     },
     "ring_push_silent": {
       "title": "Ring non invia le chiamate in tempo reale per {name}",
@@ -179,7 +183,7 @@
     },
     "ezviz_core_unavailable": {
       "title": "Una telecamera Vistoda EZVIZ è delegata all'integrazione EZVIZ di Home Assistant",
-      "description": "Almeno una telecamera Vistoda EZVIZ ha attivo \"Delega comandi all'integrazione EZVIZ ufficiale\", quindi impostazioni, inserimento, rilevamento, PTZ e stato di connessione della telecamera usano l'integrazione EZVIZ ufficiale di Home Assistant, che risulta assente, disattivata o non caricata. Aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi, oppure disattiva la delega sul dispositivo Vistoda EZVIZ della telecamera per usare l'accesso EZVIZ dell'app Vistoda EZVIZ (modalità autonoma, quella predefinita). Le telecamere in modalità autonoma non richiedono mai l'integrazione ufficiale. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
+      "description": "Almeno una telecamera Vistoda EZVIZ ha attivo \"Delega comandi all'integrazione EZVIZ ufficiale\", quindi impostazioni, inserimento, rilevamento, PTZ e stato di connessione della telecamera usano l'integrazione EZVIZ ufficiale di Home Assistant, che da oltre 15 minuti risulta assente, disattivata o non caricata. La segnalazione si chiude da sola appena l'integrazione torna a caricarsi. Altrimenti aggiungi o ripara l'integrazione EZVIZ in Impostazioni → Dispositivi e servizi, oppure disattiva la delega sul dispositivo Vistoda EZVIZ della telecamera per usare l'accesso EZVIZ dell'app Vistoda EZVIZ (modalità autonoma, quella predefinita). Le telecamere in modalità autonoma non richiedono mai l'integrazione ufficiale. Live e snapshot tramite l'app Vistoda EZVIZ continuano a funzionare."
     }
   },
   "selector": {
@@ -196,7 +200,8 @@
       "connectivity": {"name": "Connessione"},
       "ring_intercom_connectivity": {"name": "Connessione citofono"},
       "ezviz_camera_connectivity": {"name": "Connessione telecamera"},
-      "ezviz_microsd_problem": {"name": "Problema microSD"}
+      "ezviz_microsd_problem": {"name": "Problema microSD"},
+      "vistoda_audio": {"name": "Audio Vistoda"}
     },
     "button": {
       "ring_open_door": {"name": "Apri portone"}

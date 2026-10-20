@@ -144,7 +144,7 @@ class RingRecordingArchive(SensorEntity):
     """Expose count and newest private recording without media URLs."""
 
     _attr_has_entity_name = True
-    _attr_name = "Registrazioni chiamate"
+    _attr_translation_key = "recordings"
     _attr_icon = "mdi:record-rec"
     _attr_native_unit_of_measurement = "registrazioni"
     _attr_should_poll = True

@@ -132,6 +132,16 @@ the bridge. Repairs raises `ezviz_core_unavailable` only while a delegated
 EZVIZ entry has no loaded native integration; standalone entries never need
 it. See [EZVIZ controls](ezviz-controls.md).
 
+Outage repairs wait out restarts and network blips: `bridge_unavailable_<entry_id>`,
+`ring_push_unavailable_<entry_id>`, `ezviz_core_unavailable` and an unanswered
+EZVIZ identity check (`ezviz_binding_unavailable_<entry_id>`) appear only after
+15 minutes of continuous outage and clear on the first success; entities still
+turn unavailable at once. A different camera behind an EZVIZ alias raises
+`ezviz_binding_unavailable_<entry_id>` immediately. A Ring app that cannot be
+reached never raises the push repair. A revoked EZVIZ session (HTTP 403
+`reauth_required`) opens re-authentication as for Ring; HTTP 401 stays a bridge
+token error.
+
 Ring engines from 0.15.0 report `push_degraded` and `last_missed_ding_at`.
 Repairs shows `ring_push_silent_<entry_id>` while Ring stops delivering call
 notifications and clears it when they resume. Each new missed call fires one

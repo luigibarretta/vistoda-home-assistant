@@ -7,7 +7,9 @@ EZVIZ_DOMAIN = "ezviz"
 # pyezvizapi reports deviceInfos.status; HA core treats 2 as offline.
 STATUS_ONLINE = 1
 STATUS_OFFLINE = 2
-# Entries still starting are not failures; every other non-loaded state is.
+# Entries still starting are not failures. Every other state (setup_retry while the
+# native integration retries its cloud login, not_loaded during a reload) counts as
+# unavailable, and the repair waits out the continuous-outage grace (repairs.py).
 PENDING_STATES = {"loaded", "setup_in_progress"}
 # RTSP-only native entries: no cloud coordinator, settings, arming or connectivity.
 CAMERA_ACCOUNT = "CAMERA_ACCOUNT"

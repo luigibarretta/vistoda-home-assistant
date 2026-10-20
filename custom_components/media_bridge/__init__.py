@@ -100,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     provider = entry.data[CONF_PROVIDER]
     if provider == PROVIDER_BLINK:
         client = None
-        coordinator = BlinkAdapterCoordinator(hass)
+        coordinator = BlinkAdapterCoordinator(hass, entry)
     else:
         client = BridgeClient(
             async_get_clientsession(hass),
@@ -110,18 +110,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = BridgeCoordinator(hass, client, entry, f"Vistoda {provider} bridge")
     await coordinator.async_config_entry_first_refresh()
     if provider == PROVIDER_EZVIZ:
-        from .errors import BridgeError
-        from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, async_bind_native
-        from .repairs import update_bridge_issue, update_ezviz_binding_issue
+        from homeassistant.helpers.update_coordinator import UpdateFailed
 
-        try:
-            if CONF_EZVIZ_SOURCE_ID not in entry.data:
-                await async_bind_native(hass, entry, client)
-        except BridgeError as error:
-            update_bridge_issue(hass, entry, available=True)
-            update_ezviz_binding_issue(hass, entry, available=False)
-            raise ConfigEntryNotReady("EZVIZ physical camera identity is unavailable") from error
-        update_ezviz_binding_issue(hass, entry, available=True)
+        from .coordinator import async_check_ezviz_binding
+        from .ezviz_binding import CONF_EZVIZ_SOURCE_ID
+
+        if CONF_EZVIZ_SOURCE_ID not in entry.data:
+            # The first refresh verified an existing pin; a new entry pins it here.
+            try:
+                await async_check_ezviz_binding(hass, entry, client, bind=True)
+            except UpdateFailed as error:
+                raise ConfigEntryNotReady("EZVIZ camera identity is unavailable") from error
         from .ezviz_policy import enforce_delegate_policy
 
         # Before the platforms: the alarm panel follows the corrected option.
@@ -197,22 +196,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload entities and drop the client reference."""
+    """Unload entities first; listeners stop only once nothing can fail anymore."""
+    if not entry.data.get(
+        "ring_camera_account"
+    ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
     runtime = hass.data[DOMAIN].get(entry.entry_id)
     if runtime and runtime.ring_events:
         await runtime.ring_events.stop()
     if runtime and runtime.ezviz_alarms:
         await runtime.ezviz_alarms.stop()
-    if not entry.data.get(
-        "ring_camera_account"
-    ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        return False
+    from .repairs import remove_entry_issues
     from .ring_camera_websocket import async_close_entry
 
     await async_close_entry(hass, entry.entry_id)
     hass.data[DOMAIN].pop(entry.entry_id, None)
+    # A reload re-evaluates them; outage clocks survive so a lasting outage stays lasting.
+    remove_entry_issues(hass, entry.entry_id)
     if entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
         from .ezviz_core import refresh_core_issue
 
         refresh_core_issue(hass, exclude_entry_id=entry.entry_id)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Leave no repair or outage clock behind for a deleted entry."""
+    from .repairs import remove_entry_issues
+
+    remove_entry_issues(hass, entry.entry_id, forget=True)

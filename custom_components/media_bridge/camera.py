@@ -29,7 +29,7 @@ class EzvizBridgeCamera(CoordinatorEntity, Camera):
     """Manually refreshed snapshot plus shared copy-remuxed MPEG-TS live view."""
 
     _attr_has_entity_name = True
-    _attr_name = "Live"
+    _attr_translation_key = "live"
     _attr_supported_features = CameraEntityFeature.STREAM
 
     def __init__(self, runtime: BridgeRuntime, entry: ConfigEntry) -> None:

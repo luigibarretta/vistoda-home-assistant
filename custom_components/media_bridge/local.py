@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -14,8 +15,14 @@ _LOGGER = logging.getLogger(__name__)
 class BlinkAdapterCoordinator(DataUpdateCoordinator[str]):
     """Report the loaded Blink relay without creating a second login."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
-        super().__init__(hass, logger=_LOGGER, name="Vistoda Blink adapter", update_interval=None)
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        super().__init__(
+            hass,
+            logger=_LOGGER,
+            name="Vistoda Blink adapter",
+            update_interval=None,
+            config_entry=entry,
+        )
 
     async def _async_update_data(self) -> str:
         runtime: Any = self.hass.data.get(BLINK_BRIDGE_DOMAIN, {}).get("runtime")

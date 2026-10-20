@@ -13,6 +13,7 @@ from .client_ezviz_alarms import AlarmsUnsupportedError, alarm_picture_path, val
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
 from .errors import BridgeError
 from .ezviz_binding import async_verify_native
+from .ring_access import can_access_ezviz_entry
 
 ENTRY_ID = re.compile(r"[A-Za-z0-9]{1,64}")
 PICTURE_CACHE = "private, max-age=86400"
@@ -41,7 +42,10 @@ class EzvizAlarmPictureView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request, entry_id: str, alarm_id: str) -> web.Response:
-        resolved = resolve(request.app["hass"], entry_id) if valid_picture_id(alarm_id) else None
+        hass = request.app["hass"]
+        if not can_access_ezviz_entry(hass, request.get("hass_user"), entry_id):
+            raise web.HTTPForbidden
+        resolved = resolve(hass, entry_id) if valid_picture_id(alarm_id) else None
         if resolved is None:
             raise web.HTTPNotFound
         entry, runtime = resolved
@@ -68,6 +72,9 @@ class EzvizAlarmPictureView(HomeAssistantView):
 @websocket_api.async_response
 async def ws_list_alarms(hass, connection, msg: dict[str, Any]) -> None:
     """Return the app's recent alarm history, newest first, without a cursor."""
+    if not can_access_ezviz_entry(hass, connection.user, msg["entry_id"]):
+        connection.send_error(msg["id"], "unauthorized", "EZVIZ access is not permitted")
+        return
     resolved = resolve(hass, msg["entry_id"])
     if resolved is None:
         connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")

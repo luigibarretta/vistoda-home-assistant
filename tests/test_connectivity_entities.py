@@ -5,6 +5,8 @@ from types import SimpleNamespace
 import pytest
 from ha_stub_support import config_entry, load, stub_ha
 
+from custom_components.media_bridge import outage
+
 LOADED = SimpleNamespace(value="loaded")
 RETRY = SimpleNamespace(value="setup_retry")
 
@@ -140,7 +142,13 @@ def test_ezviz_core_issue_tracks_native_integration(
     issues = stub_ha(monkeypatch)
     load(monkeypatch, "repairs")
     core = load(monkeypatch, "ezviz_core")
-    core.refresh_core_issue(hass_with(natives, vistoda, running))
+    clock = [0, 900]
+    monkeypatch.setattr(outage, "time", SimpleNamespace(monotonic=lambda: clock.pop(0)))
+    hass = hass_with(natives, vistoda, running)
+    core.refresh_core_issue(hass)
+    # A native entry retrying its login, or briefly missing, is not reported at once.
+    issues.async_create_issue.assert_not_called()
+    core.refresh_core_issue(hass)
     created = issues.async_create_issue.call_args
     deleted = issues.async_delete_issue.call_args
     if expected is None:

@@ -51,7 +51,8 @@ class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):
     """Report whether the private bridge answers its health contract."""
 
     _attr_has_entity_name = True
-    _attr_name = "Audio Vistoda"
+    # Registry entity_ids are kept; only the displayed name follows the HA language.
+    _attr_translation_key = "vistoda_audio"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 

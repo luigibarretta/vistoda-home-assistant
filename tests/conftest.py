@@ -13,3 +13,16 @@ media_bridge = ModuleType("custom_components.media_bridge")
 media_bridge.__path__ = [str(PACKAGE)]
 sys.modules.setdefault("custom_components", custom_components)
 sys.modules.setdefault("custom_components.media_bridge", media_bridge)
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fresh_outage_clocks():
+    """Outage clocks are process-wide by design; every test starts without an outage."""
+    from custom_components.media_bridge import outage
+
+    outage._CLOCKS.clear()
+    yield
+    outage._CLOCKS.clear()

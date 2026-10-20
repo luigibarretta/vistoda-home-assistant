@@ -4,7 +4,7 @@ import hashlib
 import re
 
 from .const import CONF_ALIAS
-from .errors import CannotConnectError
+from .errors import BindingMismatchError, CannotConnectError
 
 CONF_EZVIZ_SOURCE_ID = "ezviz_source_id"
 SOURCE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}:(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-6])$")
@@ -32,13 +32,13 @@ async def async_bind_native(hass, entry, client) -> None:
         )
         return
     if expected != actual or not valid_source_id(expected):
-        raise CannotConnectError
+        raise BindingMismatchError
 
 
 async def async_verify_native(entry, client) -> None:
     """Fail closed when a configured alias no longer names its pinned camera."""
     expected = entry.data.get(CONF_EZVIZ_SOURCE_ID)
     if not valid_source_id(expected):
-        raise CannotConnectError
+        raise BindingMismatchError
     if await client.ezviz_camera_identity(entry.data[CONF_ALIAS]) != expected:
-        raise CannotConnectError
+        raise BindingMismatchError

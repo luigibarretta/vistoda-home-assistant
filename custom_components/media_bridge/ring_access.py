@@ -1,4 +1,4 @@
-"""Apply Home Assistant entity permissions to Ring's custom API boundaries."""
+"""Apply Home Assistant entity permissions to Vistoda's custom API boundaries."""
 
 from functools import wraps
 from inspect import iscoroutinefunction
@@ -7,18 +7,14 @@ from .const import DOMAIN
 from .ring_binding import entity_prefix
 
 
-def can_access_entry(hass, user, entry_id: str, action: str = "read") -> bool:
-    """Use the selected entry's door entity as the Ring access-control resource."""
+def can_access_entity(hass, user, entry_id: str, unique_id: str, action: str = "read") -> bool:
+    """Admins pass; other active users need `action` on that entry's enabled entity."""
     from homeassistant.helpers import entity_registry as er
 
     if user is None or not user.is_active:
         return False
     if user.is_admin:
         return True
-    entry = hass.config_entries.async_get_entry(entry_id)
-    if entry is None:
-        return False
-    unique_id = f"{entity_prefix(entry)}facade-open_door"
     entities = er.async_get(hass).entities.values()
     return any(
         entity.config_entry_id == entry_id
@@ -28,6 +24,30 @@ def can_access_entry(hass, user, entry_id: str, action: str = "read") -> bool:
         and user.permissions.check_entity(entity.entity_id, action)
         for entity in entities
     )
+
+
+def can_access_entry(hass, user, entry_id: str, action: str = "read") -> bool:
+    """Use the selected entry's door entity as the Ring access-control resource."""
+    if user is not None and user.is_active and user.is_admin:
+        return True
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return False
+    return can_access_entity(
+        hass, user, entry_id, f"{entity_prefix(entry)}facade-open_door", action
+    )
+
+
+def can_access_ezviz_entry(hass, user, entry_id: str, action: str = "read") -> bool:
+    """Use the EZVIZ entry's live camera entity as its access-control resource."""
+    from .ezviz_identity import entity_prefix as ezviz_prefix
+
+    if user is not None and user.is_active and user.is_admin:
+        return True
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return False
+    return can_access_entity(hass, user, entry_id, f"{ezviz_prefix(entry)}bridge-camera", action)
 
 
 async def async_require_context(hass, context, entry_id: str) -> None:

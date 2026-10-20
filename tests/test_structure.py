@@ -241,7 +241,8 @@ def test_ring_door_service_is_vistoda_first_and_visible() -> None:
 def test_ring_device_exposes_its_panel_and_audio_contract() -> None:
     sensor = (COMPONENT / "binary_sensor.py").read_text(encoding="utf-8")
     assert '"identifiers": {(DOMAIN, f"{provider}:{alias}")}' in sensor
-    assert '_attr_name = "Audio Vistoda"' in sensor
+    assert '_attr_translation_key = "vistoda_audio"' in sensor
+    assert "_attr_name" not in sensor
     assert 'self._attr_device_info["configuration_url"]' in sensor
     assert 'attributes["panel_path"] = f"/vistoda/{self._provider}"' in sensor
     assert '"full_duplex": "true"' in sensor
