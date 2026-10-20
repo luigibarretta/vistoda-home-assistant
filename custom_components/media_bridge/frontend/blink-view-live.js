@@ -32,7 +32,7 @@ export const blinkViewLive = {
   _renderLive() {
     const active = ["starting", "connecting", "active"].includes(this._liveState.phase);
     const connected = this._liveState.phase === "active";
-    const interactive = connected && this._liveState.transport === "webrtc";
+    const interactive = connected && ["webrtc", "walnut_audio"].includes(this._liveState.transport);
     this.$("live").classList.toggle("danger", active);
     this.$("live").querySelector("ha-icon").setAttribute("icon", active
       ? "mdi:video-off-outline" : "mdi:video-wireless-outline");
@@ -40,7 +40,8 @@ export const blinkViewLive = {
       this._liveState.legacyAvailable ? copy(this, "Apri live compatibile") : copy(this, "Apri live");
     this.$("speaker").hidden = !interactive; this.$("microphone").hidden = !interactive;
     this.$("speaker").disabled = !interactive;
-    this.$("microphone").disabled = !interactive || Boolean(this._liveState.microphonePending);
+    this.$("microphone").disabled = !interactive || Boolean(this._liveState.microphonePending)
+      || (this._liveState.transport === "walnut_audio" && !this._liveState.microphoneSupported);
     this.$("speaker").classList.toggle("primary", Boolean(this._liveState.speaker));
     this.$("microphone").classList.toggle("primary", Boolean(this._liveState.microphone));
     this.$("speaker").setAttribute("aria-pressed", String(Boolean(this._liveState.speaker)));

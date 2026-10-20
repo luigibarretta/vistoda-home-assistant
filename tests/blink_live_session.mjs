@@ -8,6 +8,7 @@ function harness() {
   const order = [];
   const states = [];
   let emit;
+  let emitWalnut;
   const webRtc = {
     start: async () => { order.push("webrtc:start"); },
     stop: async () => { order.push("webrtc:stop"); },
@@ -16,11 +17,15 @@ function harness() {
     start: async (entityId) => { order.push(`legacy:start:${entityId}`); },
     stop: () => { order.push("legacy:stop"); },
   };
+  const walnut = { start: async () => { order.push("walnut:start"); emitWalnut({ phase: "connecting" }); },
+    stop: async () => { order.push("walnut:stop"); } };
   const session = new BlinkLiveSession({}, {}, {}, (state) => states.push(state), {
     webRtc: (handler) => { emit = handler; return webRtc; },
     legacy: () => legacy,
+    walnut: (handler) => { emitWalnut = handler; return walnut; },
   });
-  return { legacy, order, session, states, webRtc, emit: (value) => emit(value) };
+  return { legacy, order, session, states, webRtc, emit: (value) => emit(value),
+    emitWalnut: (value) => emitWalnut(value) };
 }
 
 test("official fallback stops Cayuga before starting Walnut", async () => {
@@ -60,9 +65,18 @@ test("official policy selects Walnut without constructing Cayuga", async () => {
   const item = harness();
   await item.session.start("kitchen", "camera.kitchen");
 
-  assert.deepEqual(item.order, ["legacy:start:camera.kitchen"]);
+  assert.deepEqual(item.order, ["walnut:start"]);
+  assert.equal(item.session.mode, "walnut_audio");
+  assert.equal(item.states.at(-1).transport, "walnut_audio");
+});
+
+test("unsupported Walnut browser retains the existing compatible player", async () => {
+  const item = harness();
+  await item.session.start("kitchen", "camera.kitchen");
+  item.emitWalnut({ phase: "fallback" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(item.order, ["walnut:start", "walnut:stop", "legacy:start:camera.kitchen"]);
   assert.equal(item.session.mode, "legacy");
-  assert.equal(item.states.at(-1).transport, "walnut");
 });
 
 test("Walnut fallback mounts the Home Assistant live camera player", async () => {
