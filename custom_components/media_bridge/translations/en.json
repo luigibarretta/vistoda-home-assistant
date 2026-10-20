@@ -170,8 +170,8 @@
       "description": "The app is reachable, but its camera identity is unavailable or no longer matches this Home Assistant entry. Update Vistoda EZVIZ first, restore the camera serial and channel assigned to this alias, then reload the integration. Vistoda blocks live media and camera operations until the binding matches."
     },
     "ring_push_unavailable": {
-      "title": "Vistoda Ring push events are unavailable",
-      "description": "The Ring bridge is reachable, but its native event channel has remained disconnected. Doorbell notifications still use the official Ring integration when available. Check the Vistoda Ring app network access and logs."
+      "title": "Vistoda Ring is not receiving intercom calls in real time",
+      "description": "For more than 15 minutes Ring has not accepted the Vistoda Ring app's registration for real-time notifications. The app keeps retrying on its own and this issue closes as soon as it succeeds. Meanwhile calls are still found in the Ring history and reported with their time a few minutes later. If it lasts for hours, check the Vistoda Ring app logs and its internet access."
     },
     "ring_push_silent": {
       "title": "Ring is not sending instant call notifications for {name}",

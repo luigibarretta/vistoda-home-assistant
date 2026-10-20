@@ -170,8 +170,8 @@
       "description": "L'app è raggiungibile, ma l'identità della telecamera non è disponibile o non corrisponde più a questa voce di Home Assistant. Aggiorna prima Vistoda EZVIZ, ripristina seriale e canale assegnati a questo alias, quindi ricarica l'integrazione. Vistoda blocca live e operazioni finché l'associazione non coincide."
     },
     "ring_push_unavailable": {
-      "title": "Gli eventi push di Vistoda Ring non sono disponibili",
-      "description": "Il bridge Ring è raggiungibile, ma il suo canale eventi nativo è rimasto disconnesso. Le notifiche del citofono continuano a usare l'integrazione Ring ufficiale quando disponibile. Controlla l'accesso di rete e i log dell'app Vistoda Ring."
+      "title": "Vistoda Ring non riceve le chiamate del citofono in tempo reale",
+      "description": "Da oltre 15 minuti Ring non accetta la registrazione dell'app Vistoda Ring per le notifiche in tempo reale. L'app riprova da sola e questo avviso si chiude appena ci riesce. Nel frattempo le chiamate vengono comunque trovate nella cronologia Ring e segnalate con l'orario qualche minuto dopo. Se dura per ore, controlla i log dell'app Vistoda Ring e il suo accesso a internet."
     },
     "ring_push_silent": {
       "title": "Ring non invia le chiamate in tempo reale per {name}",

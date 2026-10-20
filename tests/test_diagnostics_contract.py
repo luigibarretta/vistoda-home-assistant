@@ -41,7 +41,8 @@ def test_ring_events_prefer_native_push_with_fallback() -> None:
     assert '"source": "vistoda_native"' in event
     assert "self.client.ring_events" in listener
     assert "RingEventCursor" in listener
-    assert "failures >= 6" in listener
+    assert "PUSH_OUTAGE_GRACE_SECONDS" in listener
+    assert "failures >= 6" not in listener
     assert "update_ring_push_issue" in listener
     assert "EVENT_HOMEASSISTANT_STOP" in listener
     assert "await self.stop()" in listener

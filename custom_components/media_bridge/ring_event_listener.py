@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from contextlib import suppress
 
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
@@ -17,6 +18,9 @@ from .ring_missed_call import async_publish_missed_call
 _LOGGER = logging.getLogger(__name__)
 # A revoked Ring session is not a push outage; wait for the user to log in again.
 REAUTH_RETRY_SECONDS = 300
+# The engine rotates its push registration on its own; a rotation with a few
+# rejected attempts takes minutes. Only a continuous outage this long needs a person.
+PUSH_OUTAGE_GRACE_SECONDS = 900
 
 
 class RingEventListener:
@@ -33,6 +37,7 @@ class RingEventListener:
         self._remove_stop_listener = None
         self.connected = False
         self.reauth_required = False
+        self._down_since = None
 
     def start(self) -> None:
         if self.task is None:
@@ -85,8 +90,7 @@ class RingEventListener:
             except BridgeError:
                 failures += 1
                 self.connected = False
-                if failures >= 6:
-                    update_ring_push_issue(self.hass, self.entry, available=False)
+                self._mark_push_down()
                 if failures in {1, 6}:
                     _LOGGER.warning("Native Ring event listener is unavailable")
                 await asyncio.sleep(min(60, 2 ** min(failures, 6)))
@@ -96,11 +100,11 @@ class RingEventListener:
             await self._handle_push_health(batch)
             if batch.connected:
                 failures = 0
+                self._down_since = None
                 update_ring_push_issue(self.hass, self.entry, available=True)
             else:
                 failures += 1
-                if failures >= 6:
-                    update_ring_push_issue(self.hass, self.entry, available=False)
+                self._mark_push_down()
             for event in self.cursor.consume(batch):
                 event_type = "unlock" if event.event_type == "intercom_unlock" else "ding"
                 await self.history.async_record(
@@ -111,6 +115,14 @@ class RingEventListener:
                     actor=event.actor,
                 )
                 async_dispatcher_send(self.hass, ring_event_signal(self.entry.entry_id), event)
+
+    def _mark_push_down(self) -> None:
+        """Raise the repair only once the push channel stayed down past the grace."""
+        now = time.monotonic()
+        if self._down_since is None:
+            self._down_since = now
+        if now - self._down_since >= PUSH_OUTAGE_GRACE_SECONDS:
+            update_ring_push_issue(self.hass, self.entry, available=False)
 
     async def _handle_push_health(self, batch) -> None:
         """Apply optional engine hints; older engines omit them entirely."""
