@@ -103,6 +103,14 @@ jobs:
           node tests/browser/live-fullscreen.mjs
           node tests/browser/blink-microphone.mjs
           node tests/browser/blink-live-controls.mjs
+  hacs:
+    # HACS default-list requirement: must pass with no ignored checks.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
+        with:
+          category: integration
+
   hassfest:
     runs-on: ubuntu-latest
     steps:

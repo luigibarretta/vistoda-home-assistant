@@ -1,6 +1,6 @@
 # Vistoda integration icon
 
-`icon.png` reuses the Vistoda app artwork from
+`icon.png` (256 px) and `icon@2x.png` (512 px) are downscaled from the Vistoda app artwork
 `vistoda-apple/Sources/iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
 It represents Vistoda, not Ring, Blink or EZVIZ.
 
