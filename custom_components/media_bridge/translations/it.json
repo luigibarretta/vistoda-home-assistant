@@ -200,6 +200,7 @@
       "connectivity": {"name": "Connessione"},
       "ring_intercom_connectivity": {"name": "Connessione citofono"},
       "ezviz_camera_connectivity": {"name": "Connessione telecamera"},
+      "ezviz_charging": {"name": "In carica", "state_attributes": {"power_source": {"name": "Alimentazione", "state": {"external": "Alimentazione esterna", "battery": "Batteria"}}, "power_status": {"name": "Codice stato alimentazione"}}},
       "ezviz_microsd_problem": {"name": "Problema microSD"},
       "vistoda_audio": {"name": "Audio Vistoda"}
     },

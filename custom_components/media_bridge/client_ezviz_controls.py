@@ -47,8 +47,15 @@ class EzvizControls:
     ptz: bool = False
     battery_percent: int | None = None
     battery_work_mode: str | None = None
+    battery_charging: bool | None = None
+    battery_power_source: str | None = None
+    battery_power_status: int | None = None
     firmware_version: str | None = None
     firmware_update_available: bool | None = None
+
+
+# Vistoda EZVIZ app 0.13+: vendor powerType 0 external, 1 battery.
+POWER_SOURCES = ("external", "battery")
 
 
 def _flag(value) -> bool | None:
@@ -111,6 +118,11 @@ def parse_controls(payload) -> EzvizControls:
         battery_work_mode=work_mode
         if isinstance(work_mode, str) and NAME.fullmatch(work_mode)
         else None,
+        battery_charging=_flag(battery.get("charging")),
+        battery_power_source=battery.get("power_source")
+        if battery.get("power_source") in POWER_SOURCES
+        else None,
+        battery_power_status=_number(battery.get("power_status"), 0, 255),
         firmware_version=_firmware_version(firmware),
         firmware_update_available=_flag(firmware.get("update_available")),
     )

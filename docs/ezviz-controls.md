@@ -98,3 +98,4 @@ with a new unique ID. Older apps (HTTP 404) get no panel.
 | Camera connection | `ezviz-<entry_id>-camera-connectivity` | app `online` (standalone) or native status (delegated) |
 | Delegate controls to the official EZVIZ integration | `ezviz-<entry_id>-delegate-controls` | entry option `ezviz_delegate_controls`, default off |
 | Battery | `ezviz-<entry_id>-battery` | `battery.percent`, created only when reported |
+| Charging (binary sensor) | `ezviz-<entry_id>-charging` | `battery.charging` (app 0.13+), created only when reported; attributes `power_source` (external/battery) and raw `power_status` |

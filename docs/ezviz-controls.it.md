@@ -104,3 +104,4 @@ pannello.
 | Connessione telecamera | `ezviz-<entry_id>-camera-connectivity` | `online` dell'app (autonoma) o stato nativo (delegata) |
 | Delega comandi all'integrazione EZVIZ ufficiale | `ezviz-<entry_id>-delegate-controls` | opzione della entry `ezviz_delegate_controls`, disattivata per impostazione predefinita |
 | Batteria | `ezviz-<entry_id>-battery` | `battery.percent`, creata solo se riportata |
+| In carica (sensore binario) | `ezviz-<entry_id>-charging` | `battery.charging` (app 0.13+), creato solo se riportato; attributi `power_source` (esterna/batteria) e `power_status` grezzo |

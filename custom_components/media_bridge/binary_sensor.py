@@ -45,6 +45,19 @@ async def async_setup_entry(
             lambda: [EzvizMicroSdProblem(media, entry)],
             async_add_entities,
         )
+    if provider == PROVIDER_EZVIZ and controls is not None:
+        from .entity_gate import async_add_when_supported
+        from .ezviz_controls import reports_charging
+        from .ezviz_controls_entities import EzvizChargingSensor
+
+        # Waits for the first controls poll started above; older apps add nothing.
+        async_add_when_supported(
+            entry,
+            controls,
+            reports_charging,
+            lambda: [EzvizChargingSensor(controls, entry)],
+            async_add_entities,
+        )
 
 
 class BridgeConnectivity(CoordinatorEntity, BinarySensorEntity):

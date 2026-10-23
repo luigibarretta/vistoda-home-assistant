@@ -15,6 +15,7 @@ from .errors import BridgeError, ReauthRequiredError
 _LOGGER = logging.getLogger(__name__)
 CONTROLS_INTERVAL = timedelta(seconds=60)
 BATTERY_SUFFIX = "battery"
+CHARGING_SUFFIX = "charging"
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,12 @@ def controls_of(data) -> EzvizControls | None:
 def reports_battery(data) -> bool:
     controls = controls_of(data)
     return controls is not None and controls.battery_percent is not None
+
+
+def reports_charging(data) -> bool:
+    """Vistoda EZVIZ app 0.13+ on a camera that reports its charging state."""
+    controls = controls_of(data)
+    return controls is not None and controls.battery_charging is not None
 
 
 def runtime_controls(hass, entry_id: str):

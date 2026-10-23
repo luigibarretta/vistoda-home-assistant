@@ -200,6 +200,7 @@
       "connectivity": {"name": "Connection"},
       "ring_intercom_connectivity": {"name": "Intercom connection"},
       "ezviz_camera_connectivity": {"name": "Camera connection"},
+      "ezviz_charging": {"name": "Charging", "state_attributes": {"power_source": {"name": "Power source", "state": {"external": "External power", "battery": "Battery"}}, "power_status": {"name": "Power status code"}}},
       "ezviz_microsd_problem": {"name": "microSD problem"},
       "vistoda_audio": {"name": "Vistoda audio"}
     },
