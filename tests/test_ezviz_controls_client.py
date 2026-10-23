@@ -140,15 +140,34 @@ async def test_ptz_and_account_defence_routes() -> None:
 
 def test_charging_state_from_app_0_13_and_tolerant_parsing() -> None:
     charging = parse_controls(
-        {"battery": {"percent": 100, "work_mode": "hibernate", "charging": True,
-                     "power_source": "external", "power_status": 2}}
+        {
+            "battery": {
+                "percent": 100,
+                "work_mode": "hibernate",
+                "charging": True,
+                "power_source": "external",
+                "power_status": 2,
+            }
+        }
     )
     assert (charging.battery_charging, charging.battery_power_source) == (True, "external")
     assert charging.battery_power_status == 2
-    unplugged = parse_controls({"battery": {"percent": 100, "charging": False,
-                                            "power_source": "battery", "power_status": 0}})
+    unplugged = parse_controls(
+        {
+            "battery": {
+                "percent": 100,
+                "charging": False,
+                "power_source": "battery",
+                "power_status": 0,
+            }
+        }
+    )
     assert (unplugged.battery_charging, unplugged.battery_power_source) == (False, "battery")
-    garbage = parse_controls({"battery": {"charging": "yes", "power_source": "solar",
-                                          "power_status": True}})
-    assert (garbage.battery_charging, garbage.battery_power_source, garbage.battery_power_status) == (
-        None, None, None)
+    garbage = parse_controls(
+        {"battery": {"charging": "yes", "power_source": "solar", "power_status": True}}
+    )
+    assert (
+        garbage.battery_charging,
+        garbage.battery_power_source,
+        garbage.battery_power_status,
+    ) == (None, None, None)

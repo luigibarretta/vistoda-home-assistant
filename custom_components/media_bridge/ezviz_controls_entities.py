@@ -83,4 +83,3 @@ class EzvizChargingSensor(CoordinatorEntity, BinarySensorEntity):
             "power_source": controls.battery_power_source if controls else None,
             "power_status": controls.battery_power_status if controls else None,
         }
-
