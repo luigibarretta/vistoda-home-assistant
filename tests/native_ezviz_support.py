@@ -32,15 +32,15 @@ class NativeEzviz:
         self.camera, self.calls, self.sticky, self.fail = camera, [], False, None
         self.disabled_by = None
 
-    def device(self, identifiers):
-        if not self.entries or identifiers != {("ezviz", self.serial)}:
+    def device(self, identifier, entry_id):
+        owners = {entry.entry_id for entry in self.entries}
+        if identifier != ("ezviz", self.serial) or entry_id not in owners:
             return None
         return SimpleNamespace(
-            id="device",
+            id=f"device-{entry_id}",
             name="Front door",
             name_by_user=None,
             area_id=None,
-            config_entries={entry.entry_id for entry in self.entries},
         )
 
     def registry_entities(self) -> dict:
@@ -48,7 +48,7 @@ class NativeEzviz:
             return {}
         entity = SimpleNamespace(
             config_entry_id=self.entries[0].entry_id,
-            device_id="device",
+            device_id=f"device-{self.entries[0].entry_id}",
             disabled_by=self.disabled_by,
             entity_id=CAMERA,
             unique_id=self.serial,
@@ -78,7 +78,7 @@ class NativeEzviz:
     def install(self, hass) -> None:
         """Wire the registries, states and services into hass and the stub modules."""
         registry = sys.modules["homeassistant.helpers.device_registry"].async_get(hass)
-        registry.async_get_device = lambda *, identifiers: self.device(identifiers)
+        registry.async_get_device_by_identifier = self.device
         registry.entities = self.registry_entities()
         hass.states = SimpleNamespace(get=self.state)
         hass.services = SimpleNamespace(async_call=self.async_call)
@@ -91,3 +91,11 @@ class NativeEzviz:
             return previous(entry_id) if previous else None
 
         hass.config_entries.async_get_entry = async_get_entry
+        others = getattr(hass.config_entries, "async_entries", None)
+
+        def async_entries(domain=None):
+            if domain == "ezviz":
+                return list(self.entries)
+            return others(domain) if others else []
+
+        hass.config_entries.async_entries = async_entries

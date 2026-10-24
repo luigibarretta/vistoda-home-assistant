@@ -192,7 +192,7 @@ async def test_alarm_panel_exists_only_in_standalone_mode(monkeypatch) -> None:
     registry = SimpleNamespace(
         async_get_entity_id=lambda _d, _p, unique_id: f"alarm_control_panel.{unique_id}",
         async_remove=removed.append,
-        async_get_device=lambda identifiers: None,
+        async_get_device_by_identifier=lambda identifier, entry_id: None,
     )
     sys.modules["homeassistant.helpers.entity_registry"].async_get = lambda _hass: registry
     sys.modules["homeassistant.helpers.device_registry"].async_get = lambda _hass: registry

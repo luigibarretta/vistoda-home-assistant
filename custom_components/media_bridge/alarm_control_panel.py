@@ -70,8 +70,8 @@ def _remove_stale_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
         return
     registry.async_remove(entity_id)
     devices = dr.async_get(hass)
-    identifiers = account_device_info(entry.entry_id)["identifiers"]
-    device = devices.async_get_device(identifiers=identifiers)
+    (identifier,) = account_device_info(entry.entry_id)["identifiers"]
+    device = devices.async_get_device_by_identifier(identifier, entry.entry_id)
     if device is not None:
         devices.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
 

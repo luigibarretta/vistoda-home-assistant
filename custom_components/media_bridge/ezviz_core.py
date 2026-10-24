@@ -35,19 +35,23 @@ def _entry_state(native) -> str | None:
 
 
 def native_device(hass, entry):
-    """Return (device, native entry) when one official entry registered the bound camera."""
+    """Return (device, native entry) when exactly one official entry registered the camera."""
     serial = bound_serial(entry)
     if serial is None:
         return None
-    device = dr.async_get(hass).async_get_device(identifiers={(EZVIZ_DOMAIN, serial)})
-    if device is None:
-        return None
-    natives = [
-        native
-        for native in map(hass.config_entries.async_get_entry, device.config_entries)
-        if getattr(native, "domain", None) == EZVIZ_DOMAIN
+    registry = dr.async_get(hass)
+    # Identifiers are unique only within a config entry: ask each official entry.
+    matches = [
+        (device, native)
+        for native in hass.config_entries.async_entries(EZVIZ_DOMAIN)
+        if (
+            device := registry.async_get_device_by_identifier(
+                (EZVIZ_DOMAIN, serial), native.entry_id
+            )
+        )
+        is not None
     ]
-    return (device, natives[0]) if len(natives) == 1 else None
+    return matches[0] if len(matches) == 1 else None
 
 
 def native_entities(hass, device, native) -> list:

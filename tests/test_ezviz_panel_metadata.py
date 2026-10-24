@@ -43,17 +43,11 @@ def metadata(native_entries, source="serial:1", extra=None, name_by_user=None):
     )
     lookups = []
 
-    def find(identifiers):
-        lookups.append(identifiers)
-        if not native_entries or identifiers != {("ezviz", "serial")}:
+    def find(identifier, entry_id):
+        lookups.append((identifier, entry_id))
+        if identifier != ("ezviz", "serial"):
             return None
-        return NS(
-            id="device",
-            area_id="hall",
-            name="Native camera",
-            name_by_user=name_by_user,
-            config_entries={native.entry_id for native in native_entries},
-        )
+        return NS(id="device", area_id="hall", name="Native camera", name_by_user=name_by_user)
 
     namespace = {
         "CONF_EZVIZ_SOURCE_ID": "ezviz_source_id",
@@ -66,7 +60,7 @@ def metadata(native_entries, source="serial:1", extra=None, name_by_user=None):
                 if entity.device_id == device_id and entity.disabled_by is None
             ],
         ),
-        "dr": NS(async_get=lambda _: NS(async_get_device=lambda *, identifiers: find(identifiers))),
+        "dr": NS(async_get=lambda _: NS(async_get_device_by_identifier=find)),
         "ar": NS(async_get=lambda _: NS(async_get_area=lambda _: NS(name="HA hall"))),
     }
     for source_path in (CORE, SOURCE):
@@ -80,8 +74,10 @@ def metadata(native_entries, source="serial:1", extra=None, name_by_user=None):
         ),
         "switch.fixture_audio": NS(attributes={"friendly_name": "Camera audio"}),
     }
-    by_id = {native.entry_id: native for native in native_entries}
-    hass = NS(config_entries=NS(async_get_entry=by_id.get), states=NS(get=states.get))
+    hass = NS(
+        config_entries=NS(async_entries=lambda _domain: native_entries),
+        states=NS(get=states.get),
+    )
     result = namespace["panel_metadata"](hass, NS(data={"ezviz_source_id": source}))
     return result, lookups
 
@@ -127,7 +123,7 @@ def test_exact_binding_exposes_native_name_account_alarm_and_labeled_ha_area():
         "room_name": "HA hall",
         "room_source": "home_assistant",
     }
-    assert lookups == [{("ezviz", "serial")}]
+    assert lookups == [(("ezviz", "serial"), "native")]
 
 
 def test_missing_or_ambiguous_binding_never_guesses_account_by_name():
