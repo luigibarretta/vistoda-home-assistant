@@ -78,7 +78,9 @@ jobs:
   browser-engines:
     name: Browser ${{ matrix.engine }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The tests take about two minutes; slow runner apt mirrors have taken
+    # eight minutes alone to install the browser dependencies.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
