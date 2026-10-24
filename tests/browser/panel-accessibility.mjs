@@ -28,6 +28,18 @@ export async function checkSemantics(page, label) {
           failures.push(`${path}: unnamed dialog#${element.id}`);
         }
         if (element.tabIndex > 0) failures.push(`${path}: positive tabindex#${element.id}`);
+        if (visible && element.matches("select") && element.selectedOptions[0] &&
+            element.getAttribute("aria-hidden") !== "true") {
+          // The chosen option must fit: a capped width once cut "Vistoda theme".
+          const style = getComputedStyle(element);
+          const probe = Object.assign(document.createElement("span"), {
+            textContent: element.selectedOptions[0].textContent });
+          probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${style.font}`;
+          document.body.append(probe);
+          const needed = probe.offsetWidth + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + 12;
+          probe.remove();
+          if (element.clientWidth < needed) failures.push(`${path}: truncated select#${element.id}`);
+        }
         if (element.shadowRoot) visit(element.shadowRoot, `${path}/${element.localName}`);
       }
     };

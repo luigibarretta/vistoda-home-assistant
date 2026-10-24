@@ -107,7 +107,7 @@ export const COMMON_COPY = {
   "Aggiorna stati e file locali": "Refresh local file statuses", "Aggiorna archivio": "Refresh archive",
   "Copia su NFS tutte le registrazioni pronte non ancora presenti": "Copy all ready recordings not already on NFS",
   "Copia e verifica su NFS tutte le clip disponibili": "Copy and verify all available clips on NFS",
-  "Registrazione live locale": "Local live recording",
+  "Registrazione live locale": "Local live recording", "Registrazioni locali": "Local recordings",
   "Cattura il flusso che stai visualizzando, senza creare eventi cloud.": "Capture the stream you are viewing without creating cloud events.",
   "15 secondi": "15 seconds", "30 secondi": "30 seconds", "60 secondi": "60 seconds",
   "Archivio locale HA": "Local HA archive", "Supporto della camera": "Camera storage",

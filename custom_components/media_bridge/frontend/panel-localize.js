@@ -11,7 +11,8 @@ export const PANEL_MESSAGES = {
     ringDescription: "Intercom, two-way audio, entrances and call recordings",
     blinkDescription: "Cameras, live video, saved images, motion and cloud clips",
     ezvizDescription: "Cameras, saved images and live video on request",
-    deviceCount: "{devices} devices · {cameras} cameras", notConfigured: "Not configured",
+    deviceCount: "{devices} · {cameras}", deviceOne: "1 device", deviceMany: "{count} devices",
+    cameraOne: "1 camera", cameraMany: "{count} cameras", notConfigured: "Not configured",
     ready: "Ready", unavailable: "Unavailable", absent: "Not connected",
     openProvider: "Open {provider}", configureProvider: "Set up {provider}",
     noCameras: "No {provider} cameras configured.", noIntercom: "No Ring intercom configured.",
@@ -53,7 +54,8 @@ export const PANEL_MESSAGES = {
     ringDescription: "Citofono, audio bidirezionale, ingressi e archivio chiamate",
     blinkDescription: "Telecamere, live, immagini salvate, movimento e clip cloud",
     ezvizDescription: "Telecamere, immagini salvate e live su richiesta",
-    deviceCount: "{devices} dispositivi · {cameras} telecamere", notConfigured: "Non configurato",
+    deviceCount: "{devices} · {cameras}", deviceOne: "1 dispositivo", deviceMany: "{count} dispositivi",
+    cameraOne: "1 telecamera", cameraMany: "{count} telecamere", notConfigured: "Non configurato",
     ready: "Operativo", unavailable: "Non disponibile", absent: "Non collegato",
     openProvider: "Apri {provider}", configureProvider: "Configura {provider}",
     noCameras: "Nessuna telecamera {provider} configurata.", noIntercom: "Nessun citofono Ring configurato.",
@@ -96,6 +98,11 @@ export function localize(hassOrLocale, key, values = {}) {
   const message = PANEL_MESSAGES[panelLanguage(hassOrLocale)][key] || PANEL_MESSAGES.en[key];
   if (!message) throw new Error(`Unknown Vistoda message: ${key}`);
   return message.replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? `{${name}}`));
+}
+
+/// "1 camera" / "3 cameras": `stem` + One or Many, with `{count}`.
+export function localizeCount(hassOrLocale, stem, count) {
+  return localize(hassOrLocale, `${stem}${count === 1 ? "One" : "Many"}`, { count });
 }
 
 // Explicit markers prevent accidental translation of device names and user content.

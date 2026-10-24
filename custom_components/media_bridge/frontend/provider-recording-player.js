@@ -1,5 +1,5 @@
 import { copy, localizeCopy } from "./panel-copy.js";
-import { recordingMediaPath } from "./provider-recording-model.js";
+import { recordedAt, recordingMediaPath } from "./provider-recording-model.js";
 import { BASE_STYLES } from "./panel-styles.js";
 
 class VistodaProviderRecordingPlayer extends HTMLElement {
@@ -38,7 +38,7 @@ class VistodaProviderRecordingPlayer extends HTMLElement {
     const path = recordingMediaPath(config, item.recording_id, true);
     const signed = await hass.callWS({ type: "auth/sign_path", path, expires: 900 });
     if (generation !== this._generation) return false;
-    this.$("title").textContent = new Date(item.started_at || item.requested_at)
+    this.$("title").textContent = new Date(recordedAt(item))
       .toLocaleString(hass?.locale?.language || "en");
     this.$("video").src = hass.hassUrl(signed.path); this.hidden = false;
     this.$("video").load(); this.scrollIntoView({ behavior: "smooth", block: "nearest" });

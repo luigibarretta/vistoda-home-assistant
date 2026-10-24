@@ -19,7 +19,8 @@ export function recordingArchiveTemplate() {
         background:var(--secondary-background-color)}.view-switch button{background:transparent}
       .view-switch button[aria-pressed="true"]{color:var(--text-primary-color,#fff);
         background:var(--primary-color);box-shadow:0 2px 7px color-mix(in srgb,var(--primary-color) 38%,transparent)}
-      .list-controls{flex:1;justify-content:flex-end}.list-controls select{max-width:270px;flex:1}
+      .list-controls{flex:1;justify-content:flex-end}.list-controls select{max-width:300px;flex:1 1 220px;
+        min-width:min(100%,220px)}
       .list-form{width:100%;justify-content:flex-end}.list-form input{min-width:190px;
         border:1px solid var(--divider-color);background:var(--card-background-color)}
       .list-manager{width:100%;padding:11px;border:1px solid var(--divider-color);border-radius:14px;
@@ -51,7 +52,8 @@ export function recordingArchiveTemplate() {
         align-items:center;justify-content:flex-end;gap:9px;margin-top:12px}
       @media(max-width:620px){.head{display:block}.toolbar{margin-top:10px}.toolbar button{flex:1}
         .archive-controls{align-items:stretch}.view-switch{width:100%}.view-switch button{flex:1}
-        .list-controls{justify-content:stretch}.list-controls select{max-width:none;min-width:0;width:100%}
+        .list-controls{justify-content:stretch;flex-wrap:wrap}.list-controls select{max-width:none;min-width:0;flex:1 1 100%}
+        .list-controls button{flex:1}
         .list-form{justify-content:stretch}.list-form input{width:100%;flex:1}.pager{justify-content:space-between}
         .list-item{align-items:stretch;flex-direction:column}.list-item-actions button{flex:1}
         .list-edit{flex-wrap:wrap}.list-edit input{width:100%;flex-basis:100%}.list-edit button{flex:1}
@@ -68,7 +70,7 @@ export function recordingArchiveTemplate() {
       </div><div class="list-controls"><select id="list-filter" aria-label="Filtra per lista" data-copy-aria-label="Filtra per lista"></select>
       <button id="new-list"><ha-icon icon="mdi:playlist-plus"></ha-icon><span data-copy="Nuova lista">Nuova lista</span></button>
       <button id="manage-lists" aria-expanded="false"><ha-icon icon="mdi:playlist-edit"></ha-icon>
-      Gestisci <span class="count" id="manage-count">0</span></button></div><form class="list-form"
+      <span data-copy="Gestisci liste">Gestisci liste</span> <span class="count" id="manage-count">0</span></button></div><form class="list-form"
       id="list-form" hidden>
       <input id="list-name" maxlength="64" autocomplete="off" placeholder="Nome della lista" data-copy-placeholder="Nome della lista"
         aria-label="Nome della nuova lista" data-copy-aria-label="Nome della nuova lista"><button type="submit"><span data-copy="Crea">Crea</span></button>

@@ -122,7 +122,7 @@ class VistodaPanel extends HTMLElement {
           header p { white-space:normal; overflow:visible; line-height:1.35; }
           #reload, #about { min-width:44px; padding:8px; }
           #reload span, #about span { display:none; }
-          .theme-picker ha-icon { display:none; } #theme { min-width:92px!important; max-width:104px; }
+          .theme-picker ha-icon { display:none; } #theme { min-width:0!important; max-width:none; }
         }
       </style>
       <main data-provider="${this._provider}"><header><div class="header-start"><button id="back"

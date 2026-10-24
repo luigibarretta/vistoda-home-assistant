@@ -22,6 +22,7 @@ def async_register(hass: HomeAssistant) -> None:
     """Register the archive commands once."""
     websocket_api.async_register_command(hass, ws_list_recordings)
     websocket_api.async_register_command(hass, ws_create_recording)
+    websocket_api.async_register_command(hass, ws_create_sd_recording)
     websocket_api.async_register_command(hass, ws_delete_recording)
     websocket_api.async_register_command(hass, ws_refresh_snapshot)
 
@@ -121,6 +122,52 @@ async def ws_create_recording(hass, connection, msg: dict[str, Any]) -> None:
         return
     except BridgeError:
         connection.send_error(msg["id"], "unavailable", "EZVIZ recording could not start")
+        return
+    connection.send_result(msg["id"], manifest)
+
+
+# The bridge bounds an interval to its maximum recording length.
+SD_MAX_SECONDS = 600
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/ezviz/recordings/create_sd",
+        vol.Required("entry_id"): ENTRY_ID,
+        vol.Required("start"): vol.All(int, vol.Range(min=0)),
+        vol.Required("end"): vol.All(int, vol.Range(min=1)),
+        vol.Required("request_id"): REQUEST_ID,
+    }
+)
+@websocket_api.async_response
+async def ws_create_sd_recording(hass, connection, msg: dict[str, Any]) -> None:
+    """Save one listed microSD interval to the EZVIZ recording archive."""
+    if not connection.user.is_admin:
+        connection.send_error(msg["id"], "unauthorized", "Administrator access required")
+        return
+    if not 0 < msg["end"] - msg["start"] <= SD_MAX_SECONDS:
+        connection.send_error(msg["id"], "invalid_format", "microSD interval is out of range")
+        return
+    resolved = _resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
+        return
+    runtime, alias = resolved
+    try:
+        await async_verify_native(
+            hass.config_entries.async_get_entry(msg["entry_id"]), runtime.client
+        )
+        manifest = await runtime.client.create_provider_sd_recording(
+            alias, (msg["start"], msg["end"]), msg["request_id"]
+        )
+    except RateLimitedError:
+        connection.send_error(msg["id"], "live_active", "Stop live view to save the clip")
+        return
+    except EnrollmentBusyError:
+        connection.send_error(msg["id"], "conflict", "EZVIZ recording is already active")
+        return
+    except BridgeError:
+        connection.send_error(msg["id"], "unavailable", "microSD clip could not be saved")
         return
     connection.send_result(msg["id"], manifest)
 

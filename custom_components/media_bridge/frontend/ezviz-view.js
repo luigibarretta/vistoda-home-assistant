@@ -89,7 +89,7 @@ class VistodaEzvizView extends HTMLElement {
           <button id="details" class="wide"><ha-icon icon="mdi:cog-outline"></ha-icon>
             <span data-i18n="detailsSettings">Dettagli e impostazioni</span></button>
           <div class="muted" id="message" role="status"></div><vistoda-ezviz-alarms id="alarms"></vistoda-ezviz-alarms><vistoda-ezviz-media id="media"></vistoda-ezviz-media>
-          <details id="recording-section"><summary data-copy="Registrazione live locale">Registrazione live locale</summary>
+          <details id="recording-section"><summary data-copy="Registrazioni locali">Registrazioni locali</summary>
           <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details>
           <div class="notice muted"><span data-copy="Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.">Questo archivio è standalone e separato da SceneTrove:
             registra soltanto quando lo richiedi qui.</span></div></div></section>
@@ -112,6 +112,10 @@ class VistodaEzvizView extends HTMLElement {
     this.$("stage").addEventListener("pointercancel", () => this._cancelSwipe());
     this.$("snapshot").draggable = false;
     this.$("live").addEventListener("click", () => this._openLive());
+    // A microSD clip saved below lands in the local archive: show it.
+    this.$("media").addEventListener("vistoda-sd-saved", () => {
+      this.$("recording-section").open = true; this.$("recordings").reload();
+    });
     this.$("refresh").addEventListener("click", () => this._refresh());
     this.$("details").addEventListener("click", () => { this._detailOpen = true; this._render(); });
     this.$("details-back").addEventListener("click", () => { this._detailOpen = false; this._render(); });

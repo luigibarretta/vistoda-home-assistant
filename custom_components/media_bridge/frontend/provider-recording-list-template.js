@@ -15,6 +15,8 @@ export const PROVIDER_LIST_STYLES = `
   .list-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
   .list-controls select { ${ARCHIVE_SELECT_STYLE} flex:1 1 190px; }
   .list-controls button { display:inline-flex; align-items:center; gap:7px; }
+  @media (max-width:620px) { .list-controls select { flex:1 1 100%; max-width:none; }
+    .list-controls button { flex:1; justify-content:center; } }
   .list-controls .count { display:grid; place-items:center; min-width:20px; min-height:20px;
     padding:0 5px; border-radius:999px; background:var(--secondary-background-color); font-size:11px; }
   .list-form, .list-edit { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }

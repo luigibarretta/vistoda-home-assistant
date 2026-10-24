@@ -1,7 +1,7 @@
 import { localizeCopy } from "./panel-copy.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { PROVIDERS, PROVIDER_META, providerPath } from "./panel-helpers.js";
-import { localize, localizeElements } from "./panel-localize.js";
+import { localize, localizeCount, localizeElements } from "./panel-localize.js";
 import "./uninstall-checklist.js";
 
 class VistodaOverview extends HTMLElement {
@@ -64,7 +64,10 @@ class VistodaOverview extends HTMLElement {
     article.querySelector("h3").textContent = `Vistoda · ${meta.label}`;
     article.querySelector(".description").textContent = localize(this._hass, `${provider}Description`);
     article.querySelector(".summary").textContent = configured
-      ? localize(this._hass, "deviceCount", { devices, cameras }) : localize(this._hass, "notConfigured");
+      ? localize(this._hass, "deviceCount", {
+        devices: localizeCount(this._hass, "device", devices),
+        cameras: localizeCount(this._hass, "camera", cameras),
+      }) : localize(this._hass, "notConfigured");
     const badge = article.querySelector(".badge");
     badge.textContent = localize(this._hass, available ? "ready" : configured ? "unavailable" : "absent");
     badge.classList.toggle("off", !available);

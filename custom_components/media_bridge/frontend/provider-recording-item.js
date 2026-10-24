@@ -1,5 +1,5 @@
 import { copy } from "./panel-copy.js";
-import { recordingTrigger } from "./provider-recording-model.js";
+import { recordedAt, recordingTrigger } from "./provider-recording-model.js";
 const STATUS = {
   pending: "In attesa", recording: "Registrazione in corso", ready: "Pronta", failed: "Non riuscita",
 };
@@ -21,13 +21,18 @@ export function recordingItem(item, context) {
   checkbox.setAttribute("aria-label", copy(context, "Seleziona registrazione {p0}", { p0: item.recording_id }));
   checkbox.addEventListener("change", () => context.select(checkbox.checked));
   selector.append(checkbox);
-  const date = new Date(item.started_at || item.requested_at).toLocaleString(context.hass?.locale?.language || "en");
+  const date = new Date(recordedAt(item)).toLocaleString(context.hass?.locale?.language || "en");
   const size = item.bytes ? `${(item.bytes / 1024 / 1024).toFixed(1)} MB` : "—";
   const duration = item.actual_duration_seconds || item.requested_duration_seconds;
   const detail = document.createElement("div"); const title = document.createElement("strong");
   title.textContent = date;
   const meta = document.createElement("div"); meta.className = "meta";
   meta.textContent = `${STATUS[item.status] ? copy(context, STATUS[item.status]) : item.status} · ${Number(duration).toFixed(1)} s · ${size}`;
+  if (item.source === "sd") {
+    const badge = document.createElement("span"); badge.className = "trigger-badge";
+    badge.innerHTML = `<ha-icon icon="mdi:micro-sd"></ha-icon>`;
+    badge.append("microSD"); meta.prepend(badge);
+  }
   if (recordingTrigger(item) === "motion") {
     const badge = document.createElement("span"); badge.className = "trigger-badge";
     badge.innerHTML = `<ha-icon icon="mdi:motion-sensor"></ha-icon>`;

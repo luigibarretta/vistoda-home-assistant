@@ -19,4 +19,10 @@ export const DEVICE_COPY = {
   "Evento": "Event", "Registrazione continua": "Continuous recording", "Altro": "Other",
   "Nessuna registrazione sulla microSD in questo giorno.": "No microSD recordings on this day.",
   "Registrazioni microSD non disponibili. Riprova più tardi.": "microSD recordings are unavailable. Try again later.",
+  "Salva": "Save", "Salva la clip delle {p0} nell’archivio": "Save the {p0} clip to the archive",
+  "Salvataggio della clip…": "Saving the clip…",
+  "Clip in salvataggio: comparirà nelle registrazioni locali.": "Saving the clip: it will appear in local recordings.",
+  "Chiudi il live per salvare la clip.": "Close live view to save the clip.",
+  "Un’altra registrazione di questa telecamera è in corso.": "Another recording of this camera is in progress.",
+  "Impossibile salvare la clip.": "The clip could not be saved.",
 };

@@ -24,3 +24,9 @@ export function cameraRecordings(items, alias) {
 
 /** Recording origin from the optional manifest `trigger`; absent means manual. */
 export function recordingTrigger(item) { return item?.trigger === "motion" ? "motion" : "manual"; }
+
+/** When the media was recorded: the card interval for microSD, else capture start. */
+export function recordedAt(item) {
+  return item?.source === "sd" && Number.isInteger(item.sd_start)
+    ? item.sd_start * 1000 : item?.started_at || item?.requested_at;
+}

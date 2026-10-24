@@ -65,6 +65,23 @@ class ProviderRecordingClientMixin:
             )
         )
 
+    async def create_provider_sd_recording(
+        self,
+        alias: str,
+        interval: tuple[int, int],
+        request_id: str,
+    ) -> dict[str, Any]:
+        """Save one microSD interval (epoch seconds) as a bridge recording."""
+        start, end = interval
+        return self._recording(
+            await self._json(
+                "POST",
+                f"/v1/cameras/{quote(alias, safe='')}/recordings",
+                json={"source": "sd", "start": start, "end": end},
+                headers={"Idempotency-Key": request_id},
+            )
+        )
+
     async def delete_provider_recording(self, recording_id: str) -> None:
         await self._empty("DELETE", f"/v1/recordings/{quote(recording_id, safe='')}")
 
@@ -112,10 +129,24 @@ class ProviderRecordingClientMixin:
         }
         if any(not isinstance(item.get(key), expected) for key, expected in required.items()):
             raise CannotConnectError
-        if item["status"] not in STATUSES or item["media_type"] not in {"video/mpeg", "video/mp2t"}:
+        media_types = {"video/mpeg", "video/mp2t"}
+        if item["status"] != "ready":
+            # The bridge types media only once it is written.
+            media_types.add("application/octet-stream")
+        if item["status"] not in STATUSES or item["media_type"] not in media_types:
             raise CannotConnectError
         optional = ("started_at", "completed_at", "actual_duration_seconds", "bytes", "sha256")
-        return {**{key: item[key] for key in required}, **{key: item.get(key) for key in optional}}
+        result = {
+            **{key: item[key] for key in required},
+            **{key: item.get(key) for key in optional},
+        }
+        if item.get("source") == "sd" and all(
+            isinstance(item.get(key), int) for key in ("sd_start", "sd_end")
+        ):
+            result.update(source="sd", sd_start=item["sd_start"], sd_end=item["sd_end"])
+        if isinstance(item.get("error_code"), str) and len(item["error_code"]) <= 64:
+            result["error_code"] = item["error_code"]
+        return result
 
     @staticmethod
     def _storage(value: object) -> bool:

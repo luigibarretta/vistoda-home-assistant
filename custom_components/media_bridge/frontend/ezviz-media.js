@@ -1,6 +1,7 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { panelLanguage } from "./panel-localize.js";
 import { capacityText, clampDay, dayRange, encryptionView, recordRows, storageView } from "./ezviz-media-model.js";
+import { SD_SAVE } from "./ezviz-sd-save.js";
 
 // Read-only encryption, microSD and per-day SD record list for one EZVIZ entry.
 // Everything stays hidden when the Vistoda EZVIZ app predates these routes.
@@ -49,6 +50,8 @@ class VistodaEzvizMedia extends HTMLElement {
       ul{list-style:none;margin:8px 0 0;padding:0;max-height:320px;overflow:auto}
       li{display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-top:1px solid var(--divider-color,#ffffff14)}
       time{font-variant-numeric:tabular-nums}.type{color:var(--secondary-text-color)}.status{color:var(--secondary-text-color)}
+      li{align-items:center}.save{min-width:44px;min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
+        border:1px solid var(--divider-color);border-radius:10px;color:var(--primary-text-color);background:none;font:inherit;cursor:pointer}
     </style><section id="root"><h3 data-copy="Crittografia e microSD">Crittografia e microSD</h3><div class="facts">
       <div class="fact" id="encryption-fact" hidden><ha-icon icon="mdi:lock-outline"></ha-icon><div>
         <span data-copy="Crittografia video">Crittografia video</span><strong id="encryption"></strong><span id="key-source"></span></div></div>
@@ -57,7 +60,8 @@ class VistodaEzvizMedia extends HTMLElement {
       <p class="warning" id="encryption-warning" role="alert" hidden><span data-copy="Video crittografato senza codice di verifica: per il live attiva l’opzione del codice di verifica nell’app Vistoda EZVIZ.">Video crittografato senza codice di verifica: per il live attiva l’opzione del codice di verifica nell’app Vistoda EZVIZ.</span></p>
       <details id="timeline" hidden><summary data-copy="Registrazioni sulla microSD">Registrazioni sulla microSD</summary>
         <label><span data-copy="Giorno (ultimi 7 giorni)">Giorno (ultimi 7 giorni)</span><input type="date" id="day"></label>
-        <p class="status" id="records-status" role="status"></p><ul id="records"></ul></details></section>`;
+        <p class="status" id="records-status" role="status"></p><p class="status" id="save-status" role="status"></p>
+        <ul id="records"></ul></details></section>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("timeline").addEventListener("toggle", () => { if (this.$("timeline").open && !this._records) this._load(); });
     this.$("day").addEventListener("change", () => this._load());
@@ -127,9 +131,12 @@ class VistodaEzvizMedia extends HTMLElement {
       type.className = "type";
       type.textContent = copy(this, row.label);
       item.append(time, type);
+      if (this._hass?.user?.is_admin) item.append(this._saveButton(row));
       return item;
     }));
   }
 }
+
+Object.assign(VistodaEzvizMedia.prototype, SD_SAVE);
 
 if (!customElements.get("vistoda-ezviz-media")) customElements.define("vistoda-ezviz-media", VistodaEzvizMedia);
