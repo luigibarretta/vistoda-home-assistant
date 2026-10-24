@@ -84,7 +84,8 @@ test("the control source is explicit: standalone hides native entities, delegati
   assert.match(controlSource({}, "app_outdated").hint, /aggiornala alla 0\.10 o attiva la delega/);
   assert.match(controlSource({ control_source: "native" }, "native_unavailable").hint, /disattiva la delega/);
   assert.equal(controlSource(null, "unavailable").hint, "");
-  for (const text of [standalone.label, delegated.label, "Origine dei comandi",
+  assert.match(delegated.hint, /richiedono l’app Vistoda EZVIZ/);
+  for (const text of [standalone.label, delegated.label, "Origine dei comandi", delegated.hint,
     controlSource({}, "app_outdated").hint, controlSource({}, "native_unavailable").hint]) {
     assert.ok(Object.hasOwn(ADVANCED_COPY, text), text);
   }

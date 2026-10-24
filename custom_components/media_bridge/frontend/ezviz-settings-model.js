@@ -96,11 +96,14 @@ const SOURCE_HINTS = {
   app_outdated: "L’app Vistoda EZVIZ non offre ancora questi comandi: aggiornala alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale.",
   native_unavailable: "L’integrazione EZVIZ ufficiale non è disponibile: ripristinala o disattiva la delega per usare l’app Vistoda EZVIZ.",
 };
+// Delegated entries offer only the official entities plus camera arming.
+const NATIVE_HINT = "Con la delega attiva vedi i comandi dell’integrazione EZVIZ ufficiale; notifiche, immagine e rilevamento avanzato richiedono l’app Vistoda EZVIZ.";
 
 export function controlSource(entry, errorCode) {
   const source = entry?.control_source === "native" ? "native" : "vistoda";
   return {
-    source, label: SOURCE_LABELS[source], hint: SOURCE_HINTS[errorCode] || "",
+    source, label: SOURCE_LABELS[source],
+    hint: SOURCE_HINTS[errorCode] || (source === "native" ? NATIVE_HINT : ""),
     // Standalone never lists the official integration's entities as controls.
     entities: source === "native" ? entry?.native_entities || [] : [],
     switchEntityId: entry?.delegate_entity_id || null,

@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from ha_stub_support import config_entry, load, stub_ha
+from native_ezviz_support import NativeEntry, NativeEzviz
 
 from custom_components.media_bridge import outage
 
@@ -17,39 +18,32 @@ def ezviz_entry(entry_id="ez-1", delegate=False):
     return entry
 
 
-def hass_with(native_entries, vistoda_entries=(), running=True):
-    by_domain = {"ezviz": list(native_entries), "media_bridge": list(vistoda_entries)}
-    return SimpleNamespace(
+def hass_with(native=None, vistoda_entries=(), running=True):
+    by_domain = {"media_bridge": list(vistoda_entries)}
+    hass = SimpleNamespace(
         is_running=running,
         config_entries=SimpleNamespace(async_entries=lambda domain: by_domain.get(domain, [])),
     )
+    (native or NativeEzviz(entries=[])).install(hass)
+    return hass
 
 
-def native(status, *, success=True, state=LOADED, serial="SERIAL1"):
-    coordinator = SimpleNamespace(data={serial: {"status": status}}, last_update_success=success)
-    return SimpleNamespace(runtime_data=coordinator, state=state)
+def native(online=True, *, state=LOADED, serial="SERIAL1", camera=True, entries=1):
+    natives = [NativeEntry(f"native-{index}", state) for index in range(entries)]
+    return NativeEzviz(entries=natives, serial=serial, online=online, camera=camera)
 
 
-@pytest.mark.parametrize(
-    ("status", "expected"),
-    [(1, True), ("1", True), (2, False), (0, None), (True, None), (None, None), ("x", None)],
-)
-def test_native_ezviz_status_maps_only_known_codes(monkeypatch, status, expected) -> None:
-    stub_ha(monkeypatch)
-    core = load(monkeypatch, "ezviz_core")
-    assert core.camera_online({"status": status}) is expected
-
-
-def test_native_camera_requires_one_healthy_coordinator(monkeypatch) -> None:
+def test_native_camera_follows_the_official_camera_entity_state(monkeypatch) -> None:
     stub_ha(monkeypatch)
     core = load(monkeypatch, "ezviz_core")
     entry = ezviz_entry()
-    assert core.native_camera_online(hass_with([native(1)]), entry) is True
-    assert core.native_camera_online(hass_with([native(2)]), entry) is False
-    assert core.native_camera_online(hass_with([native(1, success=False)]), entry) is None
-    assert core.native_camera_online(hass_with([native(1), native(1)]), entry) is None
-    assert core.native_camera_online(hass_with([native(1, serial="OTHER")]), entry) is None
-    assert core.native_camera_online(hass_with([]), config_entry("ezviz")) is None
+    assert core.native_camera_online(hass_with(native()), entry) is True
+    assert core.native_camera_online(hass_with(native(online=False)), entry) is False
+    assert core.native_camera_online(hass_with(native(state=RETRY)), entry) is None
+    assert core.native_camera_online(hass_with(native(entries=2)), entry) is None
+    assert core.native_camera_online(hass_with(native(serial="OTHER")), entry) is None
+    assert core.native_camera_online(hass_with(native(camera=False)), entry) is None
+    assert core.native_camera_online(hass_with(), config_entry("ezviz")) is None
 
 
 async def test_ezviz_camera_connectivity_entity(monkeypatch) -> None:
@@ -61,10 +55,10 @@ async def test_ezviz_camera_connectivity_entity(monkeypatch) -> None:
     assert entity.unique_id == "ezviz-ez-1-camera-connectivity"
     assert entity._attr_translation_key == "ezviz_camera_connectivity"
     assert entity.extra_state_attributes["connectivity_scope"] == "camera"
-    entity.hass = hass_with([native(2)])
+    entity.hass = hass_with(native(online=False))
     await entity.async_added_to_hass()
     assert entity.available is True and entity.is_on is False
-    entity.hass = hass_with([])
+    entity.hass = hass_with()
     await entity.async_update()
     assert entity.available is False
 
@@ -119,20 +113,23 @@ async def test_setup_adds_device_connectivity_and_keeps_bridge_ids(monkeypatch) 
 @pytest.mark.parametrize(
     ("natives", "vistoda", "running", "expected"),
     [
-        ([native(1)], [ezviz_entry(delegate=True)], True, "delete"),
+        (native(), [ezviz_entry(delegate=True)], True, "delete"),
         (
-            [native(1, state=SimpleNamespace(value="setup_in_progress"))],
+            native(state=SimpleNamespace(value="setup_in_progress")),
             [ezviz_entry(delegate=True)],
             True,
             "delete",
         ),
-        ([native(1, state=RETRY)], [ezviz_entry(delegate=True)], True, "create"),
-        ([], [ezviz_entry(delegate=True)], True, "create"),
+        (native(state=RETRY), [ezviz_entry(delegate=True)], True, "create"),
+        # Loaded but without its camera entity: delegation would be forced off.
+        (native(camera=False), [ezviz_entry(delegate=True)], True, "create"),
+        (native(entries=2), [ezviz_entry(delegate=True)], True, "create"),
+        (None, [ezviz_entry(delegate=True)], True, "create"),
         # Standalone entries (the default) never require the native integration.
-        ([], [ezviz_entry()], True, "delete"),
-        ([], [ezviz_entry(), ezviz_entry("ez-2", delegate=True)], True, "create"),
-        ([], [config_entry("ring")], True, "delete"),
-        ([], [ezviz_entry(delegate=True)], False, None),
+        (None, [ezviz_entry()], True, "delete"),
+        (None, [ezviz_entry(), ezviz_entry("ez-2", delegate=True)], True, "create"),
+        (None, [config_entry("ring")], True, "delete"),
+        (None, [ezviz_entry(delegate=True)], False, None),
     ],
 )
 def test_ezviz_core_issue_tracks_native_integration(
@@ -164,5 +161,5 @@ def test_unloading_last_ezviz_entry_clears_core_issue(monkeypatch) -> None:
     load(monkeypatch, "repairs")
     core = load(monkeypatch, "ezviz_core")
     entries = [ezviz_entry(delegate=True)]
-    core.refresh_core_issue(hass_with([], entries), exclude_entry_id="ez-1")
+    core.refresh_core_issue(hass_with(None, entries), exclude_entry_id="ez-1")
     assert issues.async_delete_issue.call_args.args[2] == "ezviz_core_unavailable"

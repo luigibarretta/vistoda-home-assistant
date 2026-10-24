@@ -17,4 +17,6 @@ export const EZVIZ_COPY = {
     "The Vistoda EZVIZ app does not offer these controls yet: update it to 0.10 or turn on delegation to the official EZVIZ integration.",
   "L’integrazione EZVIZ ufficiale non è disponibile: ripristinala o disattiva la delega per usare l’app Vistoda EZVIZ.":
     "The official EZVIZ integration is unavailable: restore it or turn delegation off to use the Vistoda EZVIZ app.",
+  "Con la delega attiva vedi i comandi dell’integrazione EZVIZ ufficiale; notifiche, immagine e rilevamento avanzato richiedono l’app Vistoda EZVIZ.":
+    "With delegation on you see the official EZVIZ integration's controls; notifications, image and advanced detection need the Vistoda EZVIZ app.",
 };

@@ -15,6 +15,10 @@ class UpdateFailedError(Exception):
     pass
 
 
+class HomeAssistantError(Exception):
+    pass
+
+
 class Coordinator:
     def __class_getitem__(cls, _item):
         return cls
@@ -69,7 +73,16 @@ def stub_ha(monkeypatch):
         entities={}, async_get=lambda _key: None, async_get_entity_id=lambda *_args: None
     )
     dr = module("homeassistant.helpers.device_registry", async_get=lambda _hass: registry)
-    er = module("homeassistant.helpers.entity_registry", async_get=lambda _hass: registry)
+    er = module(
+        "homeassistant.helpers.entity_registry",
+        async_get=lambda _hass: registry,
+        # Like Home Assistant: enabled entries only, unless asked for disabled ones.
+        async_entries_for_device=lambda reg, device_id: [
+            entity
+            for entity in reg.entities.values()
+            if entity.device_id == device_id and entity.disabled_by is None
+        ],
+    )
     module("homeassistant")
     module("homeassistant.helpers", issue_registry=ir, device_registry=dr, entity_registry=er)
     module(
@@ -87,7 +100,11 @@ def stub_ha(monkeypatch):
     )
     module("homeassistant.helpers.event", async_track_state_change_event=Mock())
     module("homeassistant.config_entries", ConfigEntry=object)
-    module("homeassistant.exceptions", ConfigEntryAuthFailed=AuthFailedError)
+    module(
+        "homeassistant.exceptions",
+        ConfigEntryAuthFailed=AuthFailedError,
+        HomeAssistantError=HomeAssistantError,
+    )
     module(
         "homeassistant.helpers.dispatcher",
         async_dispatcher_send=Mock(),

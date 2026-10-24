@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from ha_stub_support import AuthFailedError, UpdateFailedError, config_entry, load, stub_ha
+from native_ezviz_support import NativeEntry, NativeEzviz
 
 from custom_components.media_bridge import outage
 from custom_components.media_bridge.errors import CannotConnectError, ReauthRequiredError
@@ -156,11 +157,12 @@ def test_native_ezviz_retry_that_recovers_within_the_grace_stays_silent(monkeypa
     monkeypatch.setattr(outage, "time", SimpleNamespace(monotonic=lambda: 0))
     vistoda = config_entry("ezviz", ezviz_source_id=SOURCE)
     vistoda.options = {"ezviz_delegate_controls": True}
-    native = SimpleNamespace(state=SimpleNamespace(value="setup_retry"), data={})
-    entries = {"ezviz": [native], "media_bridge": [vistoda]}
+    native = NativeEntry(state=SimpleNamespace(value="setup_retry"))
+    entries = {"media_bridge": [vistoda]}
     hass = SimpleNamespace(
         is_running=True, config_entries=SimpleNamespace(async_entries=entries.__getitem__)
     )
+    NativeEzviz(entries=[native], serial=SOURCE.rsplit(":", 1)[0]).install(hass)
     core.refresh_core_issue(hass)
     native.state = SimpleNamespace(value="loaded")
     core.refresh_core_issue(hass)

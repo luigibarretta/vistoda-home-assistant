@@ -12,11 +12,16 @@ esattamente come l'interruttore di delega di Ring:
   quella entry.
 - **Delegata**: l'interruttore di configurazione **Delega comandi
   all'integrazione EZVIZ ufficiale** (`ezviz_delegate_controls`, sul
-  dispositivo **Vistoda · EZVIZ · <alias>** della telecamera) instrada gli
-  stessi comandi tramite l'integrazione `ezviz` di Home Assistant, associata
-  per numero di serie. Si può attivare solo mentre il coordinatore cloud di
-  quell'integrazione per la telecamera associata è caricato e funzionante (le
-  entry solo RTSP `CAMERA_ACCOUNT` non contano mai).
+  dispositivo **Vistoda · EZVIZ · <alias>** della telecamera) affida i comandi
+  della telecamera all'integrazione `ezviz` di Home Assistant. Vistoda trova il
+  dispositivo della telecamera nel registro dispositivi tramite il numero di
+  serie e usa solo l'interfaccia pubblica di quell'integrazione: le sue entità
+  (elencate nella pagina dei dettagli), i loro stati pubblicati e i servizi
+  `camera.enable_motion_detection` / `camera.disable_motion_detection`
+  dell'entità camera ufficiale per l'armamento. Non legge né chiama mai gli
+  oggetti di runtime dell'integrazione ufficiale o il suo client EZVIZ. Si può
+  attivare solo mentre la entry ufficiale che ha registrato la telecamera è
+  caricata e ha un'entità camera per essa.
 
 La scelta ha effetto senza riavvio: l'instradamento segue subito l'opzione e
 le entry che condividono la stessa app si ricaricano per aggiungere o togliere
@@ -42,7 +47,7 @@ telecamera sono verificate. La configurazione non la attende mai.
 | --- | --- | --- | --- |
 | Autonoma | qualsiasi | risponde | app Vistoda EZVIZ |
 | Autonoma | qualsiasi | HTTP 404 (app precedente) | non disponibili; aggiorna l'app alla 0.10 o attiva la delega |
-| Delegata | caricata e funzionante | qualsiasi | integrazione ufficiale `ezviz` |
+| Delegata | caricata, telecamera registrata | qualsiasi | entità e servizi camera dell'integrazione ufficiale `ezviz` |
 | Delegata | non disponibile | qualsiasi | non disponibili; ripristinala o disattiva la delega |
 
 Vistoda non passa mai in silenzio da una fonte all'altra: un'app in errore
@@ -70,8 +75,17 @@ interruttori come `human_detection`, `wide_dynamic_range` (`wdr`),
 `distortion_correction`, `logo_watermark` (`logo`), `privacy_mode`,
 `sleep_mode`, `status_light` e `infrared_light`. Gli interruttori sconosciuti
 compaiono in **Altre impostazioni**. Programmazione allarme, batteria e
-firmware sono in sola lettura. Le notifiche e le entità proprie
-dell'integrazione ufficiale compaiono solo in modalità delegata.
+firmware sono in sola lettura.
+
+In modalità delegata la pagina elenca le entità proprie dell'integrazione
+ufficiale e aggiunge una sola riga Vistoda, **Telecamera armata**, letta
+dall'attributo `motion_detection` dell'entità camera ufficiale. L'armamento
+chiama il servizio camera ufficiale, poi chiede a quell'entità un nuovo
+aggiornamento (`homeassistant.update_entity`) e attende fino a 20 s che il suo
+stato mostri il nuovo valore; altrimenti il pannello segnala `unconfirmed` e
+non annulla nulla. Le impostazioni che l'integrazione ufficiale non espone
+(notifiche, WDR, correzione distorsione, logo, rilevamento sagoma umana,
+modalità di rilevamento) sono disponibili solo in modalità autonoma.
 
 ## Pannello d'allarme dell'account
 

@@ -1,10 +1,9 @@
-"""Read-only native EZVIZ metadata, matched to the immutable camera binding."""
+"""Read-only native EZVIZ registry metadata, matched to the immutable camera binding."""
 
 from homeassistant.helpers import area_registry as ar
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .ezviz_binding import CONF_EZVIZ_SOURCE_ID, valid_source_id
+from .ezviz_core import bound_serial, native_device, native_entities
 
 # Unique-id suffixes of HA core EZVIZ entities (2026.8, pyezvizapi 1.0.0.7):
 # buttons/number use "{serial}_{key}", binary sensors "{serial}_{name}.{key}".
@@ -48,22 +47,15 @@ def _native_entity(hass, entity, serial: str = "") -> dict:
 
 def panel_metadata(hass, entry) -> dict:
     """Do not guess the account from a friendly name or a shared alias."""
-    source = entry.data.get(CONF_EZVIZ_SOURCE_ID)
-    if not valid_source_id(source):
+    resolved = native_device(hass, entry)
+    if resolved is None:
         return {}
-    serial = source.rsplit(":", 1)[0]
-    matches = []
-    for native in hass.config_entries.async_entries("ezviz"):
-        coordinator = getattr(native, "runtime_data", None)
-        data = getattr(coordinator, "data", None)
-        if isinstance(data, dict) and isinstance(data.get(serial), dict):
-            matches.append((native, data[serial]))
-    if len(matches) != 1:
-        return {}
-    native, data = matches[0]
+    device, native = resolved
+    serial = bound_serial(entry)
     result = {}
-    if isinstance(data.get("name"), str) and data["name"].strip():
-        result["device_name"] = data["name"][:255]
+    name = device.name_by_user or device.name
+    if isinstance(name, str) and name.strip():
+        result["device_name"] = name[:255]
     registry = er.async_get(hass)
     alarms = [
         entity.entity_id
@@ -75,25 +67,15 @@ def panel_metadata(hass, entry) -> dict:
     if len(alarms) == 1:
         result["alarm_entity_id"] = alarms[0]
         result["alarm_scope"] = "account"
-    device = dr.async_get(hass).async_get_device_by_identifier(("ezviz", serial), native.entry_id)
-    if device:
-        native_entities = sorted(
-            (
-                _native_entity(hass, entity, serial)
-                for entity in registry.entities.values()
-                if entity.config_entry_id == native.entry_id
-                and entity.device_id == device.id
-                and entity.disabled_by is None
-            ),
-            key=lambda item: (item["domain"], item["name"], item["entity_id"]),
-        )
-        result["native_entities"] = native_entities[:64]
-        batteries = [
-            item["entity_id"] for item in native_entities if item["device_class"] == "battery"
-        ]
-        if len(batteries) == 1:
-            result["battery_entity_id"] = batteries[0]
-    if device and device.area_id:
+    entities = sorted(
+        (_native_entity(hass, entity, serial) for entity in native_entities(hass, device, native)),
+        key=lambda item: (item["domain"], item["name"], item["entity_id"]),
+    )
+    result["native_entities"] = entities[:64]
+    batteries = [item["entity_id"] for item in entities if item["device_class"] == "battery"]
+    if len(batteries) == 1:
+        result["battery_entity_id"] = batteries[0]
+    if device.area_id:
         area = ar.async_get(hass).async_get_area(device.area_id)
         if area:
             result["room_name"] = area.name

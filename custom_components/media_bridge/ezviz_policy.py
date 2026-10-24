@@ -3,9 +3,10 @@
 Standalone (the default) reads and writes settings, arming, detection, PTZ,
 connectivity and the account alarm panel through the Vistoda EZVIZ app's own
 EZVIZ login. A delegated entry uses Home Assistant's official EZVIZ integration
-instead, like the Ring delegation switch. Delegation can only be turned on while
-the native cloud coordinator for the bound camera is healthy, and it is forced
-back off at setup when that integration cannot serve the camera.
+instead, like the Ring delegation switch, through its entities and services only.
+Delegation can only be turned on while the official entry that registered the
+bound camera is loaded and publishes its camera entity, and it is forced back off
+at setup when that integration cannot serve the camera.
 """
 
 import logging
@@ -97,7 +98,7 @@ class EzvizDelegateSwitch(SwitchEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "ezviz_delegate_controls"
     _attr_icon = "mdi:swap-horizontal"
-    # Polls in-memory state only, so availability follows the native coordinator.
+    # Polls registries and states only, so availability follows the official entry.
     _attr_should_poll = True
 
     def __init__(self, hass, entry) -> None:

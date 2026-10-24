@@ -11,10 +11,15 @@ Ring's delegation switch:
   account** flow for that entry.
 - **Delegated**: the configuration switch **Delegate controls to the official
   EZVIZ integration** (`ezviz_delegate_controls`, on the camera's
-  **Vistoda · EZVIZ · <alias>** device) routes the same controls through Home
-  Assistant's `ezviz` integration, matched by camera serial. It can be turned
-  on only while that integration's cloud coordinator for the bound camera is
-  loaded and healthy (RTSP-only `CAMERA_ACCOUNT` entries never count).
+  **Vistoda · EZVIZ · <alias>** device) hands the camera's controls to Home
+  Assistant's `ezviz` integration. Vistoda finds the camera's device in the
+  device registry by serial and uses only that integration's public surface:
+  its entities (listed in the details page), their published states, and the
+  official camera entity's `camera.enable_motion_detection` /
+  `camera.disable_motion_detection` services for arming. It never reads or
+  calls the official integration's runtime objects or its EZVIZ client. It
+  can be turned on only while the official entry that registered the camera is
+  loaded and has a camera entity for it.
 
 The choice takes effect without a restart: routing follows the option at once
 and the entries sharing the same app reload to add or remove the Vistoda
@@ -38,7 +43,7 @@ verified. Setup never waits for it.
 | --- | --- | --- | --- |
 | Standalone | any | answers | Vistoda EZVIZ app |
 | Standalone | any | HTTP 404 (older app) | unavailable; update the app to 0.10 or delegate |
-| Delegated | loaded and healthy | any | official `ezviz` integration |
+| Delegated | loaded, camera registered | any | official `ezviz` entities and camera services |
 | Delegated | unavailable | any | unavailable; restore it or turn delegation off |
 
 Vistoda never silently switches between the two sources: a failing app is
@@ -65,8 +70,16 @@ Only items the app reports are shown. Existing keys keep their meaning:
 `human_detection`, `wide_dynamic_range` (`wdr`), `distortion_correction`,
 `logo_watermark` (`logo`), `privacy_mode`, `sleep_mode`, `status_light` and
 `infrared_light`. Unknown switches appear under **Other settings**. The alarm
-schedule, battery and firmware are read-only. Notification settings and the
-official integration's own entities appear only in delegated mode.
+schedule, battery and firmware are read-only.
+
+In delegated mode the page lists the official integration's own entities and
+adds one Vistoda row, **Camera armed**, read from the official camera entity's
+`motion_detection` attribute. Arming calls the official camera service, then
+asks that entity for a fresh poll (`homeassistant.update_entity`) and waits up
+to 20 s for its state to show the new value; otherwise the panel reports
+`unconfirmed` and nothing is rolled back. Settings the official integration
+does not expose (notifications, WDR, distortion correction, logo, human
+detection, detection mode) are available only in standalone mode.
 
 ## Account alarm panel
 

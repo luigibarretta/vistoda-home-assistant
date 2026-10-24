@@ -1,13 +1,14 @@
-"""Native account association must be exact and metadata must be allowlisted."""
+"""Native association comes from the registries only, exact and allowlisted."""
 
 import ast
 from pathlib import Path
 from types import SimpleNamespace as NS  # noqa: N814
 
 SOURCE = Path("custom_components/media_bridge/ezviz_panel_metadata.py")
+CORE = Path("custom_components/media_bridge/ezviz_core.py")
 
 
-def metadata(native_entries, source="serial:1", extra=None):
+def metadata(native_entries, source="serial:1", extra=None, name_by_user=None):
     registry = NS(
         entities={
             **(extra or {}),
@@ -42,38 +43,64 @@ def metadata(native_entries, source="serial:1", extra=None):
     )
     lookups = []
 
-    def find(identifier, entry_id):
-        lookups.append((identifier, entry_id))
-        return NS(id="device", area_id="hall")
+    def find(identifiers):
+        lookups.append(identifiers)
+        if not native_entries or identifiers != {("ezviz", "serial")}:
+            return None
+        return NS(
+            id="device",
+            area_id="hall",
+            name="Native camera",
+            name_by_user=name_by_user,
+            config_entries={native.entry_id for native in native_entries},
+        )
 
     namespace = {
         "CONF_EZVIZ_SOURCE_ID": "ezviz_source_id",
-        "valid_source_id": lambda value: value == "serial:1",
-        "er": NS(async_get=lambda _: registry),
-        "dr": NS(async_get=lambda _: NS(async_get_device_by_identifier=find)),
+        "valid_source_id": lambda value: value in {"serial:1", "another:1"},
+        "er": NS(
+            async_get=lambda _: registry,
+            async_entries_for_device=lambda reg, device_id: [
+                entity
+                for entity in reg.entities.values()
+                if entity.device_id == device_id and entity.disabled_by is None
+            ],
+        ),
+        "dr": NS(async_get=lambda _: NS(async_get_device=lambda *, identifiers: find(identifiers))),
         "ar": NS(async_get=lambda _: NS(async_get_area=lambda _: NS(name="HA hall"))),
     }
-    tree = ast.parse(SOURCE.read_text())
-    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef | ast.Assign)]
-    exec(compile(ast.Module(body=functions, type_ignores=[]), str(SOURCE), "exec"), namespace)
+    for source_path in (CORE, SOURCE):
+        tree = ast.parse(source_path.read_text())
+        nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef | ast.Assign)]
+        code = compile(ast.Module(body=nodes, type_ignores=[]), str(source_path), "exec")
+        exec(code, namespace)
     states = {
         "sensor.fixture_battery": NS(
             attributes={"friendly_name": "Camera battery", "device_class": "battery"}
         ),
         "switch.fixture_audio": NS(attributes={"friendly_name": "Camera audio"}),
     }
-    hass = NS(config_entries=NS(async_entries=lambda _: native_entries), states=NS(get=states.get))
+    by_id = {native.entry_id: native for native in native_entries}
+    hass = NS(config_entries=NS(async_get_entry=by_id.get), states=NS(get=states.get))
     result = namespace["panel_metadata"](hass, NS(data={"ezviz_source_id": source}))
     return result, lookups
 
 
-def native(name="Native camera"):
-    return NS(
-        entry_id="native",
-        runtime_data=NS(
-            data={"serial": {"name": name, "token": "do-not-expose", "password": "private"}}
-        ),
-    )
+class Native:
+    """An official EZVIZ entry whose runtime objects must never be read."""
+
+    domain = "ezviz"
+
+    def __init__(self, entry_id="native"):
+        self.entry_id = entry_id
+
+    @property
+    def runtime_data(self):
+        raise AssertionError("runtime_data belongs to the official EZVIZ integration")
+
+
+def native(entry_id="native"):
+    return Native(entry_id)
 
 
 def test_exact_binding_exposes_native_name_account_alarm_and_labeled_ha_area():
@@ -100,13 +127,17 @@ def test_exact_binding_exposes_native_name_account_alarm_and_labeled_ha_area():
         "room_name": "HA hall",
         "room_source": "home_assistant",
     }
-    assert lookups == [(("ezviz", "serial"), "native")]
+    assert lookups == [{("ezviz", "serial")}]
 
 
 def test_missing_or_ambiguous_binding_never_guesses_account_by_name():
     assert metadata([native()], "another:1")[0] == {}
-    assert metadata([native(), native()])[0] == {}
+    assert metadata([native(), native("second")])[0] == {}
     assert metadata([])[0] == {}
+
+
+def test_user_device_name_wins_over_the_integration_name():
+    assert metadata([native()], name_by_user="Ingresso")[0]["device_name"] == "Ingresso"
 
 
 def native_entity(entity_id, unique_id):

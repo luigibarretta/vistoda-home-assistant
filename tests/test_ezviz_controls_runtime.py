@@ -17,6 +17,7 @@ from ha_stub_support import (
     load,
     stub_ha,
 )
+from native_ezviz_support import NativeEzviz
 
 from custom_components.media_bridge.client_ezviz_controls import (
     EzvizControlConflictError,
@@ -54,16 +55,18 @@ def stub(monkeypatch):
     return issues, load(monkeypatch, "ezviz_controls")
 
 
-def hass_with(entries, runtimes=None, natives=()):
+def hass_with(entries, runtimes=None, native=False):
     entries = [bind_runtime(entry, (runtimes or {}).get(entry.entry_id)) for entry in entries]
-    by_domain = {"media_bridge": entries, "ezviz": list(natives)}
-    return SimpleNamespace(
+    by_domain = {"media_bridge": entries}
+    hass = SimpleNamespace(
         is_running=True,
         config_entries=SimpleNamespace(
             async_entries=lambda domain: by_domain.get(domain, []),
             async_get_entry={entry.entry_id: entry for entry in entries}.get,
         ),
     )
+    NativeEzviz(entries=None if native else [], serial="SERIAL1").install(hass)
+    return hass
 
 
 async def test_coordinator_detects_support_404_and_skips_unhealthy_bridge(monkeypatch) -> None:
@@ -94,13 +97,10 @@ async def test_connectivity_follows_the_chosen_source_only(monkeypatch) -> None:
         data=controls.EzvizControlsStatus(True, EzvizControls(online=False)),
         last_update_success=True,
     )
-    native = SimpleNamespace(
-        runtime_data=SimpleNamespace(data={"SERIAL1": {"status": 1}}, last_update_success=True),
-        state=SimpleNamespace(value="loaded"),
-    )
     entry = ezviz_entry()
     entity = platform.EzvizCameraConnectivity(entry)
-    entity.hass = hass_with([entry], {"E1": SimpleNamespace(ezviz_controls=coordinator)}, [native])
+    runtimes = {"E1": SimpleNamespace(ezviz_controls=coordinator)}
+    entity.hass = hass_with([entry], runtimes, native=True)
     await entity.async_update()
     assert (entity.available, entity.is_on) == (True, False)
     assert entity.extra_state_attributes["source_integration"] == "media_bridge"

@@ -1,38 +1,53 @@
 """Verified EZVIZ settings from the source the user chose for each entry.
 
-Standalone entries (the default) use the Vistoda EZVIZ app; entries delegated
-to Home Assistant's EZVIZ integration use its native session below.
+Standalone entries (the default) use the Vistoda EZVIZ app. Entries delegated to
+Home Assistant's EZVIZ integration show that integration's own entities in the
+panel; the one setting Vistoda adds, camera arming, goes through the official
+camera entity's motion-detection services and is confirmed by its published state.
 """
 
+import asyncio
+import logging
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
-from .ezviz_bounded_call import bounded_call
 from .ezviz_controls_websocket import async_app_info, async_app_set, ws_ptz
-from .ezviz_core import native_camera, native_controls_available
-from .ezviz_provider_settings import (
-    current_value,
-    provider_value,
-    settings_from_data,
-    writable,
-)
+from .ezviz_core import UNAVAILABLE, native_camera
 
+_LOGGER = logging.getLogger(__name__)
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 KEY = vol.All(str, vol.Length(min=1, max=64))
 # Integers are only valid for the app's sensitivity range.
 VALUE = vol.Any(bool, int, str)
+DEFENCE = "camera_defence"
+# The official coordinator debounces refresh requests for up to ten seconds.
+CONFIRM_TIMEOUT = 20
+
+
+def _defence(state) -> bool | None:
+    """Camera arming as the official camera entity publishes it, else unknown."""
+    if state is None or state.state == UNAVAILABLE:
+        return None
+    return bool(state.attributes.get("motion_detection", False))
+
+
+def _settings(state) -> list[dict]:
+    value = _defence(state)
+    if value is None:
+        return []
+    return [{"key": DEFENCE, "group": "arming", "kind": "boolean", "value": value}]
 
 
 def _resolve(hass: HomeAssistant, entry_id: str):
-    """Return the healthy native (coordinator, serial) for a delegated entry, else None."""
+    """Return the official camera entity's state for a delegated entry, else None."""
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ:
-        return None
-    if not native_controls_available(hass, entry):
         return None
     return native_camera(hass, entry)
 
@@ -43,20 +58,29 @@ def _native_unavailable(connection, msg_id) -> None:
     )
 
 
-# The poll itself failed: the write is neither confirmed nor disproved.
-POLL_FAILED = object()
+async def _confirm(hass: HomeAssistant, entity_id: str, value: bool) -> bool:
+    """Ask the official entity for a fresh poll and wait until it shows the value."""
+    shown = asyncio.Event()
 
+    @callback
+    def _changed(_event) -> None:
+        if _defence(hass.states.get(entity_id)) is value:
+            shown.set()
 
-async def _read_back(coordinator, serial: str, key: str) -> Any:
-    """Poll the provider again; a failed or partial poll never confirms a write."""
-    # async_refresh bypasses the request debouncer: a debounced refresh could
-    # leave the read-back on data polled before this write.
-    await coordinator.async_refresh()
-    if not getattr(coordinator, "last_update_success", False):
-        return POLL_FAILED
-    data = coordinator.data
-    camera = data.get(serial) if isinstance(data, dict) else None
-    return current_value(camera, key) if isinstance(camera, dict) else None
+    unsubscribe = async_track_state_change_event(hass, [entity_id], _changed)
+    try:
+        await hass.services.async_call(
+            "homeassistant", "update_entity", {"entity_id": entity_id}, blocking=True
+        )
+        if _defence(hass.states.get(entity_id)) is value:
+            return True
+        async with asyncio.timeout(CONFIRM_TIMEOUT):
+            await shown.wait()
+        return True
+    except (HomeAssistantError, TimeoutError):
+        return False
+    finally:
+        unsubscribe()
 
 
 @callback
@@ -73,13 +97,11 @@ def async_register(hass: HomeAssistant) -> None:
 async def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
     if await async_app_info(hass, connection, msg):
         return
-    resolved = _resolve(hass, msg["entry_id"])
-    if resolved is None:
+    state = _resolve(hass, msg["entry_id"])
+    if state is None:
         _native_unavailable(connection, msg["id"])
         return
-    coordinator, serial = resolved
-    settings = settings_from_data(coordinator.data[serial])
-    connection.send_result(msg["id"], {"settings": settings, "source": "native"})
+    connection.send_result(msg["id"], {"settings": _settings(state), "source": "native"})
 
 
 @websocket_api.websocket_command(
@@ -98,54 +120,44 @@ async def ws_settings_set(hass, connection, msg: dict[str, Any]) -> None:
         return
     if await async_app_set(hass, connection, msg):
         return
-    if not writable(msg["key"]):
-        connection.send_error(msg["id"], "not_supported", "EZVIZ setting is read-only")
+    if msg["key"] != DEFENCE:
+        # Every other delegated control is an official entity the panel lists itself.
+        connection.send_error(msg["id"], "not_supported", "Use the official EZVIZ entity")
         return
-    resolved = _resolve(hass, msg["entry_id"])
-    if resolved is None:
-        _native_unavailable(connection, msg["id"])
-        return
-    coordinator, serial = resolved
-    # pyezvizapi ships with HA's EZVIZ integration, which owns the resolved
-    # coordinator; importing it here keeps Blink/Ring-only installs loadable.
-    from pyezvizapi.exceptions import HTTPError, PyEzvizError
-
-    old = current_value(coordinator.data[serial], msg["key"])
-    if old != msg["expected_value"]:
-        connection.send_error(msg["id"], "conflict", "EZVIZ setting changed upstream")
-        return
-    try:
-        method_name, args = provider_value(msg["key"], msg["value"])
-    except ValueError:
+    value, expected = msg["value"], msg["expected_value"]
+    if not isinstance(value, bool) or not isinstance(expected, bool):
         connection.send_error(msg["id"], "invalid_format", "Unsupported EZVIZ setting value")
         return
-    client = getattr(coordinator, "ezviz_client", None)
-    try:
-        await hass.async_add_executor_job(bounded_call, client, method_name, serial, *args)
-        confirmed = await _read_back(coordinator, serial, msg["key"])
-        if confirmed is POLL_FAILED:
-            # Rolling back blind could flip a write that did succeed.
+    state = _resolve(hass, msg["entry_id"])
+    if state is None:
+        _native_unavailable(connection, msg["id"])
+        return
+    current = _defence(state)
+    if current is None:
+        connection.send_error(msg["id"], "unavailable", "The EZVIZ camera is offline")
+        return
+    if current != expected:
+        connection.send_error(msg["id"], "conflict", "EZVIZ setting changed upstream")
+        return
+    if value != current:
+        service = "enable_motion_detection" if value else "disable_motion_detection"
+        try:
+            await hass.services.async_call(
+                "camera",
+                service,
+                {"entity_id": state.entity_id},
+                blocking=True,
+                context=connection.context(msg),
+            )
+        except Exception:  # The official service may raise its client library's own errors.
+            _LOGGER.debug(
+                "Official EZVIZ %s failed for %s", service, state.entity_id, exc_info=True
+            )
+            connection.send_error(msg["id"], "unavailable", "EZVIZ rejected the setting")
+            return
+        if not await _confirm(hass, state.entity_id, value):
+            # Never undo blind: the write may still have reached the camera.
             connection.send_error(msg["id"], "unconfirmed", "EZVIZ did not confirm the setting")
             return
-        if confirmed != msg["value"]:
-            rollback_name, rollback_args = provider_value(msg["key"], old)
-            await hass.async_add_executor_job(
-                bounded_call, client, rollback_name, serial, *rollback_args
-            )
-            raise ValueError("read-after-write mismatch")
-    except (
-        AttributeError,
-        HTTPError,
-        KeyError,
-        OSError,  # includes requests timeouts and connection errors
-        PyEzvizError,
-        TypeError,
-        ValueError,
-    ):
-        # A failed call may still have reached the camera: poll again so the
-        # panel's follow-up settings/info shows the provider's real state.
-        await coordinator.async_refresh()
-        connection.send_error(msg["id"], "unavailable", "EZVIZ rejected the setting")
-        return
-    settings = settings_from_data(coordinator.data[serial])
+    settings = _settings(hass.states.get(state.entity_id))
     connection.send_result(msg["id"], {"settings": settings, "source": "native"})

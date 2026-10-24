@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from ha_stub_support import CoordinatorEntity, Entity, config_entry, load, stub_ha
+from native_ezviz_support import NativeEntry, NativeEzviz
 
 URL = "http://app:8787"
 
@@ -62,14 +63,12 @@ def ezviz_entry(entry_id="E1", *, delegate=False, state=State.LOADED):
 
 
 def hass_with(entries, *, native=True, running=True):
-    coordinator = SimpleNamespace(data={"SERIAL1": {"status": 1}}, last_update_success=True)
-    natives = [SimpleNamespace(runtime_data=coordinator, state=SimpleNamespace(value="loaded"))]
-    by_domain = {"media_bridge": list(entries), "ezviz": natives if native else []}
+    by_domain = {"media_bridge": list(entries)}
 
     def update(entry, options):
         entry.options = options
 
-    return SimpleNamespace(
+    hass = SimpleNamespace(
         is_running=running,
         data={"media_bridge": {}},
         auth=SimpleNamespace(async_get_user=AsyncMock()),
@@ -79,6 +78,8 @@ def hass_with(entries, *, native=True, running=True):
             async_schedule_reload=Mock(),
         ),
     )
+    NativeEzviz(entries=[NativeEntry()] if native else [], serial="SERIAL1").install(hass)
+    return hass
 
 
 def reloaded(hass) -> list[str]:

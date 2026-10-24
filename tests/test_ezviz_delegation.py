@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from ha_stub_support import config_entry, load, stub_ha
+from native_ezviz_support import SERIAL, NativeEzviz
 
 from custom_components.media_bridge.client_ezviz_controls import EzvizControls
 
-SERIAL = "BC1234567"
 CONTROLS = EzvizControls(online=False, defence_enabled=False, ptz=True)
 
 
@@ -22,8 +22,6 @@ def env(monkeypatch, *, delegate: bool, native: bool, app: bool):
             "async_response": lambda handler: handler,
             "async_register_command": Mock(),
         },
-        "pyezvizapi": {},
-        "pyezvizapi.exceptions": {"HTTPError": OSError, "PyEzvizError": RuntimeError},
     }
     for name, values in modules.items():
         module = ModuleType(name)
@@ -48,30 +46,22 @@ def env(monkeypatch, *, delegate: bool, native: bool, app: bool):
         ezviz_set_control=AsyncMock(return_value=EzvizControls(defence_enabled=True)),
         ezviz_ptz=AsyncMock(),
     )
-    coordinator = SimpleNamespace(
-        data={SERIAL: {"alarm_notify": False, "status": 1}}, last_update_success=True
-    )
-    coordinator.async_refresh = AsyncMock()
-    coordinator.ezviz_client = SimpleNamespace(
-        set_camera_defence=lambda serial, on: coordinator.data[serial].update(alarm_notify=bool(on))
-    )
-    natives = [SimpleNamespace(runtime_data=coordinator, state=SimpleNamespace(value="loaded"))]
     runtime = SimpleNamespace(client=client, ezviz_controls=controls)
-
-    async def executor(func, *args):
-        return func(*args)
-
     entry.runtime_data = runtime
     hass = SimpleNamespace(
-        async_add_executor_job=executor,
         data={"media_bridge": {}},
         config_entries=SimpleNamespace(
             async_get_entry=lambda key: entry if key == "E1" else None,
-            async_entries=lambda domain: natives if domain == "ezviz" and native else [],
+            async_entries=lambda _domain: [],
         ),
     )
+    hass.native = NativeEzviz(entries=None if native else [])
+    hass.native.install(hass)
     connection = SimpleNamespace(
-        user=SimpleNamespace(is_admin=True), send_result=Mock(), send_error=Mock()
+        user=SimpleNamespace(is_admin=True),
+        send_result=Mock(),
+        send_error=Mock(),
+        context=lambda _msg: None,
     )
     return module, hass, connection, entry
 
@@ -112,10 +102,8 @@ async def test_settings_info_and_set_follow_the_chosen_source(
     client = hass.config_entries.async_get_entry("E1").runtime_data.client
     assert outcome(connection) == expected
     assert client.ezviz_set_control.await_count == (expected == "vistoda")
-    native = hass.config_entries.async_entries("ezviz")
-    if native:
-        # Only a delegated, available entry ever writes through the native session.
-        assert native[0].runtime_data.data[SERIAL]["alarm_notify"] == (expected == "native")
+    # Only a delegated, available entry ever calls the official camera service.
+    assert hass.native.defence == (expected == "native")
 
 
 @pytest.mark.parametrize(("delegate", "native", "app", "expected"), MATRIX)
@@ -150,19 +138,19 @@ async def test_connectivity_follows_the_chosen_source(
     available = {"vistoda": True, "native": True}.get(expected, False)
     assert entity.available is available
     if available:
-        # The app reports the camera offline, the native coordinator online.
+        # The app reports the camera offline, the official camera entity online.
         assert entity.is_on is delegate
 
 
-def test_native_controls_need_a_healthy_cloud_coordinator(monkeypatch) -> None:
+def test_native_controls_need_a_loaded_official_entry_and_camera(monkeypatch) -> None:
     _module, hass, _connection, entry = env(monkeypatch, delegate=True, native=True, app=True)
     core = sys.modules["custom_components.media_bridge.ezviz_core"]
     assert core.native_controls_available(hass, entry)
-    native = hass.config_entries.async_entries("ezviz")[0]
-    native.runtime_data.last_update_success = False
+    hass.native.entries[0].state = SimpleNamespace(value="setup_retry")
     assert not core.native_controls_available(hass, entry)
-    native.runtime_data.last_update_success = True
-    native.data = {"type": "CAMERA_ACCOUNT"}  # RTSP-only entries never count.
+    hass.native.entries[0].state = SimpleNamespace(value="loaded")
+    hass.native.camera = False  # An RTSP-only or partial setup registers no camera.
+    hass.native.install(hass)
     assert not core.native_controls_available(hass, entry)
     entry.options = {}
     assert not core.delegated(entry)
