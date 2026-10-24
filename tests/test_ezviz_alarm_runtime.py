@@ -176,8 +176,9 @@ def api_env(monkeypatch, runtime_client):
     api = load(monkeypatch, "ezviz_alarm_api")
     entry = ezviz_entry()
     runtime = SimpleNamespace(client=runtime_client, ezviz_alarms=SimpleNamespace(supported=True))
+    entry.runtime_data = runtime
     hass = SimpleNamespace(
-        data={"media_bridge": {entry.entry_id: runtime}},
+        data={"media_bridge": {}},
         config_entries=SimpleNamespace(
             async_get_entry=lambda key: entry if key == entry.entry_id else None
         ),

@@ -147,7 +147,7 @@ class RingFacadeEntity(Entity):
     @property
     def native_status(self):
         """Return the shared native status snapshot, when healthy."""
-        runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+        runtime = self._entry.runtime_data
         coordinator = runtime.ring_status
         if (
             coordinator is None
@@ -188,7 +188,7 @@ class RingFacadeEntity(Entity):
 
     async def refresh_native_status(self) -> None:
         """Refresh the shared native snapshot after one bounded mutation."""
-        coordinator = self._hass.data[DOMAIN][self._entry.entry_id].ring_status
+        coordinator = self._entry.runtime_data.ring_status
         if coordinator is not None:
             await coordinator.async_request_refresh()
 
@@ -198,7 +198,7 @@ class RingFacadeEntity(Entity):
         self.async_on_remove(
             async_dispatcher_connect(self.hass, SIGNAL_RING_POLICY_CHANGED, self._policy_changed)
         )
-        coordinator = self._hass.data[DOMAIN][self._entry.entry_id].ring_status
+        coordinator = self._entry.runtime_data.ring_status
         if self._attr_native_capable and coordinator is not None:
             self.async_on_remove(coordinator.async_add_listener(self.async_write_ha_state))
         if self._source_entity_id:

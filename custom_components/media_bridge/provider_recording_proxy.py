@@ -5,10 +5,11 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ
 from .errors import BridgeError
 from .ezviz_binding import async_verify_native
 from .ring_access import can_access_ezviz_entry
+from .runtime import runtime_for
 
 
 class ProviderRecordingView(HomeAssistantView):
@@ -76,7 +77,7 @@ def _runtime(request: web.Request, entry_id: str) -> BridgeRuntime:
     if not can_access_ezviz_entry(hass, request.get("hass_user"), entry_id):
         raise web.HTTPForbidden
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = hass.data.get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ

@@ -18,6 +18,7 @@ from .const import (
     PROVIDERS,
 )
 from .panel_entry_metadata import entry_metadata
+from .runtime import entry_runtime
 
 MAX_ENTITIES_PER_PROVIDER = 256
 
@@ -94,7 +95,7 @@ def _provider_inventory(hass: HomeAssistant) -> tuple[dict, dict[str, str]]:
         entry_providers[entry.entry_id] = provider
         providers[provider]["configured"] = True
         providers[provider]["title"] = entry.title
-        runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        runtime = entry_runtime(entry)
         coordinator = getattr(runtime, "coordinator", None)
         entry_available = bool(coordinator and coordinator.last_update_success)
         providers[provider]["entries"].append(

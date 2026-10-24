@@ -13,7 +13,6 @@ from .client_ring_events import RingPushEvent
 from .const import (
     CONF_ALIAS,
     CONF_PROVIDER,
-    DOMAIN,
     PROVIDER_EZVIZ,
     PROVIDER_RING,
     ring_event_signal,
@@ -41,7 +40,7 @@ async def async_setup_entry(
     if entry.data[CONF_PROVIDER] == PROVIDER_EZVIZ:
         from .ezviz_alarm_event import EzvizAlarmEvent
 
-        runtime = hass.data[DOMAIN][entry.entry_id]
+        runtime = entry.runtime_data
         if runtime.client is not None:
             async_add_entities([EzvizAlarmEvent(runtime, entry)])
     if entry.data[CONF_PROVIDER] == PROVIDER_RING:
@@ -73,7 +72,7 @@ class RingEvent(RingFacadeEntity, EventEntity):
     @property
     def available(self) -> bool:
         """Remain useful with either the native or official event path."""
-        runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+        runtime = self._entry.runtime_data
         native = runtime.ring_events is not None and runtime.coordinator.last_update_success
         return native or super().available
 
@@ -135,7 +134,7 @@ class RingEvent(RingFacadeEntity, EventEntity):
         self._trigger_event(event_type, attributes)
         self.async_write_ha_state()
         if self._native_event_type == "intercom_unlock":
-            runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+            runtime = self._entry.runtime_data
             occurred_at = int(datetime.fromisoformat(state.state).timestamp())
             self._entry.async_create_background_task(
                 self.hass,

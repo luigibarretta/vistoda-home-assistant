@@ -12,6 +12,7 @@ from ha_stub_support import (
     CoordinatorEntity,
     Entity,
     UpdateFailedError,
+    bind_runtime,
     config_entry,
     load,
     stub_ha,
@@ -54,11 +55,14 @@ def stub(monkeypatch):
 
 
 def hass_with(entries, runtimes=None, natives=()):
-    by_domain = {"media_bridge": list(entries), "ezviz": list(natives)}
+    entries = [bind_runtime(entry, (runtimes or {}).get(entry.entry_id)) for entry in entries]
+    by_domain = {"media_bridge": entries, "ezviz": list(natives)}
     return SimpleNamespace(
         is_running=True,
-        data={"media_bridge": runtimes or {}},
-        config_entries=SimpleNamespace(async_entries=lambda domain: by_domain.get(domain, [])),
+        config_entries=SimpleNamespace(
+            async_entries=lambda domain: by_domain.get(domain, []),
+            async_get_entry={entry.entry_id: entry for entry in entries}.get,
+        ),
     )
 
 
@@ -96,7 +100,7 @@ async def test_connectivity_follows_the_chosen_source_only(monkeypatch) -> None:
     )
     entry = ezviz_entry()
     entity = platform.EzvizCameraConnectivity(entry)
-    entity.hass = hass_with([], {"E1": SimpleNamespace(ezviz_controls=coordinator)}, [native])
+    entity.hass = hass_with([entry], {"E1": SimpleNamespace(ezviz_controls=coordinator)}, [native])
     await entity.async_update()
     assert (entity.available, entity.is_on) == (True, False)
     assert entity.extra_state_attributes["source_integration"] == "media_bridge"
@@ -189,10 +193,10 @@ async def test_only_the_app_owner_entry_creates_one_alarm_panel(monkeypatch) -> 
         entry.async_on_unload = Mock()
         entry.async_create_background_task = Mock()
         runtime = SimpleNamespace(client=SimpleNamespace(), coordinator=SimpleNamespace())
-        hass.data["media_bridge"][entry.entry_id] = runtime
+        entry.runtime_data = runtime
         await platform.async_setup_entry(hass, entry, Mock())
-    assert hass.data["media_bridge"]["A1"].ezviz_defence is not None
-    assert not hasattr(hass.data["media_bridge"]["B2"], "ezviz_defence")
+    assert first.runtime_data.ezviz_defence is not None
+    assert not hasattr(second.runtime_data, "ezviz_defence")
     first.async_create_background_task.assert_called_once()
     second.async_create_background_task.assert_not_called()
 
@@ -219,8 +223,9 @@ def test_panel_metadata_prefers_vistoda_alarm_and_battery(monkeypatch) -> None:
         ezviz_controls=SimpleNamespace(data=data),
         ezviz_defence=SimpleNamespace(data=account.EzvizDefenceStatus(True, "away")),
     )
-    hass = hass_with([ezviz_entry()], {"E1": runtime})
-    result = module.entry_metadata(hass, ezviz_entry(), "ezviz")
+    entry = ezviz_entry()
+    hass = hass_with([entry], {"E1": runtime})
+    result = module.entry_metadata(hass, entry, "ezviz")
     assert result["controls"] == {
         "supported": True,
         "ptz": True,
@@ -231,11 +236,12 @@ def test_panel_metadata_prefers_vistoda_alarm_and_battery(monkeypatch) -> None:
     assert result["battery_entity_id"] == "sensor.vistoda_battery"
     assert result["control_source"] == "vistoda"
     runtime.ezviz_controls.data = controls.UNSUPPORTED
-    result = module.entry_metadata(hass, ezviz_entry(), "ezviz")
+    result = module.entry_metadata(hass, entry, "ezviz")
     # Standalone never shows the official integration's alarm panel, battery or entities.
     assert not {"alarm_entity_id", "battery_entity_id", "native_entities"} & set(result)
     delegated = ezviz_entry()
     delegated.options = {"ezviz_delegate_controls": True}
+    delegated.runtime_data = runtime
     result = module.entry_metadata(hass, delegated, "ezviz")
     assert result["alarm_entity_id"] == "alarm_control_panel.n"
     assert (

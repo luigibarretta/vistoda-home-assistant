@@ -41,9 +41,9 @@ async def test_camera_only_account_setup_does_not_bind_an_intercom(hass):
         assert await media_bridge.async_setup_entry(hass, entry)
     status.assert_not_awaited()
     forward.assert_not_awaited()
-    assert hass.data[DOMAIN][entry.entry_id].ring_status is None
+    assert entry.runtime_data.ring_status is None
     assert await media_bridge.async_unload_entry(hass, entry)
-    assert entry.entry_id not in hass.data[DOMAIN]
+    assert entry.entry_id not in hass.data.get(DOMAIN, {})
 
 
 async def test_empty_intercom_inventory_can_enroll_camera_account(hass):

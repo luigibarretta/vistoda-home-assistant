@@ -25,6 +25,7 @@ from .backup_storage import (
 )
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
 from .ezviz_binding import async_verify_native
+from .runtime import runtime_for
 
 BACKUP_MOUNT = storage_mount()
 BACKUP_ROOT = BACKUP_MOUNT
@@ -79,7 +80,7 @@ async def _source(hass: HomeAssistant, msg: dict[str, Any]):
         upstream = await runtime.client.stream(f"/v1/recordings/{recording_id}/media")
         return manifest, upstream
     entry = hass.config_entries.async_get_entry(msg["entry_id"])
-    runtime = hass.data.get(DOMAIN, {}).get(msg["entry_id"])
+    runtime = runtime_for(hass, msg["entry_id"])
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ

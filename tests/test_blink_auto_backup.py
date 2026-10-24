@@ -121,7 +121,7 @@ def ws_fixture(monkeypatch, admin=True, provider="blink"):
     module = env.load("blink_auto_backup_websocket")
     configured = entry(provider)
     env.entries[configured.entry_id] = configured
-    env.hass.data = {"media_bridge": {configured.entry_id: SimpleNamespace()}}
+    configured.runtime_data = SimpleNamespace()
     connection = SimpleNamespace(
         user=SimpleNamespace(is_admin=admin), send_error=Mock(), send_result=Mock()
     )
@@ -139,7 +139,6 @@ async def test_auto_backup_switch_requires_admin_and_a_loaded_blink_entry(monkey
     env, module, configured, connection = ws_fixture(monkeypatch, provider="ring")
     await module.ws_set_auto_backup(env.hass, connection, {**message, "enabled": False})
     assert connection.send_error.call_args.args[1] == "not_found"
-    env.hass.data = {}
     await module.ws_set_auto_backup(env.hass, connection, {**message, "entry_id": "missing"})
     assert connection.send_error.call_args.args[1] == "not_found"
 

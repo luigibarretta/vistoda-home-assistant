@@ -6,7 +6,7 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from ha_stub_support import Entity, UpdateFailedError, config_entry, load, stub_ha
+from ha_stub_support import Entity, UpdateFailedError, bind_runtime, config_entry, load, stub_ha
 
 from custom_components.media_bridge.client_ezviz_media import (
     EzvizEncryption,
@@ -122,8 +122,8 @@ def ws_env(monkeypatch, client):
     load(monkeypatch, "ezviz_alarm_api")
     module = load(monkeypatch, "ezviz_media_websocket")
     entry = ezviz_entry()
+    entry.runtime_data = SimpleNamespace(client=client)
     hass = SimpleNamespace(
-        data={"media_bridge": {entry.entry_id: SimpleNamespace(client=client)}},
         config_entries=SimpleNamespace(
             async_get_entry=lambda key: entry if key == entry.entry_id else None
         ),
@@ -192,8 +192,8 @@ def test_panel_metadata_references_vistoda_entities_without_io(monkeypatch) -> N
     module = load(monkeypatch, "panel_entry_metadata")
     status = media.EzvizMediaStatus(EzvizEncryption(False, None), EzvizStorage("ok", 512))
     runtime = SimpleNamespace(ezviz_media=SimpleNamespace(data=status))
-    hass = SimpleNamespace(data={"media_bridge": {"01J9ENTRY": runtime}})
-    unbound = config_entry("ezviz", "01J9ENTRY", alias="front-door")  # No native lookup.
+    hass = SimpleNamespace(data={})
+    unbound = bind_runtime(config_entry("ezviz", "01J9ENTRY", alias="front-door"), runtime)
     assert module.entry_metadata(hass, unbound, "ezviz") == {
         "device_name": "Spioncino",
         "control_source": "vistoda",
@@ -233,8 +233,7 @@ async def test_platforms_defer_optional_entities_until_supported(monkeypatch) ->
     entry = ezviz_entry()
     entry.async_on_unload = Mock()
     entry.async_create_background_task = Mock()
-    hass = SimpleNamespace(data={"media_bridge": {entry.entry_id: runtime}})
-    added = []
+    hass, entry.runtime_data, added = SimpleNamespace(data={}), runtime, []
     await sensor.async_setup_entry(hass, entry, added.append)
     await binary.async_setup_entry(hass, entry, added.append)
     entry.async_create_background_task.assert_called_once()

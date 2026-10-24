@@ -197,7 +197,7 @@ async def test_alarm_panel_exists_only_in_standalone_mode(monkeypatch) -> None:
     sys.modules["homeassistant.helpers.device_registry"].async_get = lambda _hass: registry
     add = Mock()
     runtime = SimpleNamespace(client=SimpleNamespace(), coordinator=SimpleNamespace())
-    hass.data["media_bridge"]["A1"] = runtime
+    delegated.runtime_data = runtime
     delegated.async_create_background_task = Mock()
     await platform.async_setup_entry(hass, delegated, add)
     add.assert_not_called()

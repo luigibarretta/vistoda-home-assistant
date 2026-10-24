@@ -7,7 +7,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ
 from .ezviz_identity import device_info, entity_prefix
 
 
@@ -19,7 +19,7 @@ async def async_setup_entry(
     """Add a camera only for bridges with a verified video contract."""
     if entry.data[CONF_PROVIDER] != PROVIDER_EZVIZ:
         return
-    runtime: BridgeRuntime = hass.data[DOMAIN][entry.entry_id]
+    runtime: BridgeRuntime = entry.runtime_data
     if runtime.client is None:
         return
     async_add_entities([EzvizBridgeCamera(runtime, entry)])

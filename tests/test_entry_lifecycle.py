@@ -4,7 +4,7 @@ import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
-from ha_stub_support import config_entry, load, stub_ha
+from ha_stub_support import bind_runtime, config_entry, ha_unload, load, stub_ha
 
 from custom_components.media_bridge import outage
 from tests.conftest import PACKAGE
@@ -59,8 +59,9 @@ def ring_hass(entry, unloaded: bool, order: list[str]):
         order.append("listener")
 
     runtime = SimpleNamespace(ring_events=SimpleNamespace(stop=stop), ezviz_alarms=None)
+    bind_runtime(entry, runtime)
     return SimpleNamespace(
-        data={"media_bridge": {entry.entry_id: runtime}},
+        data={"media_bridge": {}},
         config_entries=SimpleNamespace(async_unload_platforms=unload_platforms),
     )
 
@@ -73,9 +74,9 @@ async def test_failed_platform_unload_keeps_listeners_and_issues(monkeypatch) ->
     env = integration(monkeypatch)
     entry, order = config_entry(), []
     hass = ring_hass(entry, unloaded=False, order=order)
-    assert await env.module.async_unload_entry(hass, entry) is False
+    assert await ha_unload(env.module, hass, entry) is False
     assert order == ["platforms"]
-    assert entry.entry_id in hass.data["media_bridge"]
+    assert entry.runtime_data.ring_events is not None
     assert deleted(env) == []
 
 
@@ -84,8 +85,9 @@ async def test_unload_stops_listeners_after_entities_and_clears_issues(monkeypat
     entry, order = config_entry(), []
     hass = ring_hass(entry, unloaded=True, order=order)
     outage.outage_clock("bridge_unavailable_entry-1").since = 7
-    assert await env.module.async_unload_entry(hass, entry) is True
+    assert await ha_unload(env.module, hass, entry) is True
     assert order == ["platforms", "listener"]
+    assert not hasattr(entry, "runtime_data") and hass.data["media_bridge"] == {}
     env.closed.assert_awaited_once_with(hass, "entry-1")
     assert set(deleted(env)) == {
         "bridge_unavailable_entry-1",

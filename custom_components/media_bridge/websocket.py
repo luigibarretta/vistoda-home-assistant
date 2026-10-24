@@ -27,6 +27,7 @@ from .ring_recording_list_websocket import async_register as async_register_reco
 from .ring_recording_websocket import async_register as async_register_recordings
 from .ring_session_log import async_ended, async_started
 from .ring_unlock import unlock_mode_unique_id
+from .runtime import entry_runtime, runtime_for
 
 CONTROL_KEYS = (
     "open_door",
@@ -83,7 +84,7 @@ def ws_ring_info(
             continue
         if not can_access_entry(hass, connection.user, entry.entry_id):
             continue
-        runtime: BridgeRuntime | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        runtime: BridgeRuntime | None = entry_runtime(entry)
         controls = {}
         prefix = f"{entity_prefix(entry)}facade-"
         for entity in registry.entities.values():
@@ -220,7 +221,7 @@ async def ws_ring_stop(
 def resolve_ring(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str] | None:
     """Resolve only a loaded Ring config entry."""
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = hass.data.get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_RING

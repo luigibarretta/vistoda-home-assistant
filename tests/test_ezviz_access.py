@@ -94,7 +94,7 @@ def recording_proxy(monkeypatch, env):
     module = load(monkeypatch, "provider_recording_proxy")
     # stub_ha makes BridgeRuntime a SimpleNamespace, so this passes its isinstance check.
     runtime = module.BridgeRuntime(client=Mock())
-    env.hass.data["media_bridge"][ENTRY_ID] = runtime
+    env.hass.config_entries.async_get_entry(ENTRY_ID).runtime_data = runtime
     return module, runtime
 
 

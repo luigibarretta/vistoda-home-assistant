@@ -61,7 +61,7 @@ def boundary(monkeypatch):
             async_get_entry=lambda key: entries.get(key),
             async_update_entry=Mock(),
         ),
-        data={"media_bridge": runtimes},
+        data={"media_bridge": {}},
         services=services,
         states=SimpleNamespace(get=lambda _: SimpleNamespace(state="available")),
         bus=SimpleNamespace(async_fire=Mock()),
@@ -97,7 +97,7 @@ def boundary(monkeypatch):
         )
         entries[key] = entry
         if loaded:
-            runtimes[key] = Runtime(device_id, online)
+            runtimes[key] = entry.runtime_data = Runtime(device_id, online)
         return entry
 
     def add_official(key, device_id):

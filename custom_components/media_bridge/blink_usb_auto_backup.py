@@ -9,9 +9,9 @@ from .backup_storage import configured_mount, storage_readiness
 from .blink_local_auto_backup import MAX_CREATED, local_pass
 from .blink_usb_backup import LOCK_KEY, _backup_clip
 from .const import DOMAIN
+from .runtime import entry_runtime
 
 CONF_AUTO_BACKUP = "blink_usb_auto_backup"
-STATUS_KEY = "blink_usb_auto_backup_status"
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -50,10 +50,9 @@ class UsbAutoBackup:
         finally:
             self.running = False
             self.task = None
-        self.hass.data.setdefault(DOMAIN, {}).setdefault(STATUS_KEY, {})[self.entry.entry_id] = {
-            **result,
-            "checked_at": datetime.now(UTC).isoformat(),
-        }
+        runtime = entry_runtime(self.entry)
+        if runtime is not None:
+            runtime.usb_backup_status = {**result, "checked_at": datetime.now(UTC).isoformat()}
 
     def enabled(self):
         return bool(self.entry.options.get(CONF_AUTO_BACKUP, False))

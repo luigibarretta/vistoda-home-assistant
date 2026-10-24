@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ, PROVIDER_RING
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ, PROVIDER_RING
 from .entity_gate import async_add_when_supported
 from .errors import BridgeError
 from .ezviz_media import reports_storage
@@ -31,7 +31,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add private archive, provider-owned Ring and optional diagnostic sensors."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     if entry.data[CONF_PROVIDER] == PROVIDER_RING:
         async_add_entities(
             [RingRecordingArchive(runtime, entry)]

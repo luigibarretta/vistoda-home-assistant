@@ -9,10 +9,10 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import callback
 
 from .backup_storage import configured_mount, provider_entry, storage_readiness
-from .blink_usb_auto_backup import CONF_AUTO_BACKUP, STATUS_KEY
-from .const import DOMAIN
+from .blink_usb_auto_backup import CONF_AUTO_BACKUP
 from .network_archive import checked_file, inventory
 from .provider_recording_lists import async_get_provider_recording_lists
+from .runtime import entry_runtime
 
 
 @callback
@@ -59,7 +59,7 @@ async def ws_inventory(hass, connection, msg):
         result["readiness"] = await hass.async_add_executor_job(storage_readiness, mount)
         result["automatic"] = {
             "enabled": bool(entry.options.get(CONF_AUTO_BACKUP, False)),
-            "last_run": hass.data.get(DOMAIN, {}).get(STATUS_KEY, {}).get(entry.entry_id),
+            "last_run": getattr(entry_runtime(entry), "usb_backup_status", None),
         }
         connection.send_result(msg["id"], result)
     except (ValueError, OSError, TypeError):

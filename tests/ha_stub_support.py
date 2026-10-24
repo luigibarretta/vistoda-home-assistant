@@ -133,3 +133,20 @@ def config_entry(provider="ring", entry_id="entry-1", **data):
         data={"provider": provider, "alias": "entrance", **data},
         async_start_reauth=Mock(),
     )
+
+
+def bind_runtime(entry, runtime):
+    """Mirror Home Assistant: a loaded entry carries its runtime on runtime_data."""
+    if runtime is None:
+        vars(entry).pop("runtime_data", None)
+    else:
+        entry.runtime_data = runtime
+    return entry
+
+
+async def ha_unload(integration, hass, entry) -> bool:
+    """Run async_unload_entry like Home Assistant: runtime_data goes only on success."""
+    unloaded = await integration.async_unload_entry(hass, entry)
+    if unloaded:
+        vars(entry).pop("runtime_data", None)
+    return unloaded

@@ -10,12 +10,13 @@ from .client_ezviz_controls import (
     EzvizControlConflictError,
     EzvizControlUnconfirmedError,
 )
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ
 from .errors import BridgeError, ReauthRequiredError
 from .ezviz_binding import async_verify_native
 from .ezviz_controls import controls_of, supports_controls
 from .ezviz_controls_settings import control_key, settings_from_controls, valid_value
 from .ezviz_core import delegated
+from .runtime import runtime_for
 
 # Non-app sources. NATIVE: the user delegated controls to Home Assistant's EZVIZ
 # integration. APP_FAILED: the app is reachable but failing (never silently
@@ -33,7 +34,7 @@ ERRORS = {
 def _resolve(hass, entry_id: str):
     """Return (entry, runtime) for a loaded EZVIZ camera entry, else None."""
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = getattr(hass, "data", {}).get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if entry is None or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ:
         return None
     return (entry, runtime) if getattr(runtime, "client", None) is not None else None

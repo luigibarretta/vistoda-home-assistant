@@ -15,7 +15,7 @@ from .backup_storage import (
     storage_readiness,
 )
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
-from .const import DOMAIN
+from .runtime import entry_runtime
 
 
 @callback
@@ -40,9 +40,7 @@ async def ws_set_auto_backup(hass, connection, msg: dict[str, Any]) -> None:
         entry = provider_entry(hass, "blink", msg["entry_id"])
     except ValueError:
         entry = None
-    if entry is None or not isinstance(
-        hass.data.get(DOMAIN, {}).get(entry.entry_id), BridgeRuntime
-    ):
+    if entry is None or not isinstance(entry_runtime(entry), BridgeRuntime):
         connection.send_error(msg["id"], "not_found", "Blink entry is not loaded")
         return
     if msg["enabled"]:

@@ -10,10 +10,11 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 
 from .client_ezviz_alarms import AlarmsUnsupportedError, alarm_picture_path, valid_picture_id
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ
 from .errors import BridgeError
 from .ezviz_binding import async_verify_native
 from .ring_access import can_access_ezviz_entry
+from .runtime import runtime_for
 
 ENTRY_ID = re.compile(r"[A-Za-z0-9]{1,64}")
 PICTURE_CACHE = "private, max-age=86400"
@@ -24,7 +25,7 @@ def resolve(hass: HomeAssistant, entry_id: str):
     if not isinstance(entry_id, str) or ENTRY_ID.fullmatch(entry_id) is None:
         return None
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = hass.data.get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ

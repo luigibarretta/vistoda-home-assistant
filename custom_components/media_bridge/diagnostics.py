@@ -16,10 +16,10 @@ from .const import (
     CONF_MANAGED_APP,
     CONF_PROVIDER,
     CONF_URL,
-    DOMAIN,
     INTEGRATION_VERSION,
 )
 from .ezviz_binding import CONF_EZVIZ_SOURCE_ID
+from .runtime import entry_runtime
 
 TO_REDACT = {CONF_ALIAS, CONF_API_TOKEN, CONF_URL, CONF_EZVIZ_SOURCE_ID}
 
@@ -28,7 +28,7 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return bounded operational evidence without private connection data."""
-    runtime: BridgeRuntime | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    runtime: BridgeRuntime | None = entry_runtime(entry)
     coordinator = runtime.coordinator if runtime else None
     payload: dict[str, Any] = {
         "integration_version": INTEGRATION_VERSION,
@@ -67,9 +67,7 @@ async def async_get_config_entry_diagnostics(
     if entry.data.get(CONF_PROVIDER) == "blink":
         payload["usb_auto_backup"] = {
             "enabled": bool(entry.options.get("blink_usb_auto_backup", False)),
-            **hass.data.get(DOMAIN, {})
-            .get("blink_usb_auto_backup_status", {})
-            .get(entry.entry_id, {}),
+            **(getattr(runtime, "usb_backup_status", None) or {}),
         }
     if runtime and runtime.ring_status:
         payload["ring_status"] = {

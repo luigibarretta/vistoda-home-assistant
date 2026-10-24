@@ -97,11 +97,10 @@ async def test_setup_adds_device_connectivity_and_keeps_bridge_ids(monkeypatch) 
     ring = config_entry(ring_device_id="42")
     ezviz = ezviz_entry()
     blink = config_entry("blink", "bl-1")
-    hass = SimpleNamespace(
-        data={"media_bridge": {"entry-1": ring_runtime(), "ez-1": ring_runtime(), "bl-1": None}}
-    )
-    hass.data["media_bridge"]["ez-1"].ring_status = None
-    hass.data["media_bridge"]["bl-1"] = SimpleNamespace(
+    hass = SimpleNamespace(data={"media_bridge": {}})
+    ring.runtime_data, ezviz.runtime_data = ring_runtime(), ring_runtime()
+    ezviz.runtime_data.ring_status = None
+    blink.runtime_data = SimpleNamespace(
         coordinator=SimpleNamespace(data=None, last_update_success=True),
         ring_status=None,
         panel_url=None,

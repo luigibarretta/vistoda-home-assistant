@@ -7,10 +7,11 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_EZVIZ
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_EZVIZ
 from .errors import BridgeError, EnrollmentBusyError, RateLimitedError
 from .ezviz_binding import async_verify_native
 from .ring_access import can_access_ezviz_entry
+from .runtime import runtime_for
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 RECORDING_ID = vol.All(str, vol.Match(r"^[0-9a-f-]{36}$"))
@@ -210,7 +211,7 @@ async def ws_delete_recording(hass, connection, msg: dict[str, Any]) -> None:
 
 def _resolve(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str] | None:
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = hass.data.get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ

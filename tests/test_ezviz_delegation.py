@@ -61,9 +61,10 @@ def env(monkeypatch, *, delegate: bool, native: bool, app: bool):
     async def executor(func, *args):
         return func(*args)
 
+    entry.runtime_data = runtime
     hass = SimpleNamespace(
         async_add_executor_job=executor,
-        data={"media_bridge": {"E1": runtime}},
+        data={"media_bridge": {}},
         config_entries=SimpleNamespace(
             async_get_entry=lambda key: entry if key == "E1" else None,
             async_entries=lambda domain: natives if domain == "ezviz" and native else [],
@@ -108,7 +109,7 @@ async def test_settings_info_and_set_follow_the_chosen_source(
     await module.ws_settings_set(
         hass, connection, {**message, "value": True, "expected_value": False}
     )
-    client = hass.data["media_bridge"]["E1"].client
+    client = hass.config_entries.async_get_entry("E1").runtime_data.client
     assert outcome(connection) == expected
     assert client.ezviz_set_control.await_count == (expected == "vistoda")
     native = hass.config_entries.async_entries("ezviz")
@@ -124,7 +125,7 @@ async def test_ptz_uses_the_app_only_in_standalone_mode(
     _module, hass, connection, _entry = env(monkeypatch, delegate=delegate, native=native, app=app)
     ptz = sys.modules["custom_components.media_bridge.ezviz_controls_websocket"].ws_ptz
     await ptz(hass, connection, {"id": 3, "entry_id": "E1", "direction": "up"})
-    client = hass.data["media_bridge"]["E1"].client
+    client = hass.config_entries.async_get_entry("E1").runtime_data.client
     if expected == "vistoda":
         client.ezviz_ptz.assert_awaited_once_with("front-door", "up")
         return

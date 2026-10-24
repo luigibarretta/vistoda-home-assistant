@@ -78,7 +78,7 @@ async def test_real_setup_registry_migration_camera_and_unload(hass):
     forward.assert_awaited_once()
     assert health.await_count == 1
     identity.assert_awaited_once_with("fixture")
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     assert runtime.coordinator.last_update_success
     assert runtime.coordinator.data == "fixture-version"
     migrated = entities.async_get(old_entity.entity_id)
@@ -92,7 +92,7 @@ async def test_real_setup_registry_migration_camera_and_unload(hass):
     ) as unload:
         assert await media_bridge.async_unload_entry(hass, entry)
     unload.assert_awaited_once()
-    assert entry.entry_id not in hass.data[DOMAIN]
+    assert entry.entry_id not in hass.data.get(DOMAIN, {})
     assert entities.async_get(old_entity.entity_id).entity_id == old_entity.entity_id
 
 

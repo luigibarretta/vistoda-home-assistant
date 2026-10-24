@@ -10,7 +10,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
 from . import BridgeRuntime
-from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .const import CONF_ALIAS, CONF_PROVIDER, PROVIDER_RING
 from .errors import BridgeError
 from .ring_access import can_access_entry
 from .ring_binding import async_verify_native
@@ -21,6 +21,7 @@ from .ring_relay_contract import (
     valid_server_binary,
     valid_text,
 )
+from .runtime import runtime_for
 
 PROXY_URL = "/api/media_bridge/ring/audio/{entry_id}"
 
@@ -71,7 +72,7 @@ def async_register(hass: HomeAssistant) -> None:
 def resolve_ring(hass: HomeAssistant, entry_id: str) -> tuple[BridgeRuntime, str] | None:
     """Resolve one loaded Ring bridge without returning its token."""
     entry = hass.config_entries.async_get_entry(entry_id)
-    runtime = hass.data.get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     if (
         entry is None
         or entry.data.get(CONF_PROVIDER) != PROVIDER_RING

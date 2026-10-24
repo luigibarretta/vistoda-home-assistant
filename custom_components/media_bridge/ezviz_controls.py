@@ -9,8 +9,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .client_ezviz_controls import EzvizControls
 from .client_ezviz_media import EzvizFeatureUnsupportedError
-from .const import CONF_ALIAS, DOMAIN
+from .const import CONF_ALIAS
 from .errors import BridgeError, ReauthRequiredError
+from .runtime import runtime_for
 
 _LOGGER = logging.getLogger(__name__)
 CONTROLS_INTERVAL = timedelta(seconds=60)
@@ -50,7 +51,7 @@ def reports_charging(data) -> bool:
 
 def runtime_controls(hass, entry_id: str):
     """Return the entry's controls coordinator, if the entry is a loaded EZVIZ camera."""
-    runtime = getattr(hass, "data", {}).get(DOMAIN, {}).get(entry_id)
+    runtime = runtime_for(hass, entry_id)
     return getattr(runtime, "ezviz_controls", None)
 
 

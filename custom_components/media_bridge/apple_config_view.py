@@ -8,6 +8,7 @@ from . import BridgeRuntime
 from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING
 from .ring_access import can_access_entry
 from .ring_relay_contract import PROTOCOL
+from .runtime import entry_runtime
 
 CONFIG_PATH = "/api/media_bridge/apple/config"
 
@@ -24,7 +25,7 @@ class AppleConfigView(HomeAssistantView):
         hass: HomeAssistant = request.app["hass"]
         entries = []
         for entry in hass.config_entries.async_entries(DOMAIN):
-            runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+            runtime = entry_runtime(entry)
             if entry.data.get(CONF_PROVIDER) != PROVIDER_RING or not isinstance(
                 runtime, BridgeRuntime
             ):

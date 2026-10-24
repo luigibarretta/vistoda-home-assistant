@@ -5,7 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import CONF_PROVIDER, DOMAIN, PROVIDER_RING
+from .const import CONF_PROVIDER, PROVIDER_RING
 from .ring_access import async_require_context
 from .ring_binding import verified_device_id
 from .ring_contract import OPEN_DOOR
@@ -34,7 +34,7 @@ class RingOpenDoor(RingFacadeEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Open through the selected path; never retry an unlock."""
-        runtime = self._hass.data[DOMAIN][self._entry.entry_id]
+        runtime = self._entry.runtime_data
         await async_require_context(self._hass, self._context, self._entry.entry_id)
         if self.delegated:
             await self.call_source_service("button", "press", {})

@@ -64,8 +64,9 @@ def env(monkeypatch, controls=CONTROLS, native=None):
         ezviz_ptz=AsyncMock(),
     )
     runtime = SimpleNamespace(client=client, ezviz_controls=coordinator)
+    entry.runtime_data = runtime
     hass = SimpleNamespace(
-        data={"media_bridge": {"E1": runtime}},
+        data={"media_bridge": {}},
         config_entries=SimpleNamespace(
             async_get_entry=lambda key: entry if key == "E1" else None,
             async_entries=lambda _domain: [] if native is None else [native],

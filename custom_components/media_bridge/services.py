@@ -12,6 +12,7 @@ from .ring_access import async_require_context
 from .ring_binding import verified_device_id
 from .ring_contract import OPEN_DOOR
 from .ring_facade import resolve_source
+from .runtime import entry_runtime
 
 SERVICE_OPEN_RING_DOOR = "open_ring_door"
 
@@ -23,7 +24,7 @@ def async_register(hass: HomeAssistant) -> None:
     async def handle(call: ServiceCall) -> None:
         candidates = []
         for entry in hass.config_entries.async_entries(DOMAIN):
-            runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+            runtime = entry_runtime(entry)
             if entry.data.get(CONF_PROVIDER) == PROVIDER_RING:
                 candidates.append((entry, runtime))
         requested_entry_id = call.data.get("entry_id")

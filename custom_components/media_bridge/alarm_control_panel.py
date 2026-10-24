@@ -38,7 +38,7 @@ async def async_setup_entry(
     """Only the standalone owner entry of an app creates the panel, once supported."""
     if entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ:
         return
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     if getattr(runtime, "client", None) is None or account_owner_id(hass, entry) != entry.entry_id:
         # Delegated or no longer the owner: drop a panel left from an earlier
         # mode so it never lingers as a duplicate next to the official one.

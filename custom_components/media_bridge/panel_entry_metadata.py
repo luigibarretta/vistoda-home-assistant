@@ -11,6 +11,7 @@ from .ezviz_identity import entity_prefix as ezviz_prefix
 from .ezviz_media import MICROSD_PROBLEM_SUFFIX, MICROSD_SUFFIX, media_payload
 from .ezviz_panel_metadata import panel_metadata
 from .ring_unlock import unlock_mode_unique_id
+from .runtime import entry_runtime, runtime_for
 
 
 def entry_metadata(hass, entry, provider: str) -> dict:
@@ -29,7 +30,7 @@ def entry_metadata(hass, entry, provider: str) -> dict:
         entity_id = registry.async_get_entity_id(domain, DOMAIN, f"{ezviz_prefix(entry)}{suffix}")
         if entity_id:
             result[key] = entity_id
-    runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    runtime = entry_runtime(entry)
     media = media_payload(getattr(getattr(runtime, "ezviz_media", None), "data", None))
     if media is not None:
         result["media"] = media
@@ -61,7 +62,7 @@ def _control_source(hass, registry, entry, result: dict) -> None:
 def _prefer_vistoda_entities(hass, registry, entry, result: dict) -> None:
     """With app controls, Vistoda's own alarm panel and battery replace native ones."""
     owner = account_owner_id(hass, entry)
-    runtime = hass.data.get(DOMAIN, {}).get(owner) if owner else None
+    runtime = runtime_for(hass, owner) if owner else None
     if reports_defence(getattr(getattr(runtime, "ezviz_defence", None), "data", None)):
         alarm = registry.async_get_entity_id(
             "alarm_control_panel", DOMAIN, defence_unique_id(owner)

@@ -1,9 +1,6 @@
 """Vistoda integration setup."""
 
-from dataclasses import dataclass, field
-
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
@@ -23,7 +20,6 @@ from .const import (
     PROVIDER_RING,
 )
 from .coordinator import BridgeCoordinator
-from .ezviz_account import EzvizDefenceCoordinator
 from .ezviz_alarm_listener import EzvizAlarmListener
 from .ezviz_controls import EzvizControlsCoordinator
 from .ezviz_media import EzvizMediaCoordinator
@@ -31,6 +27,7 @@ from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
 from .ring_history import RingHistoryManager
 from .ring_status import RingStatusCoordinator
+from .runtime import BridgeRuntime, MediaBridgeConfigEntry, entry_runtime
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -47,24 +44,6 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
-
-
-@dataclass(slots=True)
-class BridgeRuntime:
-    """Runtime owned by one config entry."""
-
-    client: BridgeClient | None
-    coordinator: BridgeCoordinator | BlinkAdapterCoordinator
-    ring_status: RingStatusCoordinator | None = None
-    ring_events: RingEventListener | None = None
-    ring_history: RingHistoryManager | None = None
-    ezviz_alarms: EzvizAlarmListener | None = None
-    ezviz_media: EzvizMediaCoordinator | None = None
-    ezviz_controls: EzvizControlsCoordinator | None = None
-    ezviz_defence: EzvizDefenceCoordinator | None = None
-    panel_url: str | None = None
-    snapshots: dict[str, bytes] = field(default_factory=dict)
-    snapshot_updated_at: dict[str, str] = field(default_factory=dict)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -95,7 +74,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) -> bool:
     """Create the bounded bridge client and entities."""
     provider = entry.data[CONF_PROVIDER]
     if provider == PROVIDER_BLINK:
@@ -163,7 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             snapshots[entry.data[CONF_ALIAS]] = image
         if updated_at is not None:
             snapshot_updated_at[entry.data[CONF_ALIAS]] = updated_at
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BridgeRuntime(
+    entry.runtime_data = BridgeRuntime(
         client=client,
         coordinator=coordinator,
         ring_status=ring_status,
@@ -195,13 +174,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) -> bool:
     """Unload entities first; listeners stop only once nothing can fail anymore."""
     if not entry.data.get(
         "ring_camera_account"
     ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
-    runtime = hass.data[DOMAIN].get(entry.entry_id)
+    runtime = entry_runtime(entry)
     if runtime and runtime.ring_events:
         await runtime.ring_events.stop()
     if runtime and runtime.ezviz_alarms:
@@ -210,7 +189,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .ring_camera_websocket import async_close_entry
 
     await async_close_entry(hass, entry.entry_id)
-    hass.data[DOMAIN].pop(entry.entry_id, None)
+    # Home Assistant drops entry.runtime_data once this returns True.
     # A reload re-evaluates them; outage clocks survive so a lasting outage stays lasting.
     remove_entry_issues(hass, entry.entry_id)
     if entry.data.get(CONF_PROVIDER) == PROVIDER_EZVIZ:
@@ -220,7 +199,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_remove_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) -> None:
     """Leave no repair or outage clock behind for a deleted entry."""
     from .repairs import remove_entry_issues
 

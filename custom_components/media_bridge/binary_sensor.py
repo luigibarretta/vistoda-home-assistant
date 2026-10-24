@@ -17,7 +17,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add bridge connectivity plus the physical device connectivity when known."""
-    runtime: BridgeRuntime = hass.data[DOMAIN][entry.entry_id]
+    runtime: BridgeRuntime = entry.runtime_data
     entities: list[BinarySensorEntity] = [BridgeConnectivity(runtime, entry)]
     provider = entry.data[CONF_PROVIDER]
     if provider == PROVIDER_RING and runtime.ring_status is not None:
