@@ -167,3 +167,13 @@ async def ha_unload(integration, hass, entry) -> bool:
     if unloaded:
         vars(entry).pop("runtime_data", None)
     return unloaded
+
+
+# Schema helpers the websocket commands of these tests declare.
+VOLUPTUOUS_STUB = {
+    "Required": str,
+    "Optional": str,
+    "All": lambda *a: a,
+    "Length": lambda **k: k,
+    "Range": lambda **k: k,
+}

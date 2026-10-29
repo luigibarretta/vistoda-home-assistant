@@ -116,7 +116,7 @@ export const COMMON_COPY = {
   "Copia percorso archivio locale": "Copy local archive path", "Copia il percorso interno dell’archivio": "Copy the internal archive path",
   "Elimina selezionate": "Delete selected", "Elimina registrazioni selezionate": "Delete selected recordings",
   "Elimina le registrazioni selezionate": "Delete the selected recordings", "Pagine archivio": "Archive pages",
-  "Pagina 1 di 1": "Page 1 of 1", "Pagina {p0} di {p1}": "Page {p0} of {p1}",
+  "Pagina 1 di 1": "Page 1 of 1", "Pagina {p0} di {p1}": "Page {p0} of {p1}", "Pagina {p0}": "Page {p0}", "Pagine eventi": "Event pages",
   "Pagina precedente": "Previous page", "Pagina successiva": "Next page",
   "Registrare {p0} secondi del live in archivio locale?": "Record {p0} seconds of live video in the local archive?",
   "Avvio registrazione…": "Starting recording…", "Registrazione di {p0} secondi avviata.": "Started a {p0}-second recording.",

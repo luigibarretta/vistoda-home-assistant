@@ -6,6 +6,7 @@ import {
   ALARM_CATEGORIES,
   alarmCategory,
   alarmIsoTime,
+  alarmPage,
   alarmPicturePath,
   alarmRows,
   alarmTimeText,
@@ -66,4 +67,27 @@ test("alarm times show the date only for earlier days", () => {
   assert.match(alarmTimeText(earlier, "en-GB", now, "UTC"), /^2 Oct,? 07:05$/);
   assert.equal(alarmTimeText(Number.NaN), "");
   assert.equal(alarmIsoTime(today), "2026-10-04T07:05:00.000Z");
+});
+
+test("alarm pages stay open-ended until the app reports no older batch", () => {
+  const rows = Array.from({ length: 50 }, (_, index) => index);
+  const first = alarmPage(rows, 1, 25, false);
+  assert.deepEqual([first.rows.length, first.page, first.totalPages], [25, 1, null]);
+  assert.deepEqual([first.hasPrevious, first.hasNext, first.needsMore], [false, true, false]);
+  const second = alarmPage(rows, 2, 25, false);
+  assert.deepEqual([second.rows.at(0), second.hasNext, second.needsMore], [25, true, false]);
+  const third = alarmPage(rows, 3, 25, false);
+  assert.deepEqual([third.rows.length, third.needsMore], [0, true], "page 3 waits for the next batch");
+  const partial = alarmPage(rows, 2, 100, false);
+  assert.deepEqual([partial.page, partial.needsMore], [2, true]);
+});
+
+test("complete alarm history clamps pages and knows the page count", () => {
+  const rows = Array.from({ length: 123 }, (_, index) => index);
+  const last = alarmPage(rows, 99, 50, true);
+  assert.deepEqual([last.page, last.totalPages, last.rows.length], [3, 3, 23]);
+  assert.deepEqual([last.hasPrevious, last.hasNext, last.needsMore], [true, false, false]);
+  const empty = alarmPage([], 4, 10, true);
+  assert.deepEqual([empty.page, empty.totalPages, empty.rows, empty.hasNext], [1, 1, [], false]);
+  assert.deepEqual(alarmPage(undefined, 0, 0, true).rows, []);
 });

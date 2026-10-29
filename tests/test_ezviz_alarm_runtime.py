@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import web
-from ha_stub_support import config_entry, load, stub_ha
+from ha_stub_support import VOLUPTUOUS_STUB, config_entry, load, stub_ha
 
 from custom_components.media_bridge.client_ezviz_alarms import (
     AlarmsUnsupportedError,
@@ -21,9 +21,12 @@ from tests.test_ezviz_alarm_client import item
 SOURCE = "BC1234567:1"
 
 
-def batch(sequences, next_sequence, generation="gen-a") -> EzvizAlarmBatch:
+def batch(sequences, next_sequence, generation="gen-a", older=None) -> EzvizAlarmBatch:
     return EzvizAlarmBatch(
-        tuple(parse_alarm(item(sequence)) for sequence in sequences), next_sequence, generation
+        tuple(parse_alarm(item(sequence)) for sequence in sequences),
+        next_sequence,
+        generation,
+        older,
     )
 
 
@@ -159,7 +162,7 @@ async def test_event_entity_maps_one_alarm_and_tracks_support(monkeypatch) -> No
 def api_env(monkeypatch, runtime_client):
     stub_ha(monkeypatch)
     for name, values in {
-        "voluptuous": {"Required": str, "All": lambda *a: a, "Length": lambda **k: k},
+        "voluptuous": VOLUPTUOUS_STUB,
         "homeassistant.components.http": {"HomeAssistantView": object},
         "homeassistant.components.websocket_api": {
             "websocket_command": lambda _schema: lambda handler: handler,
@@ -226,25 +229,3 @@ async def test_picture_view_validates_ids_and_marks_cache_private(monkeypatch) -
     client.ezviz_alarm_picture.assert_awaited_with("front-door", "alarm-1")
     with pytest.raises(web.HTTPNotFound):
         await view.get(env.request, "01J9ENTRY", "alarm-2")
-
-
-async def test_history_command_reports_old_apps_without_errors(monkeypatch) -> None:
-    client = SimpleNamespace(
-        ezviz_camera_identity=AsyncMock(return_value=SOURCE),
-        ezviz_alarms=AsyncMock(side_effect=[batch([4, 5], 5), AlarmsUnsupportedError()]),
-    )
-    env = api_env(monkeypatch, client)
-    connection = SimpleNamespace(user=ADMIN, send_result=Mock(), send_error=Mock())
-    await env.api.ws_list_alarms(env.hass, connection, {"id": 1, "entry_id": "01J9ENTRY"})
-    result = connection.send_result.call_args.args[1]
-    assert result["supported"] is True
-    assert [alarm["alarm_id"] for alarm in result["alarms"]] == ["alarm-5", "alarm-4"]
-    assert result["alarms"][0]["picture"] == "/api/media_bridge/ezviz/01J9ENTRY/alarms/alarm-5.jpg"
-    client.ezviz_alarms.assert_awaited_with("front-door")
-    await env.api.ws_list_alarms(env.hass, connection, {"id": 2, "entry_id": "01J9ENTRY"})
-    assert connection.send_result.call_args.args[1] == {"supported": False, "alarms": []}
-    client.ezviz_alarms.side_effect = [CannotConnectError()]
-    await env.api.ws_list_alarms(env.hass, connection, {"id": 3, "entry_id": "01J9ENTRY"})
-    assert connection.send_error.call_args.args[1] == "unavailable"
-    await env.api.ws_list_alarms(env.hass, connection, {"id": 4, "entry_id": "missing"})
-    assert connection.send_error.call_args.args[1] == "not_found"

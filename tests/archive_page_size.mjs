@@ -27,3 +27,11 @@ test("Ring page sizes preserve exact bounded slices and clamp the final page", (
     assert.ok(last.items.length <= size);
   }
 });
+
+test("the selector names events instead of clips on event lists", async () => {
+  const { PAGE_SIZE_TEMPLATE } = await import("../custom_components/media_bridge/frontend/archive-page-size.js");
+  assert.match(PAGE_SIZE_TEMPLATE, /^<vistoda-page-size /, "event lists add their unit after the tag name");
+  const source = await import("node:fs/promises").then((fs) => fs.readFile(
+    new URL("../custom_components/media_bridge/frontend/archive-page-size.js", import.meta.url), "utf8"));
+  assert.match(source, /"Eventi per pagina" : "Events per page"/);
+});

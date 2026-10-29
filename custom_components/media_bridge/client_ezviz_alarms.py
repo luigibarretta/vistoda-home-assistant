@@ -54,6 +54,8 @@ class EzvizAlarmBatch:
     events: tuple[EzvizAlarm, ...]
     next_sequence: int
     generation: str
+    # `before` cursor of the next older history page (app 0.16+ history reads).
+    older: int | None = None
 
 
 @dataclass(slots=True)
@@ -137,10 +139,13 @@ def parse_alarm_batch(payload, camera: str) -> EzvizAlarmBatch:
             events=tuple(parse_alarm(item) for item in raw),
             next_sequence=_int(payload["next_sequence"]),
             generation=_generation(payload["generation"]),
+            older=None if payload.get("older") is None else _int(payload["older"], 1),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise CannotConnectError from error
     if any(event.sequence > batch.next_sequence for event in batch.events):
+        raise CannotConnectError
+    if batch.older is not None and batch.older > batch.next_sequence:
         raise CannotConnectError
     return batch
 
@@ -149,11 +154,21 @@ class EzvizAlarmClientMixin:
     """Consume the authenticated alarm cursor without exposing the bridge token."""
 
     async def ezviz_alarms(
-        self, alias: str, after: int | None = None, wait: int = MAX_WAIT
+        self,
+        alias: str,
+        after: int | None = None,
+        wait: int = MAX_WAIT,
+        *,
+        before: int | None = None,
     ) -> EzvizAlarmBatch:
-        """Long-poll new alarms; without a cursor return recent history at once."""
+        """Long-poll new alarms; without a cursor return recent history at once.
+
+        `before` reads the older history page below that sequence instead.
+        """
         params = {}
-        if after is not None:
+        if before is not None:
+            params = {"before": before}
+        elif after is not None:
             params = {"after": after, "wait": max(0, min(wait, MAX_WAIT))}
         response = await self._request(
             "GET",

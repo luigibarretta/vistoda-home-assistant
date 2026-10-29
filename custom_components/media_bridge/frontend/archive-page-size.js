@@ -30,9 +30,13 @@ class VistodaPageSize extends (globalThis.HTMLElement || class {}) {
   }
   get disabled() { return this._disabled; }
   set disabled(value) { this._disabled = Boolean(value); this._render(); }
+  // `unit="events"` labels the picker for event lists instead of clips.
   localize(language) {
-    this.shadowRoot.getElementById("label").textContent = String(language || "").startsWith("it")
-      ? "Clip per pagina" : "Clips per page";
+    const italian = String(language || "").startsWith("it");
+    const events = this.getAttribute?.("unit") === "events";
+    this.shadowRoot.getElementById("label").textContent = events
+      ? (italian ? "Eventi per pagina" : "Events per page")
+      : (italian ? "Clip per pagina" : "Clips per page");
   }
   _render() {
     if (!this.shadowRoot) return;

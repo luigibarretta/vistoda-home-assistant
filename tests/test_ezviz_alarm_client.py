@@ -55,6 +55,19 @@ async def test_history_omits_cursor_and_tail_long_polls() -> None:
     assert session.requests[1][2]["params"] == {"after": 5, "wait": 25}
 
 
+async def test_history_pages_send_before_and_read_the_older_cursor() -> None:
+    bridge, session = client(
+        response(200, {**payload([item(4), item(5)]), "older": 4}),
+        response(200, payload([item(3)])),
+    )
+    newest = await bridge.ezviz_alarms("front-door")
+    assert newest.older == 4
+    older = await bridge.ezviz_alarms("front-door", 9, before=4)
+    assert session.requests[1][2]["params"] == {"before": 4}, "before wins over after"
+    assert [event.sequence for event in older.events] == [3]
+    assert older.older is None
+
+
 async def test_old_app_404_is_a_distinct_unsupported_signal() -> None:
     bridge, _session = client(response(404, {"error": "not_found"}), response(401, {}))
     with pytest.raises(AlarmsUnsupportedError):
@@ -76,6 +89,9 @@ async def test_old_app_404_is_a_distinct_unsupported_signal() -> None:
         payload([item(2, occurred_at="today")]),
         payload([{**item(2), "sequence": True}]),
         payload([item(n) for n in range(129)], next_sequence=200),
+        {**payload(), "older": 0},
+        {**payload(), "older": 6},
+        {**payload(), "older": "4"},
         {"camera": "front-door", "generation": "gen-a", "events": []},
     ],
 )

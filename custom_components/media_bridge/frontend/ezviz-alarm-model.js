@@ -60,3 +60,25 @@ export function alarmTimeText(seconds, language = "it-IT", now = Date.now(), tim
 export function alarmIsoTime(seconds) {
   return Number.isFinite(seconds) ? new Date(seconds * 1000).toISOString() : "";
 }
+
+// Alarms the card keeps while paging back (the app retains 200 per camera).
+export const MAX_LOADED_ALARMS = 200;
+
+// One page of the loaded rows. Until the app reports no older page
+// (`complete`), the page count is unknown and the next page stays reachable;
+// `needsMore` asks for the next older batch before this page can be filled.
+export function alarmPage(rows, page, size, complete) {
+  const loaded = Array.isArray(rows) ? rows : [];
+  const pageSize = Math.max(1, Math.trunc(size) || 1);
+  const totalPages = complete ? Math.max(1, Math.ceil(loaded.length / pageSize)) : null;
+  const current = Math.max(1, Math.min(Math.trunc(page) || 1, totalPages ?? Infinity));
+  const start = (current - 1) * pageSize;
+  return {
+    rows: loaded.slice(start, start + pageSize),
+    page: current,
+    totalPages,
+    hasPrevious: current > 1,
+    hasNext: loaded.length > start + pageSize || !complete,
+    needsMore: !complete && loaded.length < start + pageSize,
+  };
+}

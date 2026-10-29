@@ -68,11 +68,22 @@ class EzvizAlarmPictureView(HomeAssistantView):
     {
         vol.Required("type"): "media_bridge/ezviz/alarms/list",
         vol.Required("entry_id"): vol.All(str, vol.Length(min=1, max=64)),
+        # Older page: `before` and the `generation` it came from.
+        vol.Optional("before"): vol.All(int, vol.Range(min=1)),
+        vol.Optional("generation"): vol.All(str, vol.Length(min=1, max=64)),
     }
 )
 @websocket_api.async_response
 async def ws_list_alarms(hass, connection, msg: dict[str, Any]) -> None:
-    """Return the app's recent alarm history, newest first, without a cursor."""
+    """Return one page of the app's alarm history, newest first.
+
+    Without `before` the newest page; with it the page below that sequence.
+    A cursor from an older app generation (the app restarted, sequences were
+    reassigned) answers the newest page with `reset` instead.
+    """
+    if ("before" in msg) != ("generation" in msg):
+        connection.send_error(msg["id"], "invalid_format", "before and generation go together")
+        return
     if not can_access_ezviz_entry(hass, connection.user, msg["entry_id"]):
         connection.send_error(msg["id"], "unauthorized", "EZVIZ access is not permitted")
         return
@@ -84,7 +95,16 @@ async def ws_list_alarms(hass, connection, msg: dict[str, Any]) -> None:
     unsupported = {"supported": False, "alarms": []}
     try:
         await async_verify_native(entry, runtime.client)
-        batch = await runtime.client.ezviz_alarms(entry.data[CONF_ALIAS])
+        alias = entry.data[CONF_ALIAS]
+        before = msg.get("before")
+        reset = False
+        if before is None:
+            batch = await runtime.client.ezviz_alarms(alias)
+        else:
+            batch = await runtime.client.ezviz_alarms(alias, before=before)
+            if batch.generation != msg["generation"]:
+                reset = True
+                batch = await runtime.client.ezviz_alarms(alias)
     except AlarmsUnsupportedError:
         connection.send_result(msg["id"], unsupported)
         return
@@ -103,7 +123,16 @@ async def ws_list_alarms(hass, connection, msg: dict[str, Any]) -> None:
         }
         for alarm in events[:50]
     ]
-    connection.send_result(msg["id"], {"supported": True, "alarms": alarms})
+    connection.send_result(
+        msg["id"],
+        {
+            "supported": True,
+            "alarms": alarms,
+            "generation": batch.generation,
+            "older": batch.older,
+            "reset": reset,
+        },
+    )
 
 
 @callback

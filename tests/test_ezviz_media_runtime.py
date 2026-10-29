@@ -5,6 +5,7 @@ from datetime import date
 from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
+import ha_stub_support
 import pytest
 from ha_stub_support import Entity, UpdateFailedError, bind_runtime, config_entry, load, stub_ha
 
@@ -103,7 +104,7 @@ def test_microsd_entities_map_status_capacity_and_problems(monkeypatch) -> None:
 def ws_env(monkeypatch, client):
     stub_modules(
         monkeypatch,
-        voluptuous={"Required": str, "All": lambda *a: a, "Length": lambda **k: k},
+        voluptuous=ha_stub_support.VOLUPTUOUS_STUB,
         **{
             "homeassistant.components.http": {"HomeAssistantView": object},
             "homeassistant.components.websocket_api": {
