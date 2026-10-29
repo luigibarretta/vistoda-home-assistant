@@ -16,7 +16,8 @@ alarms.
 `run.sh`), Home Assistant app catalog YAML.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-event-archive-and-scenetrove-link-design.md`,
-section 1 (phases 2–4 get their own plans after this one ships).
+section 1 (part 2, `…-design-part2.md`, holds sections 4–8, constraints and
+phasing; phases 2–4 get their own plans after this one ships).
 
 ## Global Constraints
 
