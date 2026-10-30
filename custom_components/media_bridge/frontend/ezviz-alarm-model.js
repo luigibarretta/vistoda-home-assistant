@@ -12,7 +12,11 @@ export const ALARM_CATEGORIES = Object.freeze({
   other: ["mdi:alarm-light-outline", "Altro allarme"],
 });
 
-const PICTURE_PATH = /^\/api\/media_bridge\/ezviz\/[A-Za-z0-9]{1,64}\/alarms\/[A-Za-z0-9_-]{1,128}\.jpg$/;
+// Live alarm pictures come from the app relay, archived ones from the event archive.
+const PICTURE_PATH = new RegExp(
+  "^/api/media_bridge/(?:ezviz/[A-Za-z0-9]{1,64}/alarms/[A-Za-z0-9_-]{1,128}"
+  + "|events/[A-Za-z0-9]{1,64}/\\d{8}T\\d{6}Z-[A-Za-z0-9_-]{1,96})\\.jpg$",
+);
 
 export function alarmCategory(value) {
   return Object.hasOwn(ALARM_CATEGORIES, value) ? value : "other";

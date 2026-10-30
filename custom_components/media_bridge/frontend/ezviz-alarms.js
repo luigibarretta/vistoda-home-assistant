@@ -1,14 +1,12 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { panelLanguage } from "./panel-localize.js";
-import { bindPageSize, PAGE_SIZE_TEMPLATE, renderPageSize } from "./archive-page-size.js";
-import { alarmIsoTime, alarmPage, alarmRows, alarmTimeText, MAX_LOADED_ALARMS } from "./ezviz-alarm-model.js";
+import { bindPageSize, renderPageSize } from "./archive-page-size.js";
+import { alarmPage, alarmRows, MAX_LOADED_ALARMS } from "./ezviz-alarm-model.js";
+import { alarmsTemplate } from "./ezviz-alarms-template.js";
 
-const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-})[character]);
-
-// Paged alarm list for one EZVIZ camera entry. The app answers 50 alarms at
-// a time, newest first; older batches are fetched only when a page needs them.
+// Paged alarm list for one EZVIZ camera entry. With the event archive enabled
+// it pages the archive on the server; otherwise the app answers 50 alarms at a
+// time, newest first, and older batches are fetched only when a page needs them.
 class VistodaEzvizAlarms extends HTMLElement {
   constructor() {
     super();
@@ -19,6 +17,7 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._rows = [];
     this._older = null;
     this._generation = null;
+    this._archive = null;
     this._page = 1;
     this._pageSize = 10;
     this._busy = false;
@@ -40,6 +39,7 @@ class VistodaEzvizAlarms extends HTMLElement {
       this._rows = [];
       this._older = null;
       this._generation = null;
+      this._archive = null;
       this._page = 1;
       this._pictures = new Map();
       this._state = entryId ? "loading" : "idle";
@@ -61,9 +61,13 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._busy = true;
     this._render();
     try {
-      const result = await this._list(entryId);
+      const archived = await this._archivePage(entryId, 1).catch(() => false);
       if (request !== this._request) return;
-      this._accept(result, true);
+      if (!archived) {
+        const result = await this._list(entryId);
+        if (request !== this._request) return;
+        this._accept(result, true);
+      }
       this._page = 1;
     } catch {
       if (request !== this._request) return;
@@ -75,6 +79,18 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._busy = false;
     this._render();
     this._signPictures(request);
+  }
+
+  // One archive page; false when the entry has not opted in to the archive.
+  async _archivePage(entryId, page) {
+    const result = await this._hass.callWS({
+      type: "media_bridge/events/list", entry_id: entryId, page, page_size: this._pageSize,
+    });
+    this._archive = result?.enabled ? result.pagination : null;
+    if (!this._archive) return false;
+    this._rows = alarmRows(result.items, this._pageSize);
+    this._state = this._rows.length ? "ready" : "empty";
+    return true;
   }
 
   _list(entryId, before = null) {
@@ -110,7 +126,8 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._page = page;
     this._render();
     try {
-      while (this._older !== null && alarmPage(this._rows, page, this._pageSize, false).needsMore) {
+      if (this._archive) await this._archivePage(entryId, page);
+      while (!this._archive && this._older !== null && alarmPage(this._rows, page, this._pageSize, false).needsMore) {
         const result = await this._list(entryId, this._older);
         if (request !== this._request) return;
         if (this._accept(result, false)) { this._page = 1; break; }
@@ -148,7 +165,27 @@ class VistodaEzvizAlarms extends HTMLElement {
   }
 
   _view() {
-    return alarmPage(this._rows, this._page, this._pageSize, this._older === null);
+    const archive = this._archive;
+    return archive
+      ? { rows: this._rows, page: archive.page, totalPages: archive.total_pages,
+        hasPrevious: archive.has_previous, hasNext: archive.has_next }
+      : alarmPage(this._rows, this._page, this._pageSize, this._older === null);
+  }
+
+  // Rows open the event modal; the thumbnail link keeps opening the picture.
+  _bindRows(view) {
+    for (const row of this.shadowRoot.querySelectorAll("li[role=button]")) {
+      const open = (event) => {
+        if (event.target.closest("a.thumb")) return;
+        if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        this.dispatchEvent(new CustomEvent("alarm-open", {
+          detail: { rows: view.rows, index: Number(row.dataset.index) }, bubbles: true, composed: true,
+        }));
+      };
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", open);
+    }
   }
 
   _render() {
@@ -162,49 +199,16 @@ class VistodaEzvizAlarms extends HTMLElement {
       error: copy(this, "Eventi non disponibili. Riprova più tardi."),
       unsupported: copy(this, "Aggiorna l’app Vistoda EZVIZ per ricevere gli eventi."),
     }[this._state];
-    this.shadowRoot.innerHTML = `<style>
-      :host{display:block;margin-top:14px}[hidden]{display:none!important}
-      .head{display:flex;align-items:center;gap:8px}.head h3{flex:1;margin:0;font-size:16px}
-      button{min-width:44px;min-height:44px;border:0;border-radius:12px;background:transparent;color:var(--primary-text-color);cursor:pointer}
-      button:focus-visible,a:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}
-      ul{list-style:none;margin:6px 0 0;padding:0}li{display:flex;align-items:center;gap:12px;min-height:56px;
-        padding:6px 0;border-top:1px solid var(--divider-color,#ffffff1f)}
-      .thumb,.icon{flex:none;width:72px;height:44px;border-radius:8px;overflow:hidden}
-      .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-      .icon{display:grid;place-content:center;background:color-mix(in srgb,var(--primary-color) 12%,transparent);color:var(--primary-color)}
-      .text{flex:1;min-width:0}.text strong{display:block}.title{color:var(--secondary-text-color);font-size:13px;overflow-wrap:anywhere}
-      time{color:var(--secondary-text-color);font-size:13px;white-space:nowrap}.status{color:var(--secondary-text-color);margin:8px 0 0}
-      .archive-pager{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin-top:12px}
-      .archive-pager span{text-align:center;color:var(--secondary-text-color);font-size:13px}
-      .archive-pager button{display:flex;align-items:center;gap:4px;padding:0 10px}
-      .archive-pager button:disabled{opacity:.45;cursor:not-allowed}
-      @media (max-width:600px){.archive-pager{grid-template-columns:1fr 1fr}.archive-pager span{grid-column:1 / -1;grid-row:1}}
-    </style><div class="head"><h3 data-copy="Eventi">Eventi</h3>
-      <button id="reload" aria-label="Aggiorna eventi" title="Aggiorna eventi" data-copy-aria-label="Aggiorna eventi"
-        data-copy-title="Aggiorna eventi" ${this._entryId ? "" : "disabled"}><ha-icon icon="mdi:refresh"></ha-icon></button></div>
-      ${status ? `<p class="status" role="status">${html(status)}</p>` : ""}
-      <div ${this._rows.length ? "" : "hidden"}>${PAGE_SIZE_TEMPLATE.replace("<vistoda-page-size ", '<vistoda-page-size unit="events" ')}</div>
-      <ul aria-label="${html(copy(this, "Eventi"))}">${view.rows.map((row) => `<li>
-        <a class="thumb" data-id="${html(row.id)}" target="_blank" rel="noopener" hidden>
-          <img alt="${html(copy(this, "Immagine evento: {p0}", { p0: copy(this, row.label) }))}" loading="lazy"></a>
-        <span class="icon" aria-hidden="true"><ha-icon icon="${html(row.icon)}"></ha-icon></span>
-        <span class="text"><strong>${html(copy(this, row.label))}</strong>
-          ${row.title ? `<span class="title">${html(row.title)}</span>` : ""}</span>
-        <time datetime="${html(alarmIsoTime(row.occurredAt))}">${html(alarmTimeText(row.occurredAt, locale))}</time></li>`).join("")}</ul>
-      <nav class="archive-pager" aria-label="${html(copy(this, "Pagine eventi"))}" ${view.hasPrevious || view.hasNext ? "" : "hidden"}>
-        <button id="previous" ${this._busy || !view.hasPrevious ? "disabled" : ""}><ha-icon icon="mdi:chevron-left"></ha-icon>
-          <span>${html(copy(this, "Precedente"))}</span></button>
-        <span id="page-label">${html(view.totalPages === null
-          ? copy(this, "Pagina {p0}", { p0: view.page })
-          : copy(this, "Pagina {p0} di {p1}", { p0: view.page, p1: view.totalPages }))}</span>
-        <button id="next" ${this._busy || !view.hasNext ? "disabled" : ""}><span>${html(copy(this, "Successiva"))}</span>
-          <ha-icon icon="mdi:chevron-right"></ha-icon></button></nav>`;
+    this.shadowRoot.innerHTML = alarmsTemplate(this, {
+      view, status, busy: this._busy, entryId: this._entryId, hasRows: this._rows.length > 0, locale,
+    });
     localizeCopy(this.shadowRoot, this);
     this.shadowRoot.getElementById("reload").addEventListener("click", () => this._load());
     this.shadowRoot.getElementById("previous").addEventListener("click", () => this._go(this._page - 1));
     this.shadowRoot.getElementById("next").addEventListener("click", () => this._go(this._page + 1));
     bindPageSize(this.shadowRoot, (size) => { this._pageSize = size; this._go(1); });
     renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._language);
+    this._bindRows(view);
     for (const id of this._pictures.keys()) this._showPicture(id);
   }
 }

@@ -91,3 +91,18 @@ test("complete alarm history clamps pages and knows the page count", () => {
   assert.deepEqual([empty.page, empty.totalPages, empty.rows, empty.hasNext], [1, 1, [], false]);
   assert.deepEqual(alarmPage(undefined, 0, 0, true).rows, []);
 });
+
+test("archive items become card rows with their own picture route", () => {
+  const archived = "/api/media_bridge/events/01J9ENTRY/20261028T190000Z-evt-1.jpg";
+  const rows = alarmRows([
+    { id: "20261028T190000Z-evt-1", alarm_id: "evt-1", occurred_at: 1793214000, category: "person",
+      title: "Persona", picture: archived },
+    { id: "20261028T200000Z-evt-2", alarm_id: "evt-2", occurred_at: 1793217600, category: "doorbell",
+      title: "", picture: "/api/media_bridge/events/01J9ENTRY/../../secret.jpg" },
+  ], 10);
+  assert.deepEqual(rows.map((row) => row.id), ["evt-2", "evt-1"]);
+  assert.equal(rows[1].picture, archived);
+  assert.equal(rows[0].picture, null, "traversal in an archive route is refused");
+  assert.equal(alarmPicturePath("/api/media_bridge/events/01J9ENTRY/evt-1.jpg"), null,
+    "archive pictures carry the timestamped event name");
+});
