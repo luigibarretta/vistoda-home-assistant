@@ -172,7 +172,7 @@ async def ha_unload(integration, hass, entry) -> bool:
 # Schema helpers the websocket commands of these tests declare.
 VOLUPTUOUS_STUB = {
     "Required": str,
-    "Optional": str,
+    "Optional": lambda key, **_options: key,
     "All": lambda *a: a,
     "Length": lambda **k: k,
     "Range": lambda **k: k,

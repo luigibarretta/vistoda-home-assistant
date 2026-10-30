@@ -51,6 +51,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Load optional secret bootstrap tokens for zero-copy discovery."""
     from .apple_config_view import async_register as async_register_apple_config
     from .apple_oauth_view import async_register as async_register_apple_oauth
+    from .event_archive_api import async_register as async_register_event_archive
     from .ezviz_alarm_api import async_register as async_register_ezviz_alarms
     from .panel import async_register as async_register_panel
     from .provider_recording_proxy import async_register as async_register_provider_recording_proxy
@@ -70,6 +71,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async_register_ring_audio_proxy(hass)
     async_register_provider_recording_proxy(hass)
     async_register_ezviz_alarms(hass)
+    async_register_event_archive(hass)
     async_register_services(hass)
     async_register_websocket(hass)
     return True
