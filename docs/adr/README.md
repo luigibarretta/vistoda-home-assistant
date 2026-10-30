@@ -29,5 +29,6 @@
 | [0025](0025-provider-archive-management-and-manual-snapshots.md) | Provider lists, guarded Blink USB management and manual EZVIZ snapshots |
 | [0026](0026-atomic-bulk-provider-list-membership.md) | Atomic bulk list membership for provider archives |
 | [0027](0027-mobile-archive-settings-backups-and-provider-themes.md) | Mobile archive selection, fail-closed Blink settings backups and selectable provider themes |
+| [0028](0028-event-archive.md) | EZVIZ event archive on network storage, retention and the event modal |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

@@ -118,6 +118,18 @@ la migrazione, il controllo dei mount e il backup con sostituti isolati del
 framework HA e file temporanei. Non contattano i produttori, montano
 condivisioni, ricollegano account di produzione o aprono ingressi.
 
+## Archivio eventi EZVIZ
+
+Nelle opzioni della voce EZVIZ, **Archivia gli eventi nell'archivio di rete**
+salva ogni evento con la sua immagine in `events/` sull'archivio di rete
+indicato sopra, senza limite di numero; la scheda Eventi di Vistoda sfoglia
+poi l'archivio. **Conserva gli eventi archiviati** vale 0 (per sempre) oppure
+da 7 a 3650 giorni ed elimina solo gli eventi archiviati e le loro immagini,
+mai le clip. Lo storico precedente all'attivazione viene aggiunto al prossimo
+avvio di Home Assistant. Tocca un evento per vederlo in grande, passare al
+precedente o al successivo e riprodurre la registrazione o salvare quel minuto
+dalla microSD (sveglia la telecamera e consuma batteria).
+
 ## Sessione del produttore e stato dei dispositivi
 
 Se Ring revoca la sessione Vistoda (per esempio dopo un cambio password o la

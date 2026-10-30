@@ -112,6 +112,17 @@ execute the integration's flow, identity migration, mount detection, and backup
 code using isolated HA framework doubles and temporary files. They do not
 contact vendors, mount shares, reconnect production accounts or open entrances.
 
+## EZVIZ event archive
+
+In the EZVIZ entry options, **Archive events on network storage** saves every
+event and its picture under `events/` on the network storage above, with no
+limit on how many; the Vistoda events card then pages the archive. **Keep
+archived events** is 0 (forever) or 7 to 3650 days and deletes only archived
+events and their pictures, never clips. History from before you enable it is
+added at the next Home Assistant start. Tap an event to see it large, move to
+the previous or next one, and play its recording or save that minute from the
+microSD (this wakes the camera and uses battery).
+
 ## Vendor session and device health
 
 When Ring revokes the Vistoda session (for example after a password change or
