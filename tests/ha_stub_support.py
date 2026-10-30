@@ -53,6 +53,12 @@ class DeviceClass(enum.StrEnum):
     CONNECTIVITY = "connectivity"
 
 
+def hass_callback(func):
+    """Like homeassistant.core.callback: mark the function as event-loop safe."""
+    func._hass_callback = True
+    return func
+
+
 def stub_ha(monkeypatch):
     """Register isolated HA doubles and return the shared issue registry mock."""
 
@@ -96,7 +102,7 @@ def stub_ha(monkeypatch):
         HomeAssistant=object,
         Event=object,
         State=object,
-        callback=lambda func: func,
+        callback=hass_callback,
     )
     module("homeassistant.helpers.event", async_track_state_change_event=Mock())
     module("homeassistant.config_entries", ConfigEntry=object)

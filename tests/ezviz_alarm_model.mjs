@@ -8,6 +8,7 @@ import {
   alarmIsoTime,
   alarmPage,
   alarmVideo,
+  navigationStep,
   alarmPicturePath,
   alarmRows,
   alarmTimeText,
@@ -144,4 +145,13 @@ test("every event modal string has an English translation", async () => {
   for (const key of keys) assert.ok(Object.hasOwn(ADVANCED_COPY, key), key);
   assert.match(source, /media_bridge\/ezviz\/recordings\/create_sd/);
   assert.match(source, /showModal\(\)/);
+});
+
+test("arrow keys move between events unless a control owns them", () => {
+  assert.equal(navigationStep("ArrowLeft", [{ tagName: "DIALOG" }]), -1);
+  assert.equal(navigationStep("ArrowRight", []), 1);
+  assert.equal(navigationStep("Enter", []), 0);
+  for (const tagName of ["VIDEO", "INPUT", "VISTODA-PROVIDER-RECORDING-PLAYER"]) {
+    assert.equal(navigationStep("ArrowRight", [{ tagName }, { tagName: "DIALOG" }]), 0, tagName);
+  }
 });

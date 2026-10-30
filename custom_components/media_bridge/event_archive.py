@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -65,26 +66,45 @@ def write_event(
     return True
 
 
+def has_event(mount: Path, provider: str, camera: str, occurred_at: int, alarm_id: str) -> bool:
+    """Whether this alarm is already archived (no listing, no directory created)."""
+    name = event_id(occurred_at, alarm_id)
+    directory = _camera_directory(mount, provider, camera)
+    if directory is None:
+        return False
+    moment = datetime.fromtimestamp(occurred_at, UTC)
+    path = directory
+    for part in (f"{moment:%Y}", f"{moment:%m}", f"{name}.json"):
+        path = path / part
+        if path.is_symlink():
+            return False
+    return path.is_file()
+
+
 def list_events(
     mount: Path, provider: str, camera: str, page: int, page_size: int, day: str = ""
 ) -> dict[str, Any]:
-    """One page of archived events, newest first; `day` is a UTC `YYYY-MM-DD`."""
+    """One page of archived events, newest first; `day` is a UTC `YYYY-MM-DD`.
+
+    Names sort by time, so only the records of the requested page are read.
+    """
     if day and not DAY.fullmatch(day):
         raise ValueError("invalid day")
-    items = [
-        item
-        for _, item in _records(mount, provider, camera)
-        if not day or f"{datetime.fromtimestamp(item['occurred_at'], UTC):%Y-%m-%d}" == day
-    ]
-    items.sort(key=lambda item: (item["occurred_at"], item["id"]), reverse=True)
-    pages = max(1, -(-len(items) // page_size))
+    prefix = day.replace("-", "")
+    paths = sorted(
+        (path for path in _event_paths(mount, provider, camera) if path.stem.startswith(prefix)),
+        key=lambda path: path.stem,
+        reverse=True,
+    )
+    pages = max(1, -(-len(paths) // page_size))
     page = min(max(page, 1), pages)
+    shown = paths[(page - 1) * page_size : page * page_size]
     return {
-        "items": items[(page - 1) * page_size : page * page_size],
+        "items": [item for path in shown if (item := _read(path, provider, camera)) is not None],
         "pagination": {
             "page": page,
             "page_size": page_size,
-            "total_items": len(items),
+            "total_items": len(paths),
             "total_pages": pages,
             "has_previous": page > 1,
             "has_next": page < pages,
@@ -109,10 +129,11 @@ def event_picture(mount: Path, provider: str, camera: str, event: str) -> Path:
 
 
 def prune_events(mount: Path, provider: str, camera: str, older_than: int) -> int:
-    """Delete archived events (JSON and picture) older than `older_than`."""
+    """Delete archived events (JSON and picture) older than `older_than`, by name."""
+    cutoff = f"{datetime.fromtimestamp(older_than, UTC):%Y%m%dT%H%M%SZ}"
     removed = 0
-    for path, item in _records(mount, provider, camera):
-        if item["occurred_at"] < older_than:
+    for path in _event_paths(mount, provider, camera):
+        if path.stem[:16] < cutoff:
             path.with_suffix(".jpg").unlink(missing_ok=True)
             path.unlink(missing_ok=True)
             removed += 1
@@ -120,13 +141,19 @@ def prune_events(mount: Path, provider: str, camera: str, older_than: int) -> in
 
 
 def _atomic_write(path: Path, data: bytes) -> None:
-    temporary = path.with_name(f".{path.name}.partial")
-    temporary.unlink(missing_ok=True)
-    with temporary.open("xb") as stream:
-        stream.write(data)
-        stream.flush()
-        os.fsync(stream.fileno())
-    temporary.replace(path)
+    """Write through a temporary file private to this writer, then rename."""
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".partial", dir=path.parent
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 def _camera_directory(mount: Path, provider: str, camera: str) -> Path | None:
@@ -154,23 +181,19 @@ def _event_files(directory: Path) -> Iterator[Path]:
                 scanned += 1
                 if scanned > MAX_SCANNED:
                     raise ValueError("event archive scan limit exceeded")
-                if path.suffix == ".json" and not path.is_symlink() and path.is_file():
+                if path.suffix == ".json" and EVENT_NAME.fullmatch(path.stem):
                     yield path
 
 
-def _records(mount: Path, provider: str, camera: str) -> Iterator[tuple[Path, dict[str, Any]]]:
+def _event_paths(mount: Path, provider: str, camera: str) -> list[Path]:
     directory = _camera_directory(mount, provider, camera)
-    if directory is None:
-        return
-    for path in _event_files(directory):
-        if (item := _read(path, provider, camera)) is not None:
-            yield path, item
+    return [] if directory is None else list(_event_files(directory))
 
 
 def _read(path: Path, provider: str, camera: str) -> dict[str, Any] | None:
-    if not EVENT_NAME.fullmatch(path.stem) or path.stat().st_size > MAX_METADATA_BYTES:
-        return None
     try:
+        if path.is_symlink() or path.stat().st_size > MAX_METADATA_BYTES:
+            return None
         record = json.loads(path.read_text(encoding="utf-8"))
         identity = event_id(record["occurred_at"], record["alarm_id"])
     except (OSError, ValueError, TypeError, KeyError, OverflowError):

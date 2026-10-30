@@ -117,3 +117,30 @@ def test_absent_mount_is_an_error(monkeypatch, tmp_path):
         module.write_event(tmp_path, "ezviz", "front-door", alarm("evt-1", DAY), None)
     with pytest.raises(ValueError):
         module.list_events(tmp_path, "ezviz", "front-door", 1, 10)
+
+
+def test_has_event_and_other_writers_partials(monkeypatch, tmp_path):
+    module = archive(monkeypatch)
+    folder = tmp_path / "events" / "ezviz" / "front-door" / "2026" / "10"
+    folder.mkdir(parents=True)
+    other = folder / ".20261028T190000Z-evt-1.json.partial"
+    other.write_bytes(b"another writer")
+    assert not module.has_event(tmp_path, "ezviz", "front-door", DAY, "evt-1")
+    module.write_event(tmp_path, "ezviz", "front-door", alarm("evt-1", DAY), JPEG)
+    assert module.has_event(tmp_path, "ezviz", "front-door", DAY, "evt-1")
+    assert other.read_bytes() == b"another writer", "temporary files are private to a writer"
+
+
+def test_a_page_reads_only_its_own_records(monkeypatch, tmp_path):
+    module = archive(monkeypatch)
+    for number in range(30):
+        module.write_event(
+            tmp_path, "ezviz", "front-door", alarm(f"e{number}", DAY + number * 60), None
+        )
+    reads = []
+    original = module._read
+    monkeypatch.setattr(module, "_read", lambda *args: reads.append(1) or original(*args))
+    page = module.list_events(tmp_path, "ezviz", "front-door", 2, 5)
+    assert [item["alarm_id"] for item in page["items"]] == ["e24", "e23", "e22", "e21", "e20"]
+    assert page["pagination"]["total_items"] == 30
+    assert len(reads) == 5

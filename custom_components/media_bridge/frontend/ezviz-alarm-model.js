@@ -111,3 +111,13 @@ export function alarmVideo(recordings, occurredAt) {
     ? { kind: "play", recording }
     : { kind: "save", start: occurredAt - SD_WINDOW.before, end: occurredAt + SD_WINDOW.after };
 }
+
+// Elements whose own arrow keys must not switch events (video seeking, inputs).
+const KEY_OWNERS = new Set(["INPUT", "SELECT", "TEXTAREA", "VIDEO", "AUDIO", "VISTODA-PROVIDER-RECORDING-PLAYER"]);
+
+// -1 previous, 1 next, 0 none, for a keydown with its composed path.
+export function navigationStep(key, path = []) {
+  if (key !== "ArrowLeft" && key !== "ArrowRight") return 0;
+  if (path.some((node) => KEY_OWNERS.has(node?.tagName))) return 0;
+  return key === "ArrowLeft" ? -1 : 1;
+}

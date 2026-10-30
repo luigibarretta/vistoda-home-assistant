@@ -69,8 +69,9 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._busy = true;
     this._render();
     try {
-      const archived = await this._archivePage(entryId, 1).catch(() => false);
+      const archived = await this._archivePage(entryId, 1).catch(() => null);
       if (request !== this._request) return;
+      this._showArchive(archived);
       if (!archived) {
         const result = await this._list(entryId);
         if (request !== this._request) return;
@@ -89,16 +90,20 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._signPictures(request);
   }
 
-  // One archive page; false when the entry has not opted in to the archive.
+  // One archive page; null when the entry has not opted in to the archive.
+  // Callers apply it only after checking that their request is still current.
   async _archivePage(entryId, page) {
     const result = await this._hass.callWS({
       type: "media_bridge/events/list", entry_id: entryId, page, page_size: this._pageSize,
     });
-    this._archive = result?.enabled ? result.pagination : null;
-    if (!this._archive) return false;
+    return result?.enabled ? result : null;
+  }
+
+  _showArchive(result) {
+    this._archive = result?.pagination ?? null;
+    if (!result) return;
     this._rows = alarmRows(result.items, this._pageSize);
     this._state = this._rows.length ? "ready" : "empty";
-    return true;
   }
 
   _list(entryId, before = null) {
@@ -134,7 +139,11 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._page = page;
     this._render();
     try {
-      if (this._archive) await this._archivePage(entryId, page);
+      if (this._archive) {
+        const archived = await this._archivePage(entryId, page);
+        if (request !== this._request) return;
+        this._showArchive(archived);
+      }
       while (!this._archive && this._older !== null && alarmPage(this._rows, page, this._pageSize, false).needsMore) {
         const result = await this._list(entryId, this._older);
         if (request !== this._request) return;

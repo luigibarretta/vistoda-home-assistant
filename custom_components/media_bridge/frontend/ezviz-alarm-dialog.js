@@ -2,7 +2,7 @@
 // previous/next event, and the video of that moment — a ready recording that
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
-import { alarmIsoTime, alarmTimeText, alarmVideo } from "./ezviz-alarm-model.js";
+import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep } from "./ezviz-alarm-model.js";
 import "./provider-recording-player.js";
 
 const STYLE = `
@@ -35,8 +35,8 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("next").addEventListener("click", () => this._show(this._index + 1));
     this.$("dialog").addEventListener("close", () => this.$("player").close());
     this.$("dialog").addEventListener("keydown", (event) => {
-      if (event.key === "ArrowLeft") this._show(this._index - 1);
-      if (event.key === "ArrowRight") this._show(this._index + 1);
+      const step = navigationStep(event.key, event.composedPath());
+      if (step) this._show(this._index + step);
     });
   }
 

@@ -1,24 +1,28 @@
 """Archive EZVIZ alarms on the Vistoda network storage (opt-in per entry).
 
-Live alarms come from the listener's dispatcher signal; at start a backfill
-walks the app history newest first with `before` until it meets an alarm that
-is already archived. Filesystem work runs in the executor; a missing mount is
-reported once per outage and never stops alarms from reaching Home Assistant.
+Live alarms come from the listener's dispatcher signal. A backfill walks the
+whole app history window (newest first, `before` pages) and archives what is
+missing, at start, when the listener reconnects and when the option is turned
+on, so outages and late opt-ins leave no gaps. Writes are serialized and run in
+the executor; a missing mount is reported once per outage and never stops
+alarms from reaching Home Assistant.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from datetime import timedelta
 from typing import Any
 
+from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .backup_storage import configured_mount
 from .const import CONF_EVENT_ARCHIVE, CONF_EVENT_RETENTION_DAYS, ezviz_alarm_signal
 from .errors import BridgeError
-from .event_archive import prune_events, write_event
+from .event_archive import has_event, prune_events, write_event
 
 _LOGGER = logging.getLogger(__name__)
 PROVIDER = "ezviz"
@@ -32,28 +36,42 @@ class EzvizEventArchiver:
         self.client = client
         self.alias = alias
         self.unavailable = False
+        self._writing = asyncio.Lock()
+        self._backfilling = asyncio.Lock()
 
     @property
     def enabled(self) -> bool:
         return bool(self.entry.options.get(CONF_EVENT_ARCHIVE, False))
 
     def start(self) -> None:
-        """Follow live alarms, backfill once and prune daily; options are read live."""
+        """Follow live alarms, backfill and prune daily; options are read live."""
         from homeassistant.helpers.event import async_track_time_interval
 
         signal = ezviz_alarm_signal(self.entry.entry_id)
         self.entry.async_on_unload(async_dispatcher_connect(self.hass, signal, self._on_alarm))
         self.entry.async_on_unload(async_track_time_interval(self.hass, self.prune, DAY))
+        self.entry.async_on_unload(self.entry.add_update_listener(self._options_updated))
+        self._schedule_backfill()
+
+    @callback
+    def _on_alarm(self, data: dict[str, Any] | None) -> None:
+        if not self.enabled:
+            return
+        if data is None:  # the listener's connection state changed
+            self._schedule_backfill()
+            return
+        self.entry.async_create_background_task(
+            self.hass, self.archive(data), f"Vistoda EZVIZ event archive {data['alarm_id']}"
+        )
+
+    @callback
+    def _schedule_backfill(self) -> None:
         self.entry.async_create_background_task(
             self.hass, self.backfill(), f"Vistoda EZVIZ event backfill {self.entry.entry_id}"
         )
 
-    def _on_alarm(self, data: dict[str, Any] | None) -> None:
-        # The listener also signals state changes with None.
-        if data is not None and self.enabled:
-            self.entry.async_create_background_task(
-                self.hass, self.archive(data), f"Vistoda EZVIZ event archive {data['alarm_id']}"
-            )
+    async def _options_updated(self, _hass, _entry) -> None:
+        await self.backfill()
 
     async def archive(self, data: dict[str, Any]) -> None:
         """Archive one published alarm with its picture when it has one."""
@@ -62,9 +80,13 @@ class EzvizEventArchiver:
             await self._write(data, jpeg)
 
     async def backfill(self) -> None:
-        """Archive the app history until an alarm is already archived."""
-        if not self.enabled:
+        """Archive every alarm of the app history window that is not archived yet."""
+        if not self.enabled or self._backfilling.locked():
             return
+        async with self._backfilling:
+            await self._walk_history()
+
+    async def _walk_history(self) -> None:
         before = None
         while True:
             try:
@@ -76,10 +98,13 @@ class EzvizEventArchiver:
             except BridgeError:
                 return
             for alarm in sorted(batch.events, key=lambda event: event.occurred_at, reverse=True):
-                jpeg = await self._picture(alarm.alarm_id) if alarm.picture_available else None
-                written = await self._write(_record(alarm), jpeg)
-                if not written:  # already archived (False) or mount unavailable (None)
+                archived = await self._archived(alarm)
+                if archived is None:  # mount unavailable: retry on the next trigger
                     return
+                if not archived:
+                    jpeg = await self._picture(alarm.alarm_id) if alarm.picture_available else None
+                    if await self._write(_record(alarm), jpeg) is None:
+                        return
             if batch.older is None:
                 return
             before = batch.older
@@ -108,11 +133,26 @@ class EzvizEventArchiver:
         except BridgeError:
             return None
 
+    async def _archived(self, alarm) -> bool | None:
+        try:
+            return await self.hass.async_add_executor_job(
+                has_event,
+                configured_mount(self.entry),
+                PROVIDER,
+                self.alias,
+                alarm.occurred_at,
+                alarm.alarm_id,
+            )
+        except (OSError, ValueError):
+            self._report_unavailable()
+            return None
+
     async def _write(self, alarm: dict[str, Any], jpeg: bytes | None) -> bool | None:
         try:
-            written = await self.hass.async_add_executor_job(
-                write_event, configured_mount(self.entry), PROVIDER, self.alias, alarm, jpeg
-            )
+            async with self._writing:
+                written = await self.hass.async_add_executor_job(
+                    write_event, configured_mount(self.entry), PROVIDER, self.alias, alarm, jpeg
+                )
         except (OSError, ValueError):
             self._report_unavailable()
             return None

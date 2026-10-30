@@ -1,5 +1,6 @@
 """EZVIZ event archiver: live alarms, backfill pages, mount outages and retention."""
 
+import asyncio
 import logging
 import sys
 from types import SimpleNamespace
@@ -34,6 +35,11 @@ def archiver_env(monkeypatch, *, options=None, written=None, picture=JPEG):
         return True
 
     monkeypatch.setattr(module, "write_event", write_event)
+    monkeypatch.setattr(
+        module,
+        "has_event",
+        lambda _mount, provider, camera, _at, alarm_id: (provider, camera, alarm_id) in archive,
+    )
     monkeypatch.setattr(module, "prune_events", Mock(return_value=2))
     monkeypatch.setattr(module, "configured_mount", lambda _entry: "/media/vistoda_archives")
 
@@ -41,13 +47,17 @@ def archiver_env(monkeypatch, *, options=None, written=None, picture=JPEG):
         return function(*args)
 
     hass = SimpleNamespace(async_add_executor_job=executor)
+    tasks = []
     entry = config_entry(provider="ezviz", entry_id="01J9ENTRY", alias="front-door")
     entry.options = {"event_archive": True, **(options or {})}
+    entry.async_create_background_task = lambda _hass, job, _name: tasks.append(job)
     client = SimpleNamespace(
         ezviz_alarms=AsyncMock(), ezviz_alarm_picture=AsyncMock(return_value=picture)
     )
     archiver = module.EzvizEventArchiver(hass, entry, client, "front-door")
-    return SimpleNamespace(module=module, archiver=archiver, client=client, archive=archive)
+    return SimpleNamespace(
+        module=module, archiver=archiver, client=client, archive=archive, tasks=tasks, hass=hass
+    )
 
 
 def live(alarm_id, picture="/api/media_bridge/ezviz/01J9ENTRY/alarms/x.jpg"):
@@ -78,14 +88,46 @@ async def test_disabled_archive_writes_nothing(monkeypatch) -> None:
     env.client.ezviz_alarms.assert_not_awaited()
 
 
-async def test_backfill_walks_older_pages_until_known(monkeypatch) -> None:
-    known = {("ezviz", "front-door", "alarm-2"): None}
+async def test_backfill_walks_the_whole_window_and_skips_archived(monkeypatch) -> None:
+    known = {("ezviz", "front-door", "alarm-4"): None}
     env = archiver_env(monkeypatch, written=known)
-    env.client.ezviz_alarms.side_effect = [batch([4, 5], older=4), batch([2, 3], older=2)]
+    env.client.ezviz_alarms.side_effect = [
+        batch([4, 5], older=4),
+        batch([2, 3], older=2),
+        batch([1]),
+    ]
     await env.archiver.backfill()
-    assert sorted(key[2] for key in env.archive) == ["alarm-2", "alarm-3", "alarm-4", "alarm-5"]
+    assert sorted(key[2] for key in env.archive) == [f"alarm-{n}" for n in range(1, 6)]
     assert env.client.ezviz_alarms.await_args_list[1].kwargs == {"before": 4}
-    assert env.client.ezviz_alarms.await_count == 2, "stops at the first known alarm"
+    fetched = [call.args[1] for call in env.client.ezviz_alarm_picture.await_args_list]
+    assert "alarm-4" not in fetched, "already archived alarms cost no download"
+
+
+async def test_backfill_reruns_on_reconnect_and_when_enabled(monkeypatch) -> None:
+    env = archiver_env(monkeypatch)
+    env.archiver._on_alarm(None)
+    assert len(env.tasks) == 1, "a connection change schedules a backfill"
+    env.tasks.pop().close()
+    env.client.ezviz_alarms.side_effect = [batch([1])]
+    await env.archiver._options_updated(env.hass, env.archiver.entry)
+    assert env.client.ezviz_alarms.await_count == 1
+
+
+async def test_writes_never_overlap(monkeypatch) -> None:
+    env = archiver_env(monkeypatch)
+    active, peak = 0, 0
+
+    async def executor(function, *args):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0)
+        active -= 1
+        return function(*args)
+
+    env.archiver.hass.async_add_executor_job = executor
+    await asyncio.gather(*(env.archiver.archive(live(f"alarm-{n}")) for n in range(4)))
+    assert peak == 1
 
 
 async def test_backfill_stops_without_older(monkeypatch) -> None:
@@ -122,3 +164,10 @@ async def test_prune_runs_with_retention_only(monkeypatch) -> None:
     (_mount, provider, camera), kwargs = env.module.prune_events.call_args
     assert (provider, camera) == ("ezviz", "front-door")
     assert kwargs["older_than"] > 1_790_000_000
+
+
+def test_dispatcher_target_runs_in_the_event_loop(monkeypatch) -> None:
+    env = archiver_env(monkeypatch)
+    # Home Assistant runs undecorated dispatcher targets in an executor thread,
+    # where creating a background task fails.
+    assert getattr(env.module.EzvizEventArchiver._on_alarm, "_hass_callback", False)
