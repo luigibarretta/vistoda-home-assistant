@@ -86,3 +86,28 @@ export function alarmPage(rows, page, size, complete) {
     needsMore: !complete && loaded.length < start + pageSize,
   };
 }
+
+// microSD window offered for an event without a recording, in seconds around it.
+export const SD_WINDOW = Object.freeze({ before: 10, after: 50 });
+
+// [start, end] epoch seconds of a ready recording, or null.
+export function recordingSpan(item) {
+  if (item?.status !== "ready") return null;
+  if (item.source === "sd") {
+    return Number.isInteger(item.sd_start) && Number.isInteger(item.sd_end) ? [item.sd_start, item.sd_end] : null;
+  }
+  const start = Date.parse(item.started_at) / 1000;
+  const length = item.actual_duration_seconds;
+  return Number.isFinite(start) && Number.isFinite(length) && length > 0 ? [start, start + length] : null;
+}
+
+// The video of an event: a ready recording covering it, else the microSD window to save.
+export function alarmVideo(recordings, occurredAt) {
+  const recording = (Array.isArray(recordings) ? recordings : []).find((item) => {
+    const span = recordingSpan(item);
+    return span !== null && span[0] <= occurredAt && occurredAt <= span[1];
+  });
+  return recording
+    ? { kind: "play", recording }
+    : { kind: "save", start: occurredAt - SD_WINDOW.before, end: occurredAt + SD_WINDOW.after };
+}

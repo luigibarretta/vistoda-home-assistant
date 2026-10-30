@@ -7,6 +7,7 @@ import {
   alarmCategory,
   alarmIsoTime,
   alarmPage,
+  alarmVideo,
   alarmPicturePath,
   alarmRows,
   alarmTimeText,
@@ -105,4 +106,42 @@ test("archive items become card rows with their own picture route", () => {
   assert.equal(rows[0].picture, null, "traversal in an archive route is refused");
   assert.equal(alarmPicturePath("/api/media_bridge/events/01J9ENTRY/evt-1.jpg"), null,
     "archive pictures carry the timestamped event name");
+});
+
+const T = 1793214000; // 2026-10-28T19:00:00Z
+const live = { recording_id: "live-1", status: "ready", started_at: "2026-10-28T18:59:50Z", actual_duration_seconds: 30 };
+const card = { recording_id: "sd-1", status: "ready", source: "sd", sd_start: T + 100, sd_end: T + 160 };
+
+test("a covering recording is played", () => {
+  assert.deepEqual(alarmVideo([card, live], T), { kind: "play", recording: live });
+  assert.deepEqual(alarmVideo([live, card], T + 130), { kind: "play", recording: card });
+});
+
+test("edges of a recording cover the event", () => {
+  assert.equal(alarmVideo([live], T - 10).kind, "play");
+  assert.equal(alarmVideo([live], T + 20).kind, "play");
+  assert.equal(alarmVideo([card], T + 160).kind, "play");
+  assert.equal(alarmVideo([card], T + 161).kind, "save");
+});
+
+test("otherwise the microSD window is offered", () => {
+  assert.deepEqual(alarmVideo([], T), { kind: "save", start: T - 10, end: T + 50 });
+  assert.deepEqual(alarmVideo(undefined, T), { kind: "save", start: T - 10, end: T + 50 });
+});
+
+test("failed or pending recordings are ignored", () => {
+  for (const status of ["failed", "pending", "recording"]) {
+    assert.equal(alarmVideo([{ ...live, status }], T).kind, "save", status);
+  }
+  assert.equal(alarmVideo([{ ...live, actual_duration_seconds: null }], T).kind, "save");
+});
+
+test("every event modal string has an English translation", async () => {
+  const source = await readFile(
+    new URL("../custom_components/media_bridge/frontend/ezviz-alarm-dialog.js", import.meta.url), "utf8");
+  const keys = [...source.matchAll(/copy\(this, "([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(keys.length >= 7, "the modal uses the copy catalog");
+  for (const key of keys) assert.ok(Object.hasOwn(ADVANCED_COPY, key), key);
+  assert.match(source, /media_bridge\/ezviz\/recordings\/create_sd/);
+  assert.match(source, /showModal\(\)/);
 });

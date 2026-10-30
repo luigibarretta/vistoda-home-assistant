@@ -1,5 +1,8 @@
 // Source-owned copy for EZVIZ controls served by the Vistoda EZVIZ app (0.10+).
 export const EZVIZ_COPY = {
+  "Video": "Video", "Riproduci la registrazione": "Play the recording",
+  "Salva dalla microSD": "Save from the microSD", "Sveglia la telecamera e consuma batteria.":
+    "Wakes the camera and uses battery.", "Evento precedente": "Previous event", "Evento successivo": "Next event",
   "Sensibilità di rilevamento": "Detection sensitivity", "Livello batteria": "Battery level",
   "Luce infrarossa": "Infrared light", "Spia di stato": "Status light", "Modalità privacy": "Privacy mode",
   "Modalità riposo": "Sleep mode", "Versione firmware": "Firmware version",

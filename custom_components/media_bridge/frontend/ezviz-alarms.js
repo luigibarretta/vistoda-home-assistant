@@ -3,6 +3,7 @@ import { panelLanguage } from "./panel-localize.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import { alarmPage, alarmRows, MAX_LOADED_ALARMS } from "./ezviz-alarm-model.js";
 import { alarmsTemplate } from "./ezviz-alarms-template.js";
+import "./ezviz-alarm-dialog.js";
 
 // Paged alarm list for one EZVIZ camera entry. With the event archive enabled
 // it pages the archive on the server; otherwise the app answers 50 alarms at a
@@ -11,7 +12,13 @@ class VistodaEzvizAlarms extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    // The modal outlives re-renders of the list (a new alarm while it is open).
+    this.shadowRoot.innerHTML = '<div id="content"></div><vistoda-ezviz-alarm-dialog id="dialog"></vistoda-ezviz-alarm-dialog>';
+    this.addEventListener("alarm-open", ({ detail }) => this.shadowRoot.getElementById("dialog").open(this._hass, {
+      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index,
+    }));
     this._entryId = "";
+    this._alias = "";
     this._token = null;
     this._alarms = [];
     this._rows = [];
@@ -31,6 +38,7 @@ class VistodaEzvizAlarms extends HTMLElement {
   configure(hass, entry, token = null) {
     this._hass = hass;
     const entryId = entry?.entry_id || "";
+    this._alias = entry?.alias || "";
     const language = panelLanguage(hass);
     if (entryId !== this._entryId) {
       this._entryId = entryId;
@@ -199,7 +207,7 @@ class VistodaEzvizAlarms extends HTMLElement {
       error: copy(this, "Eventi non disponibili. Riprova più tardi."),
       unsupported: copy(this, "Aggiorna l’app Vistoda EZVIZ per ricevere gli eventi."),
     }[this._state];
-    this.shadowRoot.innerHTML = alarmsTemplate(this, {
+    this.shadowRoot.getElementById("content").innerHTML = alarmsTemplate(this, {
       view, status, busy: this._busy, entryId: this._entryId, hasRows: this._rows.length > 0, locale,
     });
     localizeCopy(this.shadowRoot, this);
