@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .ezviz_account import EzvizDefenceCoordinator
     from .ezviz_alarm_listener import EzvizAlarmListener
     from .ezviz_controls import EzvizControlsCoordinator
+    from .ezviz_event_archiver import EzvizEventArchiver
     from .ezviz_media import EzvizMediaCoordinator
     from .local import BlinkAdapterCoordinator
     from .ring_event_listener import RingEventListener
@@ -40,6 +41,7 @@ class BridgeRuntime:
     ring_events: RingEventListener | None = None
     ring_history: RingHistoryManager | None = None
     ezviz_alarms: EzvizAlarmListener | None = None
+    ezviz_events: EzvizEventArchiver | None = None
     ezviz_media: EzvizMediaCoordinator | None = None
     ezviz_controls: EzvizControlsCoordinator | None = None
     ezviz_defence: EzvizDefenceCoordinator | None = None

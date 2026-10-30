@@ -9,7 +9,14 @@ from .backup_storage import (
     storage_mount,
     storage_readiness,
 )
-from .const import CONF_PROVIDER, PROVIDER_BLINK, PROVIDER_EZVIZ, PROVIDER_RING
+from .const import (
+    CONF_EVENT_ARCHIVE,
+    CONF_EVENT_RETENTION_DAYS,
+    CONF_PROVIDER,
+    PROVIDER_BLINK,
+    PROVIDER_EZVIZ,
+    PROVIDER_RING,
+)
 
 CONF_AUTO_BACKUP = "blink_usb_auto_backup"
 
@@ -41,6 +48,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                                 errors["base"] = readiness["reason"]
                             else:
                                 options[CONF_AUTO_BACKUP] = enabled
+                        if provider == PROVIDER_EZVIZ:
+                            error = _event_archive_options(user_input, readiness, options)
+                            if error:
+                                errors["base"] = error
             if not errors:
                 if user_input.get("reconnect_account") and provider in {
                     PROVIDER_RING,
@@ -66,4 +77,28 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                     CONF_AUTO_BACKUP, default=self.config_entry.options.get(CONF_AUTO_BACKUP, False)
                 )
             ] = bool
+        if provider == PROVIDER_EZVIZ:
+            current = self.config_entry.options
+            schema[
+                vol.Optional(CONF_EVENT_ARCHIVE, default=current.get(CONF_EVENT_ARCHIVE, False))
+            ] = bool
+            schema[
+                vol.Optional(
+                    CONF_EVENT_RETENTION_DAYS,
+                    default=current.get(CONF_EVENT_RETENTION_DAYS, 0),
+                )
+            ] = vol.All(vol.Coerce(int), vol.Range(min=0, max=3650))
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)
+
+
+def _event_archive_options(user_input: dict, readiness: dict, options: dict) -> str | None:
+    """Store the event archive options; an error key when they cannot be accepted."""
+    enabled = bool(user_input.get(CONF_EVENT_ARCHIVE, False))
+    days = int(user_input.get(CONF_EVENT_RETENTION_DAYS, 0))
+    if 0 < days < 7:
+        return "invalid_retention"
+    if enabled and not readiness["ready"]:
+        return readiness["reason"]
+    options[CONF_EVENT_ARCHIVE] = enabled
+    options[CONF_EVENT_RETENTION_DAYS] = days
+    return None

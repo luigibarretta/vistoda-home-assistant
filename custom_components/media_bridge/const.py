@@ -22,6 +22,9 @@ CONF_MANAGED_APP = "managed_app"
 CONF_RING_AUTO_RECORD = "ring_auto_record"
 CONF_RING_DELEGATE_CONTROLS = "ring_delegate_controls"
 CONF_EZVIZ_DELEGATE_CONTROLS = "ezviz_delegate_controls"
+# EZVIZ event archive on the network storage (opt-in) and its retention in days.
+CONF_EVENT_ARCHIVE = "event_archive"
+CONF_EVENT_RETENTION_DAYS = "event_retention_days"
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"

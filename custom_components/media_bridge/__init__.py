@@ -22,6 +22,7 @@ from .const import (
 from .coordinator import BridgeCoordinator
 from .ezviz_alarm_listener import EzvizAlarmListener
 from .ezviz_controls import EzvizControlsCoordinator
+from .ezviz_event_archiver import EzvizEventArchiver
 from .ezviz_media import EzvizMediaCoordinator
 from .local import BlinkAdapterCoordinator
 from .ring_event_listener import RingEventListener
@@ -123,12 +124,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) 
     snapshots = {}
     snapshot_updated_at = {}
     ezviz_alarms = None
+    ezviz_events = None
     ezviz_media = None
     ezviz_controls = None
     if provider == PROVIDER_EZVIZ:
         ezviz_alarms = EzvizAlarmListener(
             hass, entry, client, entry.data[CONF_ALIAS], verified=True
         )
+        ezviz_events = EzvizEventArchiver(hass, entry, client, entry.data[CONF_ALIAS])
         # Constructed only: the sensor and binary_sensor platforms start the first
         # (deferred) polls, so setup never awaits these optional app routes.
         ezviz_media = EzvizMediaCoordinator(hass, entry, client, coordinator)
@@ -149,6 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) 
         ring_events=ring_events,
         ring_history=ring_history,
         ezviz_alarms=ezviz_alarms,
+        ezviz_events=ezviz_events,
         ezviz_media=ezviz_media,
         ezviz_controls=ezviz_controls,
         panel_url=f"{base_url.rstrip('/')}/vistoda/{provider}" if base_url else None,
@@ -167,6 +171,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) 
         ring_events.start()
     if ezviz_alarms:
         ezviz_alarms.start()
+    if ezviz_events:
+        ezviz_events.start()
     if provider == PROVIDER_BLINK:
         from .blink_usb_auto_backup import async_setup as async_setup_usb_backup
 

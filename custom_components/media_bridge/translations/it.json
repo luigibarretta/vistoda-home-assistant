@@ -149,15 +149,16 @@
     "step": {"init": {
       "title": "Collegamento e backup Vistoda",
       "description": "Per i backup, aggiungi prima un archivio di rete con utilizzo Media in Impostazioni → Sistema → Archiviazione di Home Assistant. Inserisci solo il nome, non un indirizzo server o un percorso. Vistoda verifica il mount NFS o SMB esatto prima di scrivere. Ricollega avvia un nuovo accesso mantenendo i dispositivi.",
-      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account", "blink_usb_auto_backup": "Backup automatico ogni ora delle clip USB Blink e delle registrazioni locali HA"},
-      "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant."}
+      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account", "blink_usb_auto_backup": "Backup automatico ogni ora delle clip USB Blink e delle registrazioni locali HA", "event_archive": "Archivia gli eventi nell'archivio di rete", "event_retention_days": "Conserva gli eventi archiviati (giorni, 0 = per sempre)"},
+      "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant.", "event_archive": "Salva ogni evento EZVIZ con la sua immagine in events/ sull'archivio di rete indicato sopra, senza limite di numero. Serve che l'archivio sia pronto.", "event_retention_days": "0 li conserva per sempre, altrimenti da 7 a 3650 giorni. Vengono eliminati solo gli eventi archiviati e le loro immagini, mai le clip."}
     }},
     "error": {
       "invalid_storage_name": "Usa un nome con lettere, cifre, trattini o underscore; non inserire un percorso.",
       "network_mount_missing": "L’archivio non è montato come spazio Media NFS o SMB scrivibile. Aggiungilo o ricollegalo nelle impostazioni Archiviazione di Home Assistant.",
       "network_mount_not_writable": "Home Assistant non può scrivere su questo archivio di rete.",
       "network_mount_unavailable": "Archivio di rete temporaneamente indisponibile.",
-      "network_mount_low_space": "L’archivio di rete richiede almeno 512 MiB liberi."
+      "network_mount_low_space": "L’archivio di rete richiede almeno 512 MiB liberi.",
+      "invalid_retention": "Usa 0 per conservare gli eventi per sempre, oppure da 7 a 3650 giorni."
     }
   },
   "issues": {

@@ -149,15 +149,16 @@
     "step": {"init": {
       "title": "Vistoda connection and backup",
       "description": "For backups, first add network storage with Media usage in Home Assistant Settings → System → Storage. Enter only its name, not a server address or filesystem path. Vistoda verifies the exact NFS or SMB mount before writing. Reconnect starts a new sign-in without replacing devices.",
-      "data": {"backup_storage": "Network media storage name", "reconnect_account": "Reconnect account", "blink_usb_auto_backup": "Automatically back up Blink USB clips and HA-local recordings every hour"},
-      "data_description": {"backup_storage": "Default: vistoda_archives. Backup remains unavailable until this network storage is mounted and writable.", "reconnect_account": "Use the same vendor account. Its password is forwarded once and is not saved in Home Assistant."}
+      "data": {"backup_storage": "Network media storage name", "reconnect_account": "Reconnect account", "blink_usb_auto_backup": "Automatically back up Blink USB clips and HA-local recordings every hour", "event_archive": "Archive events on network storage", "event_retention_days": "Keep archived events (days, 0 = forever)"},
+      "data_description": {"backup_storage": "Default: vistoda_archives. Backup remains unavailable until this network storage is mounted and writable.", "reconnect_account": "Use the same vendor account. Its password is forwarded once and is not saved in Home Assistant.", "event_archive": "Saves every EZVIZ event and its picture under events/ on the network storage above, with no limit on how many. Needs the storage to be ready.", "event_retention_days": "0 keeps them forever, otherwise 7 to 3650 days. Only archived events and their pictures are deleted, never clips."}
     }},
     "error": {
       "invalid_storage_name": "Use a storage name with letters, digits, underscores or hyphens; do not enter a path.",
       "network_mount_missing": "This storage is not mounted as writable NFS or SMB media storage. Add or reconnect it in Home Assistant storage settings.",
       "network_mount_not_writable": "Home Assistant cannot write to this network storage.",
       "network_mount_unavailable": "Network storage is temporarily unavailable.",
-      "network_mount_low_space": "Network storage needs at least 512 MiB free."
+      "network_mount_low_space": "Network storage needs at least 512 MiB free.",
+      "invalid_retention": "Use 0 to keep events forever, or between 7 and 3650 days."
     }
   },
   "issues": {

@@ -53,6 +53,7 @@ def framework(monkeypatch):
         Optional=marker,
         Required=marker,
         In=identity,
+        Coerce=identity,
         All=lambda *args: args,
         Length=lambda **kwargs: kwargs,
         Match=identity,
