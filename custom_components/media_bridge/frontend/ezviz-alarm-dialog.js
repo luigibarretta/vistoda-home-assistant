@@ -25,7 +25,7 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><dialog id="dialog" aria-labelledby="title">
       <div class="bar"><button id="previous"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
         <h2 id="title"></h2><button id="next"><ha-icon icon="mdi:chevron-right"></ha-icon></button>
-        <button id="close"><ha-icon icon="mdi:close"></ha-icon></button></div>
+        <button id="close" autofocus><ha-icon icon="mdi:close"></ha-icon></button></div>
       <img id="picture" alt="" hidden><div class="meta"><time id="time"></time><div id="subtitle" class="muted"></div></div>
       <section class="video"><h3 id="video-title"></h3><div id="video"></div><p id="status" class="muted" role="status"></p>
         <vistoda-provider-recording-player id="player" hidden></vistoda-provider-recording-player></section></dialog>`;
@@ -49,6 +49,9 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("video-title").textContent = copy(this, "Video");
     localizeCopy(this.shadowRoot, this);
     this.$("dialog").showModal();
+    // The panel keeps focus on the page after the tap; move it into the modal so
+    // keyboard users (and the arrow keys) start inside it.
+    this.$("close").focus({ preventScroll: true });
     this._show(index);
   }
 
