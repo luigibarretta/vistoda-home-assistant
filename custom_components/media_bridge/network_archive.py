@@ -9,7 +9,10 @@ from .backup_storage import network_filesystem
 
 MAX_ITEMS = 10000
 MAX_BYTES = 256 * 1024 * 1024
-SAFE_PATH = re.compile(r"^(blink-usb|blink)/[A-Za-z0-9_-]{1,64}/[0-9a-f-]+\.(mp4|ts)$")
+SAFE_PATH = re.compile(r"^(blink-usb|blink|ezviz)/[A-Za-z0-9_-]{1,64}/[0-9a-f-]+\.(mp4|ts|mpegps)$")
+# Provider recordings copied by `recording_backup`: extension → media type.
+RECORDING_TYPES = {"ts": "video/mp2t", "mpegps": "video/mpeg"}
+PROVIDERS = ("blink-usb", "blink", "ezviz")
 
 
 def checked_file(mount: Path, relative: str, *, checksum=False):
@@ -27,8 +30,9 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
     metadata = json.loads(sidecar.read_text(encoding="utf-8"))
     if metadata.get("schema_version") != 1:
         raise ValueError("unsupported backup metadata")
-    usb = relative.startswith("blink-usb/")
-    if metadata.get("provider") != ("blink-usb" if usb else "blink"):
+    provider = Path(relative).parts[0]
+    usb = provider == "blink-usb"
+    if metadata.get("provider") != provider:
         raise ValueError("backup provider mismatch")
     source = metadata.get("source" if usb else "recording", {})
     if not isinstance(source, dict):
@@ -36,8 +40,11 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
     expected_name = (
         f"{source.get('manifest_id')}-{source.get('clip_id')}.mp4"
         if usb
-        else f"{source.get('recording_id')}.ts"
+        else f"{source.get('recording_id')}{target.suffix}"
     )
+    media_type = "video/mp4" if usb else RECORDING_TYPES.get(target.suffix[1:])
+    if not usb and source.get("media_type", media_type) != media_type:
+        raise ValueError("backup media type mismatch")
     if target.name != expected_name or target.parent.name != source.get("camera"):
         raise ValueError("backup identity mismatch")
     integrity = metadata if usb else source
@@ -68,7 +75,7 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
         "created_at": source.get("created_at" if usb else "requested_at", ""),
         "backed_up_at": metadata.get("backed_up_at", ""),
         "bytes": size,
-        "media_type": "video/mp4" if usb else "video/mp2t",
+        "media_type": media_type,
     }
 
 
@@ -76,7 +83,7 @@ def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=
     if network_filesystem(mount) is None:
         raise ValueError("network mount missing")
     items, cameras, scanned = [], set(), 0
-    for provider in ("blink-usb", "blink"):
+    for provider in PROVIDERS:
         root = mount / provider
         if root.is_symlink() or not root.is_dir():
             continue
@@ -90,7 +97,7 @@ def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=
                 scanned += 1
                 if scanned > MAX_ITEMS * 2:
                     raise ValueError("network archive inventory limit exceeded")
-                if not sidecar.name.endswith((".mp4.json", ".ts.json")):
+                if not sidecar.name.endswith((".mp4.json", ".ts.json", ".mpegps.json")):
                     continue
                 relative = str(sidecar.relative_to(mount))[:-5]
                 try:

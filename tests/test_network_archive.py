@@ -88,3 +88,37 @@ async def test_inventory_requires_admin_before_any_filesystem_access(monkeypatch
     await module.ws_inventory(env.hass, connection, {"id": 1})
     assert connection.send_error.call_args.args[1] == "unauthorized"
     scan.assert_not_called()
+
+
+def test_ezviz_copies_are_listed_with_their_media_type(monkeypatch, tmp_path):
+    module = fixture(monkeypatch, tmp_path)
+    folder = tmp_path / "ezviz" / "front-door"
+    folder.mkdir(parents=True)
+    for number, (extension, media_type) in enumerate(
+        (("mpegps", "video/mpeg"), ("ts", "video/mp2t")), start=1
+    ):
+        recording_id = f"00000000-0000-4000-8000-00000000000{number}"
+        (folder / f"{recording_id}.{extension}").write_bytes(b"clip")
+        metadata = {
+            "schema_version": 1,
+            "provider": "ezviz",
+            "recording": {
+                "recording_id": recording_id,
+                "camera": "front-door",
+                "requested_at": f"2026-10-2{number}T10:00:00Z",
+                "media_type": media_type,
+                "bytes": 4,
+                "sha256": hashlib.sha256(b"clip").hexdigest(),
+            },
+        }
+        (folder / f"{recording_id}.{extension}.json").write_text(json.dumps(metadata))
+    items = module.inventory(tmp_path, 1, 50, "front-door")["items"]
+    assert [(item["id"].split("/")[0], item["media_type"]) for item in items] == [
+        ("ezviz", "video/mp2t"),
+        ("ezviz", "video/mpeg"),
+    ]
+    module.checked_file(tmp_path, items[1]["id"], checksum=True)
+    (folder / "00000000-0000-4000-8000-000000000001.mpegps.json").write_text(
+        json.dumps({**metadata, "provider": "blink"})
+    )
+    assert len(module.inventory(tmp_path, 1, 50, "front-door")["items"]) == 1
