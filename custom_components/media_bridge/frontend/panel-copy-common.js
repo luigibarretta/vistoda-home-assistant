@@ -60,8 +60,6 @@ export const COMMON_COPY = {
   "Nuovo snapshot non disponibile.": "New image unavailable.",
   "Caricamento dello snapshot in corso…": "Loading the saved image…",
   "Snapshot non disponibile; il live può restare operativo.": "Saved image unavailable; live video may still work.",
-  "Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.":
-    "This archive is separate from SceneTrove. It records only when you request it here.",
   "Snapshot spioncino EZVIZ": "EZVIZ peephole camera image",
   "Tutte le registrazioni": "All recordings", "Nuova lista": "New list", "Gestisci liste": "Manage lists",
   "Filtra per lista": "Filter by list", "Nome della lista": "List name", "Nome della nuova lista": "New list name",

@@ -11,6 +11,7 @@ import "./ezviz-settings.js";
 import "./ezviz-alarms.js";
 import "./ezviz-media.js";
 import "./scenetrove-card.js";
+import "./network-archive.js";
 import {
   devicesWithDomain,
   entityState,
@@ -52,7 +53,7 @@ class VistodaEzvizView extends HTMLElement {
         .loader ha-icon { --mdc-icon-size:42px; margin:auto; animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         #message { min-height:21px; margin-top:12px; }
-        #recording-section > summary { padding:12px 0; cursor:pointer; font-weight:600; }
+        :is(#recording-section, #archive-section) > summary { padding:12px 0; cursor:pointer; font-weight:600; }
         #system { display:block; }
         .detail-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
         .detail-head h2 { margin:0; flex:1; }
@@ -92,8 +93,10 @@ class VistodaEzvizView extends HTMLElement {
           <div class="muted" id="message" role="status"></div><vistoda-ezviz-alarms id="alarms"></vistoda-ezviz-alarms><vistoda-ezviz-media id="media"></vistoda-ezviz-media>
           <details id="recording-section"><summary data-copy="Registrazioni locali">Registrazioni locali</summary>
           <vistoda-provider-recordings id="recordings"></vistoda-provider-recordings></details>
-          <div class="notice muted"><span data-copy="Questo archivio è standalone e separato da SceneTrove: registra soltanto quando lo richiedi qui.">Questo archivio è standalone e separato da SceneTrove:
-            registra soltanto quando lo richiedi qui.</span></div></div></section>
+          <details id="archive-section" hidden><summary data-copy="Archivio di rete">Archivio di rete</summary>
+          <vistoda-network-archive id="archive"></vistoda-network-archive></details>
+          <div class="notice muted"><span data-copy="Registra soltanto quando lo richiedi qui. Con la destinazione condivisa, le clip della microSD salvate passano nella cartella del dispositivo in SceneTrove.">Registra soltanto quando lo richiedi qui.
+            Con la destinazione condivisa, le clip della microSD salvate passano nella cartella del dispositivo in SceneTrove.</span></div></div></section>
       <section class="card" id="details-page" hidden><div class="detail-head"><button id="details-back"
         aria-label="Torna alla telecamera" title="Torna alla telecamera"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
         <h2 id="details-title">EZVIZ</h2></div><vistoda-ezviz-settings id="settings"></vistoda-ezviz-settings>
@@ -177,6 +180,7 @@ class VistodaEzvizView extends HTMLElement {
     this.$("empty").hidden = Boolean(device);
     if (!device) {
       this.$("recordings").configure(this._hass, null);
+      this.$("archive").configure(this._hass, null, "ezviz");
       this.$("alarms").configure(this._hass, null);
       this.$("media").configure(this._hass, null);
       return;
@@ -215,6 +219,10 @@ class VistodaEzvizView extends HTMLElement {
     this.$("recordings").configure(this._hass, entry ? {
       provider: "ezviz", entryId: entry.entry_id, alias: entry.alias,
     } : null);
+    // The network archive inventory, copies and shared clips, is administrator-only.
+    const archiveEntry = this._hass?.user?.is_admin ? entry?.entry_id : null;
+    this.$("archive-section").hidden = !archiveEntry;
+    this.$("archive").configure(this._hass, archiveEntry ?? null, "ezviz");
     const url = pictureUrl(this._hass, camera, this._nonce);
     if (url && this._imageUrl !== url) {
       this._imageUrl = url;

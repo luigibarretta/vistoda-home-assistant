@@ -106,4 +106,10 @@ export const STORAGE_COPY = {
   "Formattazione riuscita!": "Formatting successful!",
   "Formattazione inviata, ma Blink segnala ancora: {p0}": "Formatting sent, but Blink still reports: {p0}",
   "Formattazione inviata: stato della chiavetta non ancora disponibile.": "Formatting sent; the USB drive status is not available yet.",
+  "Eliminare {p0} copie? Quelle condivise spariscono anche da SceneTrove.":
+    "Delete {p0} copies? Shared ones also disappear from SceneTrove.",
+  "Eliminare {p0} copie archiviate?": "Delete {p0} archived copies?",
+  "Non eliminate: {p0} di {p1}.": "Not deleted: {p0} of {p1}.", "Archivio di rete": "Network archive",
+  "Registra soltanto quando lo richiedi qui. Con la destinazione condivisa, le clip della microSD salvate passano nella cartella del dispositivo in SceneTrove.":
+    "It records only when you ask here. With the shared destination, saved microSD clips move to the device folder in SceneTrove.",
 };

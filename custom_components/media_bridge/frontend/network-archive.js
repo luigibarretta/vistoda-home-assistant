@@ -7,16 +7,19 @@ import { PROVIDER_LIST_STYLES, PROVIDER_LIST_TEMPLATE } from "./provider-recordi
 import { ProviderRecordingBulkLists, PROVIDER_BULK_LIST_STYLES,
   PROVIDER_BULK_LIST_TEMPLATE } from "./provider-recording-bulk-lists.js";
 import { AUTO_BACKUP_STYLES, AUTO_BACKUP_TEMPLATE, networkArchiveAuto } from "./network-archive-auto.js";
+import { deletePlan } from "./archive-delete.js";
 
 class NetworkArchive extends HTMLElement {
   constructor() {
     super(); this.attachShadow({ mode: "open" }); this.page = 1; this.size = 10;
     this.generation = 0;
     this._selected = new Set();
+    this._selectedItems = new Map(); // media_id → item, for deleting across pages
     this._listManager = new ProviderRecordingListManager(this);
     this._bulkListManager = new ProviderRecordingBulkLists(this, this._listManager, () => [...this._selected]);
     this.shadowRoot.innerHTML = `<style>${BASE_STYLES}${PROVIDER_LIST_STYLES}${PROVIDER_BULK_LIST_STYLES}
       ${ARCHIVE_FILTER_STYLES}${NETWORK_ARCHIVE_STYLES}${AUTO_BACKUP_STYLES}
+      :host(:not([data-provider="blink"])) :is(.auto-backup, #last-run) { display:none; }
     </style><header><h3 data-copy="Backup NFS">Backup NFS</h3>
       <button id="reload" class="icon-action" aria-label="Aggiorna" data-copy-aria-label="Aggiorna"><ha-icon icon="mdi:refresh"></ha-icon></button></header>
       <p><a href="/config/integrations/integration/media_bridge" data-copy="Configura backup di rete e backup automatico">Configura backup di rete e backup automatico</a></p>
@@ -25,7 +28,8 @@ class NetworkArchive extends HTMLElement {
       <div class="archive-filter"><label for="camera" data-copy="Telecamera">Telecamera</label><select id="camera"><option value="" data-copy="Tutte le telecamere">Tutte le telecamere</option></select></div>
       ${PAGE_SIZE_TEMPLATE}${PROVIDER_LIST_TEMPLATE}${PROVIDER_BULK_LIST_TEMPLATE}
       <div class="archive-toolbar"><strong id="count"></strong><button class="icon-action" id="add-selected-to-lists" disabled
-      aria-label="Aggiungi selezionate alle liste" data-copy-aria-label="Aggiungi selezionate alle liste"><ha-icon icon="mdi:playlist-plus"></ha-icon></button></div>
+      aria-label="Aggiungi selezionate alle liste" data-copy-aria-label="Aggiungi selezionate alle liste"><ha-icon icon="mdi:playlist-plus"></ha-icon></button>
+      <button class="icon-action" id="delete-selected" disabled aria-label="Elimina selezionate" data-copy-aria-label="Elimina selezionate"><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>
       <section id="player" hidden><button id="close" data-copy="Chiudi riproduzione">Chiudi riproduzione</button><video id="video" controls playsinline></video></section>
       <div id="items"></div><p id="status" role="status"></p>
       <div class="archive-pagination"><button class="icon-action" id="previous" aria-label="Pagina precedente" data-copy-aria-label="Pagina precedente"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
@@ -33,6 +37,7 @@ class NetworkArchive extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this._listManager.mount(this.shadowRoot); this._bulkListManager.mount(this.shadowRoot);
     this.$("reload").onclick = () => this.reload();
+    this.$("delete-selected").onclick = () => this._delete([...this._selectedItems.values()]);
     this.$("auto-backup").onchange = () => this._setAutomatic();
     this.$("camera").onchange = () => { this.page = 1; this.reload(); };
     this.$("previous").onclick = () => { this.page--; this.reload(); };
@@ -40,13 +45,15 @@ class NetworkArchive extends HTMLElement {
     this.$("close").onclick = () => this.pausePlayback();
     bindPageSize(this.shadowRoot, (size) => { this.size = size; this.page = 1; this.reload(); });
   }
-  configure(hass, entryId) {
+  // provider: "blink" (with automatic backup) or "ezviz" (copies and shared clips).
+  configure(hass, entryId, provider = "blink") {
     this._hass = hass; localizeCopy(this.shadowRoot, this);
     if (entryId === this.entryId) { this._renderAutomatic(); return; }
     this.entryId = entryId; this.generation++; this.page = 1; this.pausePlayback();
     this._automatic = null; this._autoBusy = false; this._renderAutomatic();
-    this._config = entryId ? { provider: "blink", entryId } : null;
-    this._selected.clear(); this._listManager.configure(this._config);
+    this.dataset.provider = provider;
+    this._config = entryId ? { provider, entryId } : null;
+    this._selected.clear(); this._selectedItems.clear(); this._listManager.configure(this._config);
     this.reload();
   }
   disconnectedCallback() { this.generation++; this.pausePlayback(); }
@@ -108,8 +115,9 @@ class NetworkArchive extends HTMLElement {
     checkbox.checked = this._selected.has(item.media_id);
     checkbox.setAttribute("aria-label", copy(this, "Seleziona clip") + " " + item.camera);
     checkbox.onchange = () => {
-      checkbox.checked ? this._selected.add(item.media_id) : this._selected.delete(item.media_id);
-      this.$("add-selected-to-lists").disabled = !this._selected.size;
+      if (checkbox.checked) { this._selected.add(item.media_id); this._selectedItems.set(item.media_id, item); }
+      else { this._selected.delete(item.media_id); this._selectedItems.delete(item.media_id); }
+      this._renderSelection();
     }; selection.append(checkbox); actions.append(selection);
     for (const [play, icon, label] of [[true, "mdi:play", "Riproduci"], [false, "mdi:download", "Scarica"]]) {
       const button = document.createElement("button"), glyph = document.createElement("ha-icon");
@@ -118,14 +126,34 @@ class NetworkArchive extends HTMLElement {
       button.setAttribute("aria-label", copy(this, label)); button.disabled = play && item.media_type !== "video/mp4";
       button.onclick = () => this.open(item, play); actions.append(button);
     }
+    const remove = document.createElement("button"), bin = document.createElement("ha-icon");
+    remove.className = "icon-action"; bin.setAttribute("icon", "mdi:delete-outline"); remove.append(bin);
+    remove.title = copy(this, "Elimina"); remove.setAttribute("aria-label", copy(this, "Elimina"));
+    remove.onclick = () => this._delete([item]); actions.append(remove);
     row.append(actions); return row;
   }
   renderItems() {
     this.$("items").replaceChildren(...(this.items || []).map((item) => this.row(item)));
-    this.$("add-selected-to-lists").disabled = !this._selected.size;
+    this._renderSelection();
+  }
+  _renderSelection() {
+    this.$("add-selected-to-lists").disabled = this.$("delete-selected").disabled = !this._selected.size;
+  }
+  // Administrators only (the inventory is too); a shared clip leaves SceneTrove as well.
+  async _delete(items) {
+    const plan = deletePlan(items);
+    if (!plan.ids.length || !globalThis.confirm(copy(this, plan.prompt, { p0: plan.ids.length }))) return;
+    try {
+      const result = await this._hass.callWS({ type: "media_bridge/network_archive/delete", entry_id: this.entryId, ids: plan.ids });
+      this._selected.clear(); this._selectedItems.clear();
+      await this.reload();
+      if (result.failed.length) {
+        this.$("status").textContent = copy(this, "Non eliminate: {p0} di {p1}.", { p0: result.failed.length, p1: plan.ids.length });
+      }
+    } catch { this.$("status").textContent = copy(this, "Eliminazione non riuscita."); }
   }
   _listsChanged() { this.page = 1; this.reload(); }
-  _bulkListsApplied() { this._selected.clear(); this.renderItems(); }
+  _bulkListsApplied() { this._selected.clear(); this._selectedItems.clear(); this.renderItems(); }
   _setMessage(text) { this.$("status").textContent = text; }
   async open(item, play) {
     const generation = this.generation;
