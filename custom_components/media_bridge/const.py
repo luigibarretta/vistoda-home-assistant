@@ -27,6 +27,9 @@ CONF_EVENT_ARCHIVE = "event_archive"
 CONF_EVENT_RETENTION_DAYS = "event_retention_days"
 CONF_SCENETROVE_URL = "scenetrove_url"
 CONF_SCENETROVE_DEVICE = "scenetrove_device"
+CONF_CLIP_DESTINATION = "clip_destination"
+CONF_SHARED_STORAGE = "shared_storage"
+CLIP_DESTINATIONS = ("vistoda", "shared")
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"

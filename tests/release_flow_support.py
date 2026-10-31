@@ -76,6 +76,12 @@ def framework(monkeypatch):
     )
     module("homeassistant", config_entries=config_entries)
     module("homeassistant.data_entry_flow", FlowResult=dict)
+    selector = module(
+        "homeassistant.helpers.selector",
+        SelectSelector=lambda config: config,
+        SelectSelectorConfig=lambda **config: config,
+    )
+    module("homeassistant.helpers", selector=selector)
     module("homeassistant.helpers.aiohttp_client", async_get_clientsession=lambda hass: None)
     module("homeassistant.helpers.service_info.zeroconf", ZeroconfServiceInfo=object)
     module("homeassistant.helpers.service_info.hassio", HassioServiceInfo=object)

@@ -149,8 +149,8 @@
     "step": {"init": {
       "title": "Collegamento e backup Vistoda",
       "description": "Per i backup, aggiungi prima un archivio di rete con utilizzo Media in Impostazioni → Sistema → Archiviazione di Home Assistant. Inserisci solo il nome, non un indirizzo server o un percorso. Vistoda verifica il mount NFS o SMB esatto prima di scrivere. Ricollega avvia un nuovo accesso mantenendo i dispositivi.",
-      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account", "blink_usb_auto_backup": "Backup automatico ogni ora delle clip USB Blink e delle registrazioni locali HA", "event_archive": "Archivia gli eventi nell'archivio di rete", "event_retention_days": "Conserva gli eventi archiviati (giorni, 0 = per sempre)", "scenetrove_url": "Indirizzo SceneTrove", "scenetrove_device": "Dispositivo SceneTrove"},
-      "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant.", "event_archive": "Salva ogni evento EZVIZ con la sua immagine in events/ sull'archivio di rete indicato sopra, senza limite di numero. Serve che l'archivio sia pronto.", "event_retention_days": "0 li conserva per sempre, altrimenti da 7 a 3650 giorni. Vengono eliminati solo gli eventi archiviati e le loro immagini, mai le clip.", "scenetrove_url": "Facoltativo, per esempio https://scenetrove.example. Gli eventi si aprono allora in SceneTrove al loro istante. Lascia vuoto per disattivare il collegamento.", "scenetrove_device": "La cartella del dispositivo in SceneTrove. Predefinito: l'alias di questa telecamera."}
+      "data": {"backup_storage": "Nome archivio multimediale di rete", "reconnect_account": "Ricollega account", "blink_usb_auto_backup": "Backup automatico ogni ora delle clip USB Blink e delle registrazioni locali HA", "event_archive": "Archivia gli eventi nell'archivio di rete", "event_retention_days": "Conserva gli eventi archiviati (giorni, 0 = per sempre)", "scenetrove_url": "Indirizzo SceneTrove", "scenetrove_device": "Dispositivo SceneTrove", "clip_destination": "Dove vanno clip ed eventi salvati", "shared_storage": "Nome archivio condiviso con SceneTrove"},
+      "data_description": {"backup_storage": "Predefinito: vistoda_archives. Il backup rimane indisponibile finché questo archivio di rete non è montato e scrivibile.", "reconnect_account": "Usa lo stesso account del produttore. La password viene inoltrata una sola volta e non viene salvata in Home Assistant.", "event_archive": "Salva ogni evento EZVIZ con la sua immagine in events/ sull'archivio di rete indicato sopra, senza limite di numero. Serve che l'archivio sia pronto.", "event_retention_days": "0 li conserva per sempre, altrimenti da 7 a 3650 giorni. Vengono eliminati solo gli eventi archiviati e le loro immagini, mai le clip.", "scenetrove_url": "Facoltativo, per esempio https://scenetrove.example. Gli eventi si aprono allora in SceneTrove al loro istante. Lascia vuoto per disattivare il collegamento.", "scenetrove_device": "La cartella del dispositivo in SceneTrove. Predefinito: l'alias di questa telecamera.", "clip_destination": "Condiviso: clip della microSD ed eventi vengono scritti una sola volta nella cartella del dispositivo in SceneTrove e li vedono entrambe le app; eliminarli li rimuove da entrambe. Serve l'indirizzo di SceneTrove.", "shared_storage": "L'archivio di rete di Home Assistant che contiene le cartelle dei dispositivi di SceneTrove, per esempio scenetrove_devices."}
     }},
     "error": {
       "invalid_storage_name": "Usa un nome con lettere, cifre, trattini o underscore; non inserire un percorso.",
@@ -159,7 +159,8 @@
       "network_mount_unavailable": "Archivio di rete temporaneamente indisponibile.",
       "network_mount_low_space": "L’archivio di rete richiede almeno 512 MiB liberi.",
       "invalid_retention": "Usa 0 per conservare gli eventi per sempre, oppure da 7 a 3650 giorni.",
-      "invalid_scenetrove_url": "Usa l'indirizzo principale di SceneTrove, http o https, senza credenziali, percorso o query.", "invalid_scenetrove_device": "Usa da 1 a 64 lettere, cifre, - o _."
+      "invalid_scenetrove_url": "Usa l'indirizzo principale di SceneTrove, http o https, senza credenziali, percorso o query.", "invalid_scenetrove_device": "Usa da 1 a 64 lettere, cifre, - o _.",
+      "shared_needs_scenetrove": "La modalità condivisa richiede l'indirizzo di SceneTrove."
     }
   },
   "issues": {
@@ -189,13 +190,8 @@
     }
   },
   "selector": {
-    "provider": {
-      "options": {
-        "blink": "Blink (adapter locale)",
-        "ezviz": "EZVIZ VTM",
-        "ring": "Ring Intercom"
-      }
-    }
+    "provider": {"options": {"blink": "Blink (adapter locale)", "ezviz": "EZVIZ VTM", "ring": "Ring Intercom"}},
+    "clip_destination": {"options": {"vistoda": "Archivio di rete Vistoda (predefinito)", "shared": "Condiviso con SceneTrove (una sola copia)"}}
   },
   "entity": {
     "binary_sensor": {
