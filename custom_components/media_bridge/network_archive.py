@@ -48,16 +48,7 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
         raise ValueError("backup media type mismatch")
     if target.name != expected_name or target.parent.name != source.get("camera"):
         raise ValueError("backup identity mismatch")
-    integrity = metadata if usb else source
-    size, digest = integrity.get("bytes"), integrity.get("sha256")
-    if type(size) is not int or not 0 < size <= MAX_BYTES or target.stat().st_size != size:
-        raise ValueError("backup size mismatch")
-    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
-        raise ValueError("backup checksum absent")
-    if checksum:
-        with target.open("rb") as stream:
-            if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
-                raise ValueError("backup checksum mismatch")
+    size = verified(target, metadata if usb else source, checksum=checksum)
     media_id = (
         "usb:"
         + ":".join(
@@ -81,6 +72,20 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
     }
 
 
+def verified(target: Path, integrity: dict, *, checksum: bool) -> int:
+    """The copy's size, checked against `bytes`; `sha256` present and, if asked, matching."""
+    size, digest = integrity.get("bytes"), integrity.get("sha256")
+    if type(size) is not int or not 0 < size <= MAX_BYTES or target.stat().st_size != size:
+        raise ValueError("backup size mismatch")
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise ValueError("backup checksum absent")
+    if checksum:
+        with target.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
+                raise ValueError("backup checksum mismatch")
+    return size
+
+
 def recording_span(recording: dict) -> list[int] | None:
     """[start, end] epoch seconds a provider recording covers, when its manifest says."""
     if recording.get("source") == "sd":
@@ -96,10 +101,11 @@ def recording_span(recording: dict) -> list[int] | None:
     return [start, start + int(duration)]
 
 
-def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=None):
+def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=None, extra=()):
+    """One page of verified copies, newest first; `extra` items join before paging."""
     if network_filesystem(mount, writable=False) is None:
         raise ValueError("network mount missing")
-    items, cameras, scanned = [], set(), 0
+    items, cameras, scanned, found = [], set(), 0, list(extra)
     for provider in PROVIDERS:
         root = mount / provider
         if root.is_symlink() or not root.is_dir():
@@ -121,11 +127,13 @@ def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=
                     _, item = checked_file(mount, relative)
                 except (ValueError, OSError, TypeError, AttributeError):
                     continue
-                cameras.add(item["camera"])
-                if (not camera or camera == item["camera"]) and (
-                    members is None or item["media_id"] in members
-                ):
-                    items.append(item)
+                found.append(item)
+    for item in found:
+        cameras.add(item["camera"])
+        if (not camera or camera == item["camera"]) and (
+            members is None or item["media_id"] in members
+        ):
+            items.append(item)
     items.sort(key=lambda item: (item["created_at"], item["id"]), reverse=True)
     pages = max(1, (len(items) + page_size - 1) // page_size)
     page = min(page, pages)

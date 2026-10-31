@@ -3,7 +3,7 @@
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
 import {
-  alarmIsoTime, alarmTimeText, alarmVideo, archivedEventName, deleteEventPrompt, navigationStep, neighbour, sceneTroveLink,
+  alarmIsoTime, alarmTimeText, alarmVideo, archivedEventName, deleteCopyPrompt, deleteEventPrompt, navigationStep, neighbour, sceneTroveLink,
 } from "./ezviz-alarm-model.js";
 import "./provider-recording-player.js";
 
@@ -18,7 +18,7 @@ const STYLE = `
   .meta{padding:12px 16px}.meta time,.muted{color:var(--secondary-text-color);font-size:13px}
   .video{padding:0 16px 16px}.video h3{margin:8px 0;font-size:15px}
   .action{display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--primary-color);color:var(--text-primary-color,#fff)}
-  a.action{min-height:44px;margin-bottom:8px;border-radius:12px;text-decoration:none}.action[hidden]{display:none}
+  a.action{min-height:44px;margin-bottom:8px;border-radius:12px;text-decoration:none}.action[hidden]{display:none}.action+.action{margin-left:8px}
   @media (max-width:600px){dialog{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0}}`;
 
 class VistodaEzvizAlarmDialog extends HTMLElement {
@@ -153,6 +153,18 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     }
   }
 
+  async _deleteCopy(item) {
+    if (!globalThis.confirm(copy(this, deleteCopyPrompt(item)))) return;
+    try {
+      const result = await this._hass.callWS({ type: "media_bridge/network_archive/delete", entry_id: this._entryId, ids: [item.id] });
+      if (result?.deleted !== 1) throw new Error("not deleted");
+      this._archived = null;
+      this._show(this._index);
+    } catch {
+      this.$("status").textContent = copy(this, "Eliminazione non riuscita.");
+    }
+  }
+
   async _download(item) {
     try {
       const signed = await this._hass.callWS({ type: "auth/sign_path", path: item.media_path, expires: 300 });
@@ -185,7 +197,10 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     if (video.kind === "download") {
       const button = this._action("mdi:download", copy(this, "Scarica la copia archiviata"));
       button.addEventListener("click", () => this._download(video.item));
-      target.replaceChildren(button);
+      // The archive inventory is administrator-only, so this copy is deletable.
+      const remove = this._action("mdi:delete-outline", copy(this, "Elimina la copia"));
+      remove.addEventListener("click", () => this._deleteCopy(video.item));
+      target.replaceChildren(button, remove);
       return;
     }
     const button = this._action("mdi:content-save-outline", copy(this, "Salva dalla microSD"));

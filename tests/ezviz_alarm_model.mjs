@@ -13,6 +13,7 @@ import {
   sceneTroveLink,
   archivedEventName,
   deleteEventPrompt,
+  deleteCopyPrompt,
   signedFresh,
   alarmPicturePath,
   alarmRows,
@@ -206,4 +207,9 @@ test("archived events are named as the integration stores them", () => {
 test("deleting a shared event warns that SceneTrove loses it too", () => {
   assert.equal(deleteEventPrompt(true), "L’evento verrà eliminato anche da SceneTrove.");
   assert.equal(deleteEventPrompt(false), "Eliminare questo evento dall’archivio?");
+});
+
+test("deleting a shared copy warns that SceneTrove loses the clip too", () => {
+  assert.equal(deleteCopyPrompt({ shared: true }), "La clip verrà eliminata anche da SceneTrove.");
+  assert.equal(deleteCopyPrompt({}), "Eliminare la copia archiviata?");
 });

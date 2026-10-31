@@ -11,6 +11,8 @@ export const EZVIZ_COPY = {
   "Non mostrare più": "Don't show again", "Elimina evento": "Delete event",
   "L’evento verrà eliminato anche da SceneTrove.": "The event will also be deleted from SceneTrove.",
   "Eliminare questo evento dall’archivio?": "Delete this event from the archive?",
+  "Elimina la copia": "Delete the copy", "Eliminare la copia archiviata?": "Delete the archived copy?",
+  "La clip verrà eliminata anche da SceneTrove.": "The clip will also be deleted from SceneTrove.",
   "Sensibilità di rilevamento": "Detection sensitivity", "Livello batteria": "Battery level",
   "Luce infrarossa": "Infrared light", "Spia di stato": "Status light", "Modalità privacy": "Privacy mode",
   "Modalità riposo": "Sleep mode", "Versione firmware": "Firmware version",

@@ -75,6 +75,11 @@ export function deleteEventPrompt(shared) {
   return shared ? "L’evento verrà eliminato anche da SceneTrove." : "Eliminare questo evento dall’archivio?";
 }
 
+// Confirmation before deleting an archived copy; a shared clip leaves SceneTrove too.
+export function deleteCopyPrompt(item) {
+  return item?.shared ? "La clip verrà eliminata anche da SceneTrove." : "Eliminare la copia archiviata?";
+}
+
 // SceneTrove opened on `device` at the event: `<url>/?device=…&at=<UTC, seconds>`.
 export function sceneTroveLink(url, device, occurredAt) {
   if (!url || !device || !Number.isFinite(occurredAt)) return null;
