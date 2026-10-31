@@ -8,11 +8,11 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 
-from .backup_storage import configured_mount
-from .const import CONF_ALIAS, CONF_EVENT_ARCHIVE
+from .const import CONF_EVENT_ARCHIVE
 from .event_archive import DAY, EVENT_NAME, event_picture, list_events
 from .ezviz_alarm_api import PICTURE_CACHE, resolve
 from .ring_access import can_access_ezviz_entry
+from .shared_archive import event_folders
 
 PROVIDER = "ezviz"
 
@@ -38,9 +38,7 @@ class EventPictureView(HomeAssistantView):
             raise web.HTTPNotFound
         entry, _runtime = resolved
         try:
-            path = await hass.async_add_executor_job(
-                event_picture, configured_mount(entry), PROVIDER, entry.data[CONF_ALIAS], event
-            )
+            path = await hass.async_add_executor_job(event_picture, event_folders(entry), event)
         except (OSError, ValueError) as error:
             raise web.HTTPNotFound from error
         return web.FileResponse(
@@ -83,9 +81,7 @@ async def ws_list_events(hass, connection, msg: dict[str, Any]) -> None:
     try:
         page = await hass.async_add_executor_job(
             list_events,
-            configured_mount(entry),
-            PROVIDER,
-            entry.data[CONF_ALIAS],
+            event_folders(entry),
             msg.get("page", 1),
             msg.get("page_size", 10),
             day,

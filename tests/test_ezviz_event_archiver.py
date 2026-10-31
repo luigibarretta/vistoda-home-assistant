@@ -27,8 +27,10 @@ def archiver_env(monkeypatch, *, options=None, written=None, picture=JPEG):
     module = load(monkeypatch, "ezviz_event_archiver")
     archive = {} if written is None else written
 
-    def write_event(_mount, provider, camera, alarm, jpeg):
-        key = (provider, camera, alarm["alarm_id"])
+    folder = SimpleNamespace(provider="ezviz", camera="front-door")
+
+    def write_event(where, alarm, jpeg):
+        key = (where.provider, where.camera, alarm["alarm_id"])
         if key in archive:
             return False
         archive[key] = jpeg
@@ -38,10 +40,12 @@ def archiver_env(monkeypatch, *, options=None, written=None, picture=JPEG):
     monkeypatch.setattr(
         module,
         "has_event",
-        lambda _mount, provider, camera, _at, alarm_id: (provider, camera, alarm_id) in archive,
+        lambda folders, _at, alarm_id: any(
+            (where.provider, where.camera, alarm_id) in archive for where in folders
+        ),
     )
     monkeypatch.setattr(module, "prune_events", Mock(return_value=2))
-    monkeypatch.setattr(module, "configured_mount", lambda _entry: "/media/vistoda_archives")
+    monkeypatch.setattr(module, "event_folders", lambda _entry: (folder,))
 
     async def executor(function, *args):
         return function(*args)
@@ -162,8 +166,8 @@ async def test_prune_runs_with_retention_only(monkeypatch) -> None:
     env.module.prune_events.assert_not_called()
     env.archiver.entry.options["event_retention_days"] = 30
     await env.archiver.prune()
-    (_mount, provider, camera), kwargs = env.module.prune_events.call_args
-    assert (provider, camera) == ("ezviz", "front-door")
+    (folders,), kwargs = env.module.prune_events.call_args
+    assert [(where.provider, where.camera) for where in folders] == [("ezviz", "front-door")]
     assert kwargs["older_than"] > 1_790_000_000
 
 

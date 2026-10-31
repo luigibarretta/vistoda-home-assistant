@@ -63,7 +63,9 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                                 errors["base"] = error
             if provider == PROVIDER_EZVIZ and not errors:
                 alias = self.config_entry.data[CONF_ALIAS]
-                if (error := _scenetrove_options(user_input, alias, options)) or (error := await self._shared_options(user_input, options)):
+                if (error := _scenetrove_options(user_input, alias, options)) or (
+                    error := await self._shared_options(user_input, options)
+                ):
                     errors["base"] = error
             if not errors:
                 if user_input.get("reconnect_account") and provider in {

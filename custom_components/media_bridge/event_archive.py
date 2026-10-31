@@ -1,8 +1,10 @@
 """Provider-neutral camera event archive on the Vistoda network storage.
 
-Layout: `<mount>/events/<provider>/<camera>/<YYYY>/<MM>/<stamp>-<alarm_id>.json`
-with the picture next to it as `.jpg`. Writes are atomic and idempotent;
-reads never follow a symlink or leave the mount, and skip foreign files.
+Layout: `<folder>/<YYYY>/<MM>/<stamp>-<alarm_id>.json` with the picture next
+to it as `.jpg`, where the folder is `<mount>/events/<provider>/<camera>` or,
+shared with SceneTrove, `<mount>/<device>/_events`. Writes are atomic and
+idempotent; reads never follow a symlink or leave the mount, skip foreign
+files and merge a camera's folders by event name.
 """
 
 from __future__ import annotations
@@ -11,14 +13,16 @@ import json
 import os
 import re
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from . import backup_storage
+from .event_folder import EventFolder, directories, regular_file
+from .event_folder import shared_folder as shared_folder  # re-exported for callers
+from .event_folder import vistoda_folder as vistoda_folder  # re-exported for callers
 
-ROOT = "events"
 SCHEMA_VERSION = 1
 MAX_METADATA_BYTES = 16 * 1024
 MAX_SCANNED = 200_000
@@ -34,15 +38,13 @@ def event_id(occurred_at: int, alarm_id: str) -> str:
     return f"{datetime.fromtimestamp(occurred_at, UTC):%Y%m%dT%H%M%SZ}-{alarm_id}"
 
 
-def write_event(
-    mount: Path, provider: str, camera: str, alarm: dict[str, Any], jpeg: bytes | None
-) -> bool:
+def write_event(where: EventFolder, alarm: dict[str, Any], jpeg: bytes | None) -> bool:
     """Archive one alarm and its picture; False when it is already archived."""
     occurred_at = int(alarm["occurred_at"])
     name = event_id(occurred_at, alarm["alarm_id"])
     moment = datetime.fromtimestamp(occurred_at, UTC)
     folder = backup_storage.safe_directory(
-        mount, ROOT, provider, camera, f"{moment:%Y}", f"{moment:%m}"
+        where.mount, *where.parts, f"{moment:%Y}", f"{moment:%m}"
     )
     target = folder / f"{name}.json"
     if target.exists():
@@ -52,8 +54,8 @@ def write_event(
         _atomic_write(folder / picture, jpeg)
     record = {
         "schema_version": SCHEMA_VERSION,
-        "provider": provider,
-        "camera": camera,
+        "provider": where.provider,
+        "camera": where.camera,
         "alarm_id": alarm["alarm_id"],
         "occurred_at": occurred_at,
         "category": str(alarm.get("category") or "other"),
@@ -66,41 +68,37 @@ def write_event(
     return True
 
 
-def has_event(mount: Path, provider: str, camera: str, occurred_at: int, alarm_id: str) -> bool:
-    """Whether this alarm is already archived (no listing, no directory created)."""
+def has_event(folders: Sequence[EventFolder], occurred_at: int, alarm_id: str) -> bool:
+    """Whether this alarm is archived in any folder (no listing, no directory created)."""
     name = event_id(occurred_at, alarm_id)
-    directory = _camera_directory(mount, provider, camera)
-    if directory is None:
-        return False
     moment = datetime.fromtimestamp(occurred_at, UTC)
-    path = directory
-    for part in (f"{moment:%Y}", f"{moment:%m}", f"{name}.json"):
-        path = path / part
-        if path.is_symlink():
-            return False
-    return path.is_file()
+    return any(
+        regular_file(directory, f"{moment:%Y}", f"{moment:%m}", f"{name}.json") is not None
+        for _folder, directory in directories(folders)
+    )
 
 
 def list_events(
-    mount: Path, provider: str, camera: str, page: int, page_size: int, day: str = ""
+    folders: Sequence[EventFolder], page: int, page_size: int, day: str = ""
 ) -> dict[str, Any]:
     """One page of archived events, newest first; `day` is a UTC `YYYY-MM-DD`.
 
-    Names sort by time, so only the records of the requested page are read.
+    Names sort by time, so only the records of the requested page are read; an
+    event in several folders is listed once, from the first folder.
     """
     if day and not DAY.fullmatch(day):
         raise ValueError("invalid day")
     prefix = day.replace("-", "")
-    paths = sorted(
-        (path for path in _event_paths(mount, provider, camera) if path.stem.startswith(prefix)),
-        key=lambda path: path.stem,
-        reverse=True,
-    )
+    found = {}
+    for folder, path in _event_paths(folders):
+        if path.stem.startswith(prefix):
+            found.setdefault(path.stem, (folder, path))
+    paths = [found[name] for name in sorted(found, reverse=True)]
     pages = max(1, -(-len(paths) // page_size))
     page = min(max(page, 1), pages)
     shown = paths[(page - 1) * page_size : page * page_size]
     return {
-        "items": [item for path in shown if (item := _read(path, provider, camera)) is not None],
+        "items": [item for folder, path in shown if (item := _read(path, folder)) is not None],
         "pagination": {
             "page": page,
             "page_size": page_size,
@@ -112,27 +110,22 @@ def list_events(
     }
 
 
-def event_picture(mount: Path, provider: str, camera: str, event: str) -> Path:
-    """Checked path of an archived picture."""
+def event_picture(folders: Sequence[EventFolder], event: str) -> Path:
+    """Checked path of an archived picture, from the first folder that has it."""
     match = EVENT_NAME.fullmatch(event)
-    directory = _camera_directory(mount, provider, camera)
-    if match is None or directory is None:
+    if match is None:
         raise ValueError("unknown event picture")
-    path = directory
-    for part in (*match.groups(), f"{event}.jpg"):
-        path = path / part
-        if path.is_symlink():
-            raise ValueError("unsafe event picture")
-    if not path.is_file():
-        raise ValueError("unknown event picture")
-    return path
+    for _folder, directory in directories(folders):
+        if (path := regular_file(directory, *match.groups(), f"{event}.jpg")) is not None:
+            return path
+    raise ValueError("unknown event picture")
 
 
-def prune_events(mount: Path, provider: str, camera: str, older_than: int) -> int:
+def prune_events(folders: Sequence[EventFolder], older_than: int) -> int:
     """Delete archived events (JSON and picture) older than `older_than`, by name."""
     cutoff = f"{datetime.fromtimestamp(older_than, UTC):%Y%m%dT%H%M%SZ}"
     removed = 0
-    for path in _event_paths(mount, provider, camera):
+    for _folder, path in _event_paths(folders):
         if path.stem[:16] < cutoff:
             path.with_suffix(".jpg").unlink(missing_ok=True)
             path.unlink(missing_ok=True)
@@ -156,19 +149,6 @@ def _atomic_write(path: Path, data: bytes) -> None:
         raise
 
 
-def _camera_directory(mount: Path, provider: str, camera: str) -> Path | None:
-    if backup_storage.network_filesystem(mount, writable=False) is None:
-        raise ValueError("network mount missing")
-    current = mount
-    for part in (ROOT, provider, camera):
-        if not backup_storage.SAFE_PART.fullmatch(part):
-            raise ValueError("invalid archive path")
-        current = current / part
-        if current.is_symlink() or not current.is_dir():
-            return None
-    return current
-
-
 def _event_files(directory: Path) -> Iterator[Path]:
     scanned = 0
     for year in directory.iterdir():
@@ -185,12 +165,15 @@ def _event_files(directory: Path) -> Iterator[Path]:
                     yield path
 
 
-def _event_paths(mount: Path, provider: str, camera: str) -> list[Path]:
-    directory = _camera_directory(mount, provider, camera)
-    return [] if directory is None else list(_event_files(directory))
+def _event_paths(folders: Sequence[EventFolder]) -> list[tuple[EventFolder, Path]]:
+    return [
+        (folder, path)
+        for folder, directory in directories(folders)
+        for path in _event_files(directory)
+    ]
 
 
-def _read(path: Path, provider: str, camera: str) -> dict[str, Any] | None:
+def _read(path: Path, folder: EventFolder) -> dict[str, Any] | None:
     try:
         if path.is_symlink() or path.stat().st_size > MAX_METADATA_BYTES:
             return None
@@ -200,8 +183,8 @@ def _read(path: Path, provider: str, camera: str) -> dict[str, Any] | None:
         return None
     if (
         record.get("schema_version") != SCHEMA_VERSION
-        or record.get("provider") != provider
-        or record.get("camera") != camera
+        or record.get("provider") != folder.provider
+        or record.get("camera") != folder.camera
         or type(record["occurred_at"]) is not int
         or identity != path.stem
     ):

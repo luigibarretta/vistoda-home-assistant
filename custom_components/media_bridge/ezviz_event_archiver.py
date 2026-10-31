@@ -19,7 +19,6 @@ from typing import Any
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 
-from .backup_storage import configured_mount
 from .const import (
     CONF_EVENT_ARCHIVE,
     CONF_EVENT_RETENTION_DAYS,
@@ -28,6 +27,7 @@ from .const import (
 )
 from .errors import BridgeError
 from .event_archive import SAFE_ID, has_event, prune_events, write_event
+from .shared_archive import event_folders
 
 _LOGGER = logging.getLogger(__name__)
 PROVIDER = "ezviz"
@@ -126,9 +126,7 @@ class EzvizEventArchiver:
         older_than = int(time.time()) - days * 86_400
         try:
             removed = await self.hass.async_add_executor_job(
-                lambda: prune_events(
-                    configured_mount(self.entry), PROVIDER, self.alias, older_than=older_than
-                )
+                lambda: prune_events(event_folders(self.entry), older_than=older_than)
             )
         except (OSError, ValueError):
             self._report_unavailable()
@@ -146,9 +144,7 @@ class EzvizEventArchiver:
         try:
             return await self.hass.async_add_executor_job(
                 has_event,
-                configured_mount(self.entry),
-                PROVIDER,
-                self.alias,
+                event_folders(self.entry),
                 alarm.occurred_at,
                 alarm.alarm_id,
             )
@@ -160,7 +156,7 @@ class EzvizEventArchiver:
         try:
             async with self._writing:
                 written = await self.hass.async_add_executor_job(
-                    write_event, configured_mount(self.entry), PROVIDER, self.alias, alarm, jpeg
+                    write_event, event_folders(self.entry)[0], alarm, jpeg
                 )
         except (OSError, ValueError):
             self._report_unavailable()

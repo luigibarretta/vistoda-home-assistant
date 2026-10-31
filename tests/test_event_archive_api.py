@@ -19,15 +19,16 @@ def events_env(monkeypatch, tmp_path, *, enabled=True):
     module = load(monkeypatch, "event_archive_api")
     storage = sys.modules["custom_components.media_bridge.backup_storage"]
     monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs")
-    monkeypatch.setattr(module, "configured_mount", lambda _entry: tmp_path)
     archive = sys.modules["custom_components.media_bridge.event_archive"]
+    door = archive.vistoda_folder(tmp_path, "ezviz", "front-door")
+    monkeypatch.setattr(module, "event_folders", lambda _entry: (door,))
     for alarm_id, occurred_at, jpeg in (
         ("evt-1", 1_793_214_000, JPEG),
         ("evt-2", 1_793_217_600, None),
     ):
         alarm = {"alarm_id": alarm_id, "occurred_at": occurred_at, "category": "person",
                  "alarm_type": 10000, "title": "Persona"}  # fmt: skip
-        archive.write_event(tmp_path, "ezviz", "front-door", alarm, jpeg)
+        archive.write_event(door, alarm, jpeg)
     entry = env.hass.config_entries.async_get_entry("01J9ENTRY")
     entry.options = {"event_archive": enabled}
 
