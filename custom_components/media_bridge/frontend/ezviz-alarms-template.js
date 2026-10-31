@@ -35,8 +35,8 @@ export function alarmsTemplate(host, { view, status, busy, entryId, hasRows, loc
       ${status ? `<p class="status" role="status">${html(status)}</p>` : ""}
       <div ${hasRows ? "" : "hidden"}>${PAGE_SIZE_TEMPLATE.replace("<vistoda-page-size ", '<vistoda-page-size unit="events" ')}</div>
       <ul aria-label="${html(copy(host, "Eventi"))}">${view.rows.map((row, index) => `<li role="button" tabindex="0" data-index="${index}">
-        <a class="thumb" data-id="${html(row.id)}" target="_blank" rel="noopener" hidden>
-          <img alt="${html(copy(host, "Immagine evento: {p0}", { p0: copy(host, row.label) }))}" loading="lazy"></a>
+        <span class="thumb" data-id="${html(row.id)}" hidden>
+          <img alt="${html(copy(host, "Immagine evento: {p0}", { p0: copy(host, row.label) }))}" loading="lazy"></span>
         <span class="icon" aria-hidden="true"><ha-icon icon="${html(row.icon)}"></ha-icon></span>
         <span class="text"><strong>${html(copy(host, row.label))}</strong>
           ${row.title ? `<span class="title">${html(row.title)}</span>` : ""}</span>

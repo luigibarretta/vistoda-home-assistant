@@ -101,15 +101,33 @@ export function recordingSpan(item) {
   return Number.isFinite(start) && Number.isFinite(length) && length > 0 ? [start, start + length] : null;
 }
 
-// The video of an event: a ready recording covering it, else the microSD window to save.
-export function alarmVideo(recordings, occurredAt) {
+// The video of an event: a ready recording covering it, else the microSD window
+// to save, which never ends after `now` (epoch seconds); "wait" when the event is
+// so recent that less than 10 s of it exist yet.
+export function alarmVideo(recordings, occurredAt, now = Infinity) {
   const recording = (Array.isArray(recordings) ? recordings : []).find((item) => {
     const span = recordingSpan(item);
     return span !== null && span[0] <= occurredAt && occurredAt <= span[1];
   });
-  return recording
-    ? { kind: "play", recording }
-    : { kind: "save", start: occurredAt - SD_WINDOW.before, end: occurredAt + SD_WINDOW.after };
+  if (recording) return { kind: "play", recording };
+  const start = occurredAt - SD_WINDOW.before;
+  const end = Math.min(occurredAt + SD_WINDOW.after, now);
+  return end - start >= 10 ? { kind: "save", start, end } : { kind: "wait" };
+}
+
+// Signed media paths expire after 900 s; re-sign after 800 s.
+const SIGNED_FOR_MS = 800_000;
+
+export function signedFresh(entry, now = Date.now()) {
+  return Boolean(entry?.url) && now - entry.at < SIGNED_FOR_MS;
+}
+
+// The next event index within the page, or the page step needed to reach it.
+export function neighbour(index, length, step) {
+  const next = index + step;
+  if (next < 0) return { page: -1 };
+  if (next >= length) return { page: 1 };
+  return { index: next };
 }
 
 // Elements whose own arrow keys must not switch events (video seeking, inputs).

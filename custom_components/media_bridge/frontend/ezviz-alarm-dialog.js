@@ -2,7 +2,7 @@
 // previous/next event, and the video of that moment — a ready recording that
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
-import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep } from "./ezviz-alarm-model.js";
+import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep, neighbour } from "./ezviz-alarm-model.js";
 import "./provider-recording-player.js";
 
 const STYLE = `
@@ -31,19 +31,20 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
         <vistoda-provider-recording-player id="player" hidden></vistoda-provider-recording-player></section></dialog>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("close").addEventListener("click", () => this.$("dialog").close());
-    this.$("previous").addEventListener("click", () => this._show(this._index - 1));
-    this.$("next").addEventListener("click", () => this._show(this._index + 1));
+    this.$("previous").addEventListener("click", () => this._move(-1));
+    this.$("next").addEventListener("click", () => this._move(1));
     this.$("dialog").addEventListener("close", () => this.$("player").close());
     this.$("dialog").addEventListener("keydown", (event) => {
       const step = navigationStep(event.key, event.composedPath());
-      if (step) this._show(this._index + step);
+      if (step) this._move(step);
     });
   }
 
-  // rows: card rows (newest first); index: the tapped one.
-  open(hass, { entryId, alias, rows, index }) {
-    Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _recordings: null });
-    for (const [id, label] of [["previous", "Evento precedente"], ["next", "Evento successivo"], ["close", "Chiudi"]]) {
+  // rows: card rows (newest first); index: the tapped one; pager: the card's
+  // page loader, so the modal can step past the first or last row of a page.
+  open(hass, { entryId, alias, rows, index, pager = null }) {
+    Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _pager: pager, _recordings: null });
+    for (const [id, label] of [["previous", "Evento più recente"], ["next", "Evento più vecchio"], ["close", "Chiudi"]]) {
       this.$(id).setAttribute("aria-label", copy(this, label));
     }
     this.$("video-title").textContent = copy(this, "Video");
@@ -55,13 +56,28 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this._show(index);
   }
 
+  async _move(step) {
+    const target = neighbour(this._index, this._rows.length, step);
+    if (target.index !== undefined) return this._show(target.index);
+    if (!this._pager?.has(target.page)) return;
+    const rows = await this._pager.load(target.page);
+    if (!rows?.length) return;
+    this._rows = rows;
+    this._show(step > 0 ? 0 : rows.length - 1);
+  }
+
+  _edge(step) {
+    const target = neighbour(this._index, this._rows.length, step);
+    return target.index === undefined && !this._pager?.has(target.page);
+  }
+
   async _show(index) {
     if (!this._rows?.[index]) return;
     const row = this._rows[index];
     const shown = (this._index = index);
     const locale = this._hass?.locale?.language || "it-IT";
-    this.$("previous").disabled = index <= 0;
-    this.$("next").disabled = index >= this._rows.length - 1;
+    this.$("previous").disabled = this._edge(-1);
+    this.$("next").disabled = this._edge(1);
     this.$("title").textContent = copy(this, row.label);
     this.$("time").dateTime = alarmIsoTime(row.occurredAt);
     this.$("time").textContent = alarmTimeText(row.occurredAt, locale);
@@ -71,7 +87,7 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("video").textContent = copy(this, "Caricamento…");
     this.$("picture").hidden = true;
     if (row.picture) this._picture(row, shown);
-    const video = alarmVideo(await this._loadRecordings(), row.occurredAt);
+    const video = alarmVideo(await this._loadRecordings(), row.occurredAt, Date.now() / 1000);
     if (shown === this._index) this._renderVideo(video);
   }
 
@@ -112,6 +128,14 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     const hint = Object.assign(document.createElement("p"), {
       className: "muted", textContent: copy(this, "Sveglia la telecamera e consuma batteria."),
     });
+    if (video.kind === "wait") {
+      target.textContent = copy(this, "Evento appena avvenuto: riprova tra qualche secondo.");
+      return;
+    }
+    if (!this._hass?.user?.is_admin) {
+      target.textContent = copy(this, "Solo un amministratore può salvare dalla microSD.");
+      return;
+    }
     button.addEventListener("click", () => this._save(video, button));
     target.replaceChildren(button, hint);
   }
@@ -128,6 +152,7 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
       this.$("status").textContent = copy(this, {
         live_active: "Chiudi il live per salvare la clip.",
         conflict: "Un’altra registrazione di questa telecamera è in corso.",
+        unauthorized: "Solo un amministratore può salvare dalla microSD.",
       }[error?.code] || "Impossibile salvare la clip.");
       button.disabled = false;
     }

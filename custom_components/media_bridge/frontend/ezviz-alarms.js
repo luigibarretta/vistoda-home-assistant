@@ -1,7 +1,7 @@
 import { copy, localizeCopy } from "./panel-copy.js";
 import { panelLanguage } from "./panel-localize.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
-import { alarmPage, alarmRows, MAX_LOADED_ALARMS } from "./ezviz-alarm-model.js";
+import { alarmPage, alarmRows, MAX_LOADED_ALARMS, signedFresh } from "./ezviz-alarm-model.js";
 import { alarmsTemplate } from "./ezviz-alarms-template.js";
 import "./ezviz-alarm-dialog.js";
 
@@ -15,7 +15,7 @@ class VistodaEzvizAlarms extends HTMLElement {
     // The modal outlives re-renders of the list (a new alarm while it is open).
     this.shadowRoot.innerHTML = '<div id="content"></div><vistoda-ezviz-alarm-dialog id="dialog"></vistoda-ezviz-alarm-dialog>';
     this.addEventListener("alarm-open", ({ detail }) => this.shadowRoot.getElementById("dialog").open(this._hass, {
-      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index,
+      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index, pager: this._pager(),
     }));
     this._entryId = "";
     this._alias = "";
@@ -160,25 +160,39 @@ class VistodaEzvizAlarms extends HTMLElement {
 
   async _signPictures(request) {
     const visible = this._view().rows;
-    await Promise.all(visible.filter((row) => row.picture && !this._pictures.has(row.id)).map(async (row) => {
+    const stale = visible.filter((row) => row.picture && !signedFresh(this._pictures.get(row.id)));
+    await Promise.all(stale.map(async (row) => {
       try {
         const signed = await this._hass.callWS({ type: "auth/sign_path", path: row.picture, expires: 900 });
         if (request !== this._request || typeof signed?.path !== "string") return;
-        this._pictures.set(row.id, this._hass.hassUrl ? this._hass.hassUrl(signed.path) : signed.path);
+        const url = this._hass.hassUrl ? this._hass.hassUrl(signed.path) : signed.path;
+        this._pictures.set(row.id, { url, at: Date.now() });
         this._showPicture(row.id);
       } catch { /* The row keeps its category icon. */ }
     }));
   }
 
   _showPicture(id) {
-    const url = this._pictures.get(id);
-    for (const link of this.shadowRoot.querySelectorAll("a.thumb")) {
-      if (link.dataset.id !== id || !url) continue;
-      link.href = url;
-      link.hidden = false;
-      link.querySelector("img").src = url;
-      link.nextElementSibling.hidden = true;
+    const url = this._pictures.get(id)?.url;
+    for (const thumb of this.shadowRoot.querySelectorAll("span.thumb")) {
+      if (thumb.dataset.id !== id || !url) continue;
+      thumb.hidden = false;
+      thumb.querySelector("img").src = url;
+      thumb.nextElementSibling.hidden = true;
     }
+  }
+
+  // Lets the modal step past the first or last event of the shown page.
+  _pager() {
+    return {
+      has: (step) => (step < 0 ? this._view().hasPrevious : this._view().hasNext),
+      load: async (step) => {
+        const before = this._view().page;
+        await this._go(before + step);
+        const view = this._view();
+        return view.page === before ? null : view.rows;
+      },
+    };
   }
 
   _view() {
@@ -189,15 +203,14 @@ class VistodaEzvizAlarms extends HTMLElement {
       : alarmPage(this._rows, this._page, this._pageSize, this._older === null);
   }
 
-  // Rows open the event modal; the thumbnail link keeps opening the picture.
+  // Rows open the event modal (click, Enter or Space).
   _bindRows(view) {
     for (const row of this.shadowRoot.querySelectorAll("li[role=button]")) {
       const open = (event) => {
-        if (event.target.closest("a.thumb")) return;
         if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         this.dispatchEvent(new CustomEvent("alarm-open", {
-          detail: { rows: view.rows, index: Number(row.dataset.index) }, bubbles: true, composed: true,
+          detail: { rows: view.rows, index: Number(row.dataset.index) },
         }));
       };
       row.addEventListener("click", open);

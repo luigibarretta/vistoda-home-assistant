@@ -9,6 +9,8 @@ import {
   alarmPage,
   alarmVideo,
   navigationStep,
+  neighbour,
+  signedFresh,
   alarmPicturePath,
   alarmRows,
   alarmTimeText,
@@ -154,4 +156,25 @@ test("arrow keys move between events unless a control owns them", () => {
   for (const tagName of ["VIDEO", "INPUT", "VISTODA-PROVIDER-RECORDING-PLAYER"]) {
     assert.equal(navigationStep("ArrowRight", [{ tagName }, { tagName: "DIALOG" }]), 0, tagName);
   }
+});
+
+test("signed thumbnails are refreshed before they expire", () => {
+  const now = 1_000_000_000;
+  assert.equal(signedFresh(undefined, now), false);
+  assert.equal(signedFresh({ url: "/a", at: now - 799_000 }, now), true);
+  assert.equal(signedFresh({ url: "/a", at: now - 801_000 }, now), false);
+});
+
+test("the microSD window never ends in the future", () => {
+  assert.deepEqual(alarmVideo([], T, T + 3600), { kind: "save", start: T - 10, end: T + 50 });
+  assert.deepEqual(alarmVideo([], T, T + 30), { kind: "save", start: T - 10, end: T + 30 });
+  assert.deepEqual(alarmVideo([], T, T - 5), { kind: "wait" });
+  assert.equal(alarmVideo([live], T, T + 30).kind, "play");
+});
+
+test("neighbour events cross page edges", () => {
+  assert.deepEqual(neighbour(3, 10, 1), { index: 4 });
+  assert.deepEqual(neighbour(9, 10, 1), { page: 1 });
+  assert.deepEqual(neighbour(0, 10, -1), { page: -1 });
+  assert.deepEqual(neighbour(0, 10, 0), { index: 0 });
 });
