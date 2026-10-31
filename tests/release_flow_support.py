@@ -41,8 +41,15 @@ def framework(monkeypatch):
 
         _get_reconfigure_entry = _get_reauth_entry
 
-    def marker(value, **kwargs):
-        return value
+    class Marker(str):
+        """A schema key that keeps its options (default, description) like voluptuous."""
+
+        def __new__(cls, value, **kwargs):
+            key = super().__new__(cls, value)
+            key.options = kwargs
+            return key
+
+    marker = Marker
 
     def identity(value):
         return value

@@ -94,7 +94,9 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("time").textContent = alarmTimeText(row.occurredAt, locale);
     this.$("subtitle").textContent = row.title;
     const link = sceneTroveLink(this._sceneTrove?.url, this._sceneTrove?.device, row.occurredAt);
-    Object.assign(this.$("scenetrove"), { href: link || "", hidden: !link });
+    if (link) this.$("scenetrove").href = link;
+    else this.$("scenetrove").removeAttribute("href");
+    this.$("scenetrove").hidden = !link;
     this.$("player").close();
     this.$("status").textContent = "";
     this.$("video").textContent = copy(this, "Caricamento…");

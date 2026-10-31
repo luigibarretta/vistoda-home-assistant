@@ -1,5 +1,5 @@
-// Presents SceneTrove on the EZVIZ details page while the entry has no
-// SceneTrove address; each browser can dismiss it for good.
+// Presents SceneTrove to administrators on the EZVIZ details page while the
+// entry has no SceneTrove address; each browser can dismiss it for good.
 import { localizeCopy } from "./panel-copy.js";
 
 const DISMISSED = "vistoda.scenetrove.card.dismissed";
@@ -32,7 +32,8 @@ class VistodaSceneTroveCard extends HTMLElement {
   configure(hass, entry) {
     this._hass = hass;
     localizeCopy(this.shadowRoot, this);
-    this.hidden = !entry || Boolean(entry.scenetrove_url) || storage()?.getItem(DISMISSED) === "1";
+    this.hidden = !hass?.user?.is_admin || !entry || Boolean(entry.scenetrove_url)
+      || storage()?.getItem(DISMISSED) === "1";
   }
 }
 

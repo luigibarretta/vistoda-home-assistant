@@ -97,15 +97,14 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                     default=current.get(CONF_EVENT_RETENTION_DAYS, 0),
                 )
             ] = vol.All(vol.Coerce(int), vol.Range(min=0, max=3650))
-            schema[
-                vol.Optional(CONF_SCENETROVE_URL, default=current.get(CONF_SCENETROVE_URL, ""))
-            ] = str
-            schema[
-                vol.Optional(
-                    CONF_SCENETROVE_DEVICE,
-                    default=current.get(CONF_SCENETROVE_DEVICE, self.config_entry.data[CONF_ALIAS]),
-                )
-            ] = str
+            # Suggested, not defaulted: Home Assistant drops a cleared optional
+            # field, and a default would silently restore the old value.
+            alias = self.config_entry.data[CONF_ALIAS]
+            for key, suggested in (
+                (CONF_SCENETROVE_URL, current.get(CONF_SCENETROVE_URL, "")),
+                (CONF_SCENETROVE_DEVICE, current.get(CONF_SCENETROVE_DEVICE, alias)),
+            ):
+                schema[vol.Optional(key, description={"suggested_value": suggested})] = str
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)
 
 
@@ -130,10 +129,13 @@ def _scenetrove_options(user_input: dict, alias: str, options: dict) -> str | No
             url = normalize_url(url)
         except ValueError:
             return "invalid_scenetrove_url"
-    # SceneTrove folders follow the alias rules, so the alias is a valid default.
+    # SceneTrove folders follow the alias rules, so the alias is a valid default;
+    # without a link the folder is unused and never blocks the other options.
     device = user_input.get(CONF_SCENETROVE_DEVICE, "").strip() or alias
     if not SAFE_ALIAS.fullmatch(device):
-        return "invalid_scenetrove_device"
+        if url:
+            return "invalid_scenetrove_device"
+        device = alias
     options[CONF_SCENETROVE_URL] = url
     options[CONF_SCENETROVE_DEVICE] = device
     return None
