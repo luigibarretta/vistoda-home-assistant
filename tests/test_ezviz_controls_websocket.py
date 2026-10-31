@@ -73,7 +73,7 @@ def env(monkeypatch, controls=CONTROLS, native=None):
         ),
     )
     connection = SimpleNamespace(
-        user=SimpleNamespace(is_admin=True), send_result=Mock(), send_error=Mock()
+        user=SimpleNamespace(is_active=True, is_admin=True), send_result=Mock(), send_error=Mock()
     )
     return module, hass, connection, runtime
 

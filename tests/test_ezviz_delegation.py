@@ -58,7 +58,7 @@ def env(monkeypatch, *, delegate: bool, native: bool, app: bool):
     hass.native = NativeEzviz(entries=None if native else [])
     hass.native.install(hass)
     connection = SimpleNamespace(
-        user=SimpleNamespace(is_admin=True),
+        user=SimpleNamespace(is_active=True, is_admin=True),
         send_result=Mock(),
         send_error=Mock(),
         context=lambda _msg: None,

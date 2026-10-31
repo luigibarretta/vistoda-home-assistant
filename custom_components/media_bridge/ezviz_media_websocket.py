@@ -14,6 +14,7 @@ from .const import CONF_ALIAS
 from .errors import BridgeError
 from .ezviz_alarm_api import resolve
 from .ezviz_binding import async_verify_native
+from .ring_access import can_access_ezviz_entry
 
 DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 # The panel offers the last seven days; one extra day on each side absorbs a
@@ -44,6 +45,9 @@ def requested_day(value, today: date) -> date | None:
 @websocket_api.async_response
 async def ws_list_sd_records(hass, connection, msg: dict[str, Any]) -> None:
     """Return one day's recorded ranges; there is no playback here."""
+    if not can_access_ezviz_entry(hass, connection.user, msg["entry_id"]):
+        connection.send_error(msg["id"], "unauthorized", "EZVIZ access is not permitted")
+        return
     day = requested_day(msg["date"], dt_util.now().date())
     if day is None:
         connection.send_error(msg["id"], "invalid_format", "Choose a day in the last week")

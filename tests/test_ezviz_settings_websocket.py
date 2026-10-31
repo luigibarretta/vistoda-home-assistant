@@ -37,7 +37,7 @@ def env(monkeypatch, native, admin=True):
     )
     native.install(hass)
     connection = SimpleNamespace(
-        user=SimpleNamespace(is_admin=admin),
+        user=SimpleNamespace(is_active=True, is_admin=admin),
         send_result=Mock(),
         send_error=Mock(),
         context=lambda _msg: "user-context",

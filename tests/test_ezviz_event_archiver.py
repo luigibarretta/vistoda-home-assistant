@@ -108,9 +108,10 @@ async def test_backfill_reruns_on_reconnect_and_when_enabled(monkeypatch) -> Non
     env.archiver._on_alarm(None)
     assert len(env.tasks) == 1, "a connection change schedules a backfill"
     env.tasks.pop().close()
-    env.client.ezviz_alarms.side_effect = [batch([1])]
     await env.archiver._options_updated(env.hass, env.archiver.entry)
-    assert env.client.ezviz_alarms.await_count == 1
+    assert len(env.tasks) == 1, "an options change schedules an entry-bound backfill"
+    env.tasks.pop().close()
+    env.client.ezviz_alarms.assert_not_awaited()
 
 
 async def test_writes_never_overlap(monkeypatch) -> None:

@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from .const import CONF_PROVIDER, PROVIDER_BLINK, PROVIDER_EZVIZ
 from .provider_recording_lists import async_get_provider_recording_lists
 from .recording_list_model import RecordingListError
+from .ring_access import can_access_ezviz_entry
 
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
 LIST_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -32,9 +33,23 @@ def async_register(hass: HomeAssistant) -> None:
         websocket_api.async_register_command(hass, command)
 
 
-def _scope(hass: HomeAssistant, entry_id: str, provider: str) -> str | None:
+def _scope(hass: HomeAssistant, connection, msg: dict[str, Any], action: str) -> str | None:
+    """The store scope of a permitted request; None after sending the error.
+
+    EZVIZ follows the camera entity's permissions (read lists, control changes);
+    Blink has no per-camera permission, so only administrators change lists.
+    """
+    entry_id, provider = msg["entry_id"], msg["provider"]
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None or entry.data.get(CONF_PROVIDER) != provider:
+        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
+        return None
+    if provider == PROVIDER_EZVIZ:
+        permitted = can_access_ezviz_entry(hass, connection.user, entry_id, action)
+    else:
+        permitted = action == "read" or connection.user.is_admin
+    if not permitted:
+        connection.send_error(msg["id"], "unauthorized", "Recording lists are not permitted")
         return None
     return f"{provider}:{entry_id}"
 
@@ -63,9 +78,8 @@ def _schema(action: str, extra: dict | None = None) -> dict:
 @websocket_api.websocket_command(_schema("list"))
 @websocket_api.async_response
 async def ws_list(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "read")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     lists = await async_get_provider_recording_lists(hass).async_snapshot(scope)
     connection.send_result(msg["id"], {"lists": lists})
@@ -76,9 +90,8 @@ async def ws_list(hass, connection, msg: dict[str, Any]) -> None:
 )
 @websocket_api.async_response
 async def ws_create(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "control")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     try:
         lists, list_id = await async_get_provider_recording_lists(hass).async_create(
@@ -101,9 +114,8 @@ async def ws_create(hass, connection, msg: dict[str, Any]) -> None:
 )
 @websocket_api.async_response
 async def ws_update(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "control")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     try:
         lists = await async_get_provider_recording_lists(hass).async_update(
@@ -118,9 +130,8 @@ async def ws_update(hass, connection, msg: dict[str, Any]) -> None:
 @websocket_api.websocket_command(_schema("delete", {vol.Required("list_id"): LIST_ID}))
 @websocket_api.async_response
 async def ws_delete(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "control")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     lists, deleted = await async_get_provider_recording_lists(hass).async_delete(
         scope, msg["list_id"]
@@ -140,9 +151,8 @@ async def ws_delete(hass, connection, msg: dict[str, Any]) -> None:
 )
 @websocket_api.async_response
 async def ws_set_membership(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "control")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     try:
         lists = await async_get_provider_recording_lists(hass).async_set_membership(
@@ -165,9 +175,8 @@ async def ws_set_membership(hass, connection, msg: dict[str, Any]) -> None:
 )
 @websocket_api.async_response
 async def ws_add_memberships(hass, connection, msg: dict[str, Any]) -> None:
-    scope = _scope(hass, msg["entry_id"], msg["provider"])
+    scope = _scope(hass, connection, msg, "control")
     if scope is None:
-        connection.send_error(msg["id"], "not_found", "Provider entry is not loaded")
         return
     try:
         lists, added = await async_get_provider_recording_lists(hass).async_add_memberships(

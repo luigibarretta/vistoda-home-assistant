@@ -19,6 +19,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .const import CONF_PROVIDER, PROVIDER_EZVIZ
 from .ezviz_controls_websocket import async_app_info, async_app_set, ws_ptz
 from .ezviz_core import UNAVAILABLE, native_camera
+from .ring_access import can_access_ezviz_entry
 
 _LOGGER = logging.getLogger(__name__)
 ENTRY_ID = vol.All(str, vol.Length(min=1, max=64))
@@ -95,6 +96,9 @@ def async_register(hass: HomeAssistant) -> None:
 )
 @websocket_api.async_response
 async def ws_settings_info(hass, connection, msg: dict[str, Any]) -> None:
+    if not can_access_ezviz_entry(hass, connection.user, msg["entry_id"]):
+        connection.send_error(msg["id"], "unauthorized", "EZVIZ access is not permitted")
+        return
     if await async_app_info(hass, connection, msg):
         return
     state = _resolve(hass, msg["entry_id"])

@@ -133,6 +133,9 @@ async def async_app_set(hass, connection, msg: dict[str, Any]) -> bool:
 @websocket_api.async_response
 async def ws_ptz(hass, connection, msg: dict[str, Any]) -> None:
     """One PTZ step through the app; delegated entries use the native buttons instead."""
+    if not connection.user.is_admin:
+        connection.send_error(msg["id"], "unauthorized", "Administrator access required")
+        return
     source = await control_source(hass, msg["entry_id"])
     if source is APP_OUTDATED or source is APP_FAILED:
         connection.send_error(msg["id"], *ERRORS[source])

@@ -76,7 +76,8 @@ class EzvizEventArchiver:
         )
 
     async def _options_updated(self, _hass, _entry) -> None:
-        await self.backfill()
+        # Update listeners run outside the entry's task tracking: hand over.
+        self._schedule_backfill()
 
     async def archive(self, data: dict[str, Any]) -> None:
         """Archive one published alarm with its picture when it has one."""

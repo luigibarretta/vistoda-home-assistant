@@ -129,7 +129,8 @@ def ws_env(monkeypatch, client):
             async_get_entry=lambda key: entry if key == entry.entry_id else None
         ),
     )
-    return module, hass, SimpleNamespace(send_result=Mock(), send_error=Mock())
+    admin = SimpleNamespace(is_active=True, is_admin=True)
+    return module, hass, SimpleNamespace(user=admin, send_result=Mock(), send_error=Mock())
 
 
 def test_requested_day_is_an_iso_day_in_the_bounded_window(monkeypatch) -> None:
