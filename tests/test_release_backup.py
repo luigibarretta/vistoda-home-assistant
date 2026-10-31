@@ -169,3 +169,13 @@ async def test_invalid_stream_never_commits_a_backup(monkeypatch, tmp_path, faul
         await backup._backup(env.hass, "ezviz", manifest, upstream, tmp_path)
     assert not [path for path in tmp_path.rglob("*") if path.is_file()]
     upstream.release.assert_called_once()
+
+
+def test_readiness_measures_the_folder_it_writes_to(monkeypatch, tmp_path):
+    # SceneTrove's share root is a tiny dataset; its device folders hold the space.
+    folder = tmp_path / "spioncino"
+    folder.mkdir()
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs")
+    sizes = {tmp_path: 16 * 1024 * 1024, folder: 40 * 1024**3}
+    monkeypatch.setattr(storage.shutil, "disk_usage", lambda path: SimpleNamespace(free=sizes[path]))
+    assert storage.storage_readiness(tmp_path, folder)["reason"] == "ready"

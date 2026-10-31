@@ -96,7 +96,7 @@ def storage_readiness(mount: Path, folder: Path | None = None) -> dict:
     if not inside or not os.access(folder or mount, os.W_OK | os.X_OK):
         return {"ready": False, "reason": "network_mount_not_writable"}
     try:
-        free = shutil.disk_usage(mount).free
+        free = shutil.disk_usage(folder or mount).free
     except OSError:
         return {"ready": False, "reason": "network_mount_unavailable"}
     return {

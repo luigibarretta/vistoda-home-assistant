@@ -176,7 +176,8 @@ def _prepare(
             raise OSError("existing backup has a different checksum")
         return target, True
     target.with_name(f".{target.name}.partial").unlink(missing_ok=True)
-    free = shutil.disk_usage(mount).free
+    # The copy's own folder: a share root can be a tiny dataset of its own.
+    free = shutil.disk_usage(target.parent).free
     if free < max(MIN_FREE_BYTES, manifest["bytes"] * 2):
         raise OSError("network mount has no safe headroom")
     return target, False

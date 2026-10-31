@@ -136,3 +136,16 @@ async def test_overlapping_movers_share_one_verified_copy(monkeypatch, tmp_path)
     assert [
         path.name for path in (shared / "spioncino").iterdir() if path.name.startswith(".")
     ] == []
+
+
+async def test_headroom_is_measured_in_the_device_folder(monkeypatch, tmp_path):
+    import shutil
+    from types import SimpleNamespace as Usage
+
+    mover, client, shared = mover_env(monkeypatch, tmp_path)
+    real = shutil.disk_usage
+    tiny_root = {shared: Usage(free=16 * 1024 * 1024)}  # the export root dataset
+    monkeypatch.setattr(shutil, "disk_usage", lambda path: tiny_root.get(path) or real(path))
+    await mover.run()
+    assert (shared / "spioncino" / NAME).read_bytes() == MEDIA
+    client.delete_provider_recording.assert_awaited_once_with(ID)
