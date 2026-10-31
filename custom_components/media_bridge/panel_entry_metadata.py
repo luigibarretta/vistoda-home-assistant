@@ -2,7 +2,14 @@
 
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN, PROVIDER_EZVIZ, PROVIDER_RING
+from .const import (
+    CONF_ALIAS,
+    CONF_SCENETROVE_DEVICE,
+    CONF_SCENETROVE_URL,
+    DOMAIN,
+    PROVIDER_EZVIZ,
+    PROVIDER_RING,
+)
 from .ezviz_account import account_owner_id, defence_unique_id, reports_defence
 from .ezviz_controls import BATTERY_SUFFIX, controls_payload
 from .ezviz_core import delegated, native_controls_available
@@ -23,6 +30,11 @@ def entry_metadata(hass, entry, provider: str) -> dict:
     if provider != PROVIDER_EZVIZ:
         return {}
     result = panel_metadata(hass, entry)
+    if url := entry.options.get(CONF_SCENETROVE_URL):
+        result["scenetrove_url"] = url
+        result["scenetrove_device"] = entry.options.get(
+            CONF_SCENETROVE_DEVICE, entry.data[CONF_ALIAS]
+        )
     for key, domain, suffix in (
         ("microsd_entity_id", "sensor", MICROSD_SUFFIX),
         ("microsd_problem_entity_id", "binary_sensor", MICROSD_PROBLEM_SUFFIX),

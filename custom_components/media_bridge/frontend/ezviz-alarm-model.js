@@ -65,6 +65,13 @@ export function alarmIsoTime(seconds) {
   return Number.isFinite(seconds) ? new Date(seconds * 1000).toISOString() : "";
 }
 
+// SceneTrove opened on `device` at the event: `<url>/?device=…&at=<UTC, seconds>`.
+export function sceneTroveLink(url, device, occurredAt) {
+  if (!url || !device || !Number.isFinite(occurredAt)) return null;
+  const at = alarmIsoTime(Math.floor(occurredAt)).replace(/\.\d{3}Z$/, "Z");
+  return `${url}/?device=${encodeURIComponent(device)}&at=${encodeURIComponent(at)}`;
+}
+
 // Alarms the card keeps while paging back (the app retains 200 per camera).
 export const MAX_LOADED_ALARMS = 200;
 

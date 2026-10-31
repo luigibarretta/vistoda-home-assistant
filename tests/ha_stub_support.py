@@ -155,6 +155,7 @@ def config_entry(provider="ring", entry_id="entry-1", **data):
         title="Front door",
         disabled_by=None,
         data={"provider": provider, "alias": "entrance", **data},
+        options={},
         async_start_reauth=Mock(),
     )
 

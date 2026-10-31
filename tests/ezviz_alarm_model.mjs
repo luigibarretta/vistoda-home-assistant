@@ -10,6 +10,7 @@ import {
   alarmVideo,
   navigationStep,
   neighbour,
+  sceneTroveLink,
   signedFresh,
   alarmPicturePath,
   alarmRows,
@@ -185,4 +186,13 @@ test("an archived copy is offered before waking the camera", () => {
   assert.deepEqual(alarmVideo([], T, T + 3600, [other, copy]), { kind: "download", item: copy });
   assert.equal(alarmVideo([live], T, T + 3600, [copy]).kind, "play", "a playable recording wins");
   assert.equal(alarmVideo([], T, T + 3600, [{ ...copy, span: null }]).kind, "save");
+});
+
+test("scenetrove links are escaped and utc", () => {
+  assert.equal(
+    sceneTroveLink("https://st.example", "front door", 1793214000),
+    "https://st.example/?device=front%20door&at=2026-10-28T19%3A00%3A00Z",
+  );
+  assert.equal(sceneTroveLink("", "front-door", 1793214000), null, "no address, no link");
+  assert.equal(sceneTroveLink("https://st.example", "front-door", null), null);
 });

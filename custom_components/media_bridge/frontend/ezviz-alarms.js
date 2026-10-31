@@ -15,7 +15,7 @@ class VistodaEzvizAlarms extends HTMLElement {
     // The modal outlives re-renders of the list (a new alarm while it is open).
     this.shadowRoot.innerHTML = '<div id="content"></div><vistoda-ezviz-alarm-dialog id="dialog"></vistoda-ezviz-alarm-dialog>';
     this.addEventListener("alarm-open", ({ detail }) => this.shadowRoot.getElementById("dialog").open(this._hass, {
-      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index, pager: this._pager(),
+      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index, pager: this._pager(), sceneTrove: this._sceneTrove,
     }));
     this._entryId = "";
     this._alias = "";
@@ -39,6 +39,7 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._hass = hass;
     const entryId = entry?.entry_id || "";
     this._alias = entry?.alias || "";
+    this._sceneTrove = entry?.scenetrove_url ? { url: entry.scenetrove_url, device: entry.scenetrove_device } : null;
     const language = panelLanguage(hass);
     if (entryId !== this._entryId) {
       this._entryId = entryId;

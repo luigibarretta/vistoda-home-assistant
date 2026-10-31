@@ -211,3 +211,20 @@ def test_panel_metadata_references_vistoda_entities_without_io(monkeypatch) -> N
     }
     assert module.entry_metadata(hass, config_entry("ring", "other"), "ring") == {}
     assert module.entry_metadata(hass, config_entry("blink"), "blink") == {}
+
+
+def test_panel_metadata_publishes_the_scenetrove_link_only_when_set(monkeypatch) -> None:
+    stub_modules(monkeypatch)
+    native = ModuleType("custom_components.media_bridge.ezviz_panel_metadata")
+    native.panel_metadata = lambda _hass, _entry: {}
+    monkeypatch.setitem(sys.modules, native.__name__, native)
+    registry = SimpleNamespace(async_get_entity_id=lambda *_args: None)
+    sys.modules["homeassistant.helpers.entity_registry"].async_get = lambda _hass: registry
+    module = load(monkeypatch, "panel_entry_metadata")
+    entry = bind_runtime(config_entry("ezviz", "01J9ENTRY"), SimpleNamespace())
+    entry.options = {"scenetrove_url": "https://st.example", "scenetrove_device": "spioncino"}
+    result = module.entry_metadata(SimpleNamespace(data={}), entry, "ezviz")
+    assert result["scenetrove_url"] == "https://st.example"
+    assert result["scenetrove_device"] == "spioncino"
+    entry.options = {"scenetrove_url": ""}
+    assert "scenetrove_url" not in module.entry_metadata(SimpleNamespace(data={}), entry, "ezviz")

@@ -2,7 +2,7 @@
 // previous/next event, and the video of that moment — a ready recording that
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
-import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep, neighbour } from "./ezviz-alarm-model.js";
+import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep, neighbour, sceneTroveLink } from "./ezviz-alarm-model.js";
 import "./provider-recording-player.js";
 
 const STYLE = `
@@ -16,6 +16,7 @@ const STYLE = `
   .meta{padding:12px 16px}.meta time,.muted{color:var(--secondary-text-color);font-size:13px}
   .video{padding:0 16px 16px}.video h3{margin:8px 0;font-size:15px}
   .action{display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--primary-color);color:var(--text-primary-color,#fff)}
+  a.action{min-height:44px;margin-bottom:8px;border-radius:12px;text-decoration:none}.action[hidden]{display:none}
   @media (max-width:600px){dialog{width:100vw;max-width:none;height:100dvh;max-height:none;border-radius:0}}`;
 
 class VistodaEzvizAlarmDialog extends HTMLElement {
@@ -27,7 +28,9 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
         <h2 id="title"></h2><button id="next"><ha-icon icon="mdi:chevron-right"></ha-icon></button>
         <button id="close" autofocus><ha-icon icon="mdi:close"></ha-icon></button></div>
       <img id="picture" alt="" hidden><div class="meta"><time id="time"></time><div id="subtitle" class="muted"></div></div>
-      <section class="video"><h3 id="video-title"></h3><div id="video"></div><p id="status" class="muted" role="status"></p>
+      <section class="video"><a id="scenetrove" class="action" target="_blank" rel="noopener" hidden>
+        <ha-icon icon="mdi:open-in-new"></ha-icon><span data-copy="Apri in SceneTrove">Apri in SceneTrove</span></a>
+        <h3 id="video-title"></h3><div id="video"></div><p id="status" class="muted" role="status"></p>
         <vistoda-provider-recording-player id="player" hidden></vistoda-provider-recording-player></section></dialog>`;
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("close").addEventListener("click", () => this.$("dialog").close());
@@ -41,9 +44,11 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
   }
 
   // rows: card rows (newest first); index: the tapped one; pager: the card's
-  // page loader, so the modal can step past the first or last row of a page.
-  open(hass, { entryId, alias, rows, index, pager = null }) {
+  // page loader, so the modal can step past the first or last row of a page;
+  // sceneTrove: the linked SceneTrove `{ url, device }`, when set.
+  open(hass, { entryId, alias, rows, index, pager = null, sceneTrove = null }) {
     Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _pager: pager, _recordings: null, _archived: null });
+    this._sceneTrove = sceneTrove;
     this._opened = (this._opened || 0) + 1; // late answers of an earlier opening are ignored
     for (const [id, label] of [["previous", "Evento più recente"], ["next", "Evento più vecchio"], ["close", "Chiudi"]]) {
       this.$(id).setAttribute("aria-label", copy(this, label));
@@ -88,6 +93,8 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("time").dateTime = alarmIsoTime(row.occurredAt);
     this.$("time").textContent = alarmTimeText(row.occurredAt, locale);
     this.$("subtitle").textContent = row.title;
+    const link = sceneTroveLink(this._sceneTrove?.url, this._sceneTrove?.device, row.occurredAt);
+    Object.assign(this.$("scenetrove"), { href: link || "", hidden: !link });
     this.$("player").close();
     this.$("status").textContent = "";
     this.$("video").textContent = copy(this, "Caricamento…");
