@@ -25,6 +25,8 @@ CONF_EZVIZ_DELEGATE_CONTROLS = "ezviz_delegate_controls"
 # EZVIZ event archive on the network storage (opt-in) and its retention in days.
 CONF_EVENT_ARCHIVE = "event_archive"
 CONF_EVENT_RETENTION_DAYS = "event_retention_days"
+CONF_SCENETROVE_URL = "scenetrove_url"
+CONF_SCENETROVE_DEVICE = "scenetrove_device"
 
 PROVIDER_BLINK = "blink"
 PROVIDER_EZVIZ = "ezviz"
