@@ -8,8 +8,9 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import callback
 
-from .backup_storage import configured_mount, provider_entry, storage_readiness
+from .backup_storage import archive_entry, configured_mount, storage_readiness
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
+from .const import CONF_PROVIDER
 from .network_archive import checked_file, inventory
 from .provider_recording_lists import async_get_provider_recording_lists
 from .runtime import entry_runtime
@@ -37,12 +38,12 @@ async def ws_inventory(hass, connection, msg):
         connection.send_error(msg["id"], "unauthorized", "Administrator access required")
         return
     try:
-        entry = provider_entry(hass, "blink", msg["entry_id"])
+        entry = archive_entry(hass, msg["entry_id"])
         mount = configured_mount(entry)
         members = None
         if msg["list_id"]:
             lists = await async_get_provider_recording_lists(hass).async_snapshot(
-                f"blink:{entry.entry_id}"
+                f"{entry.data[CONF_PROVIDER]}:{entry.entry_id}"
             )
             members = next(
                 (set(item["recording_ids"]) for item in lists if item["list_id"] == msg["list_id"]),
@@ -77,7 +78,7 @@ class NetworkBackupMedia(HomeAssistantView):
             raise web.HTTPForbidden
         hass = request.app["hass"]
         try:
-            entry = provider_entry(hass, "blink", entry_id)
+            entry = archive_entry(hass, entry_id)
             mount = configured_mount(entry)
             relative = request.query.get("file", "")
 

@@ -154,3 +154,14 @@ def test_recording_copies_carry_their_time_span(monkeypatch, tmp_path):
     assert spans["00000000-0000-4000-8000-0000000000a1"] == [100, 160]
     assert spans["00000000-0000-4000-8000-0000000000a2"] == [1793214000, 1793214030]
     assert spans["00000000-0000-4000-8000-0000000000a3"] is None
+
+
+def test_archive_entries_are_blink_or_ezviz(monkeypatch):
+    module = framework(monkeypatch).load("backup_storage")
+    entries = {key: SimpleNamespace(data={"provider": key}) for key in ("blink", "ezviz", "ring")}
+    hass = SimpleNamespace(config_entries=SimpleNamespace(async_get_entry=entries.get))
+    assert module.archive_entry(hass, "ezviz") is entries["ezviz"]
+    assert module.archive_entry(hass, "blink") is entries["blink"]
+    for refused in ("ring", "missing"):
+        with pytest.raises(ValueError):
+            module.archive_entry(hass, refused)

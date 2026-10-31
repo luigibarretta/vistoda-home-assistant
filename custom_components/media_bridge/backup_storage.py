@@ -5,7 +5,7 @@ import re
 import shutil
 from pathlib import Path
 
-from .const import CONF_PROVIDER, DOMAIN
+from .const import CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
 
 CONF_BACKUP_STORAGE = "backup_storage"
 DEFAULT_BACKUP_STORAGE = "vistoda_archives"
@@ -13,6 +13,8 @@ MIN_FREE_BYTES = 512 * 1024 * 1024
 NETWORK_FILESYSTEMS = {"nfs", "nfs4", "cifs"}
 SAFE_STORAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 SAFE_PART = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+ARCHIVE_PROVIDERS = frozenset({PROVIDER_BLINK, PROVIDER_EZVIZ})
 
 
 def storage_mount(name: str = DEFAULT_BACKUP_STORAGE) -> Path:
@@ -24,6 +26,14 @@ def storage_mount(name: str = DEFAULT_BACKUP_STORAGE) -> Path:
 
 def configured_mount(entry) -> Path:
     return storage_mount(entry.options.get(CONF_BACKUP_STORAGE, DEFAULT_BACKUP_STORAGE))
+
+
+def archive_entry(hass, entry_id):
+    """A Blink or EZVIZ entry: the providers that copy recordings to network storage."""
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None or entry.data.get(CONF_PROVIDER) not in ARCHIVE_PROVIDERS:
+        raise ValueError("invalid backup entry")
+    return entry
 
 
 def provider_entry(hass, provider, entry_id=""):
