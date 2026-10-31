@@ -2,7 +2,9 @@
 // previous/next event, and the video of that moment — a ready recording that
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
-import { alarmIsoTime, alarmTimeText, alarmVideo, navigationStep, neighbour, sceneTroveLink } from "./ezviz-alarm-model.js";
+import {
+  alarmIsoTime, alarmTimeText, alarmVideo, archivedEventName, deleteEventPrompt, navigationStep, neighbour, sceneTroveLink,
+} from "./ezviz-alarm-model.js";
 import "./provider-recording-player.js";
 
 const STYLE = `
@@ -27,7 +29,8 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
       <div class="bar"><button id="previous"><ha-icon icon="mdi:chevron-left"></ha-icon></button>
         <h2 id="title"></h2><button id="next"><ha-icon icon="mdi:chevron-right"></ha-icon></button>
         <button id="close" autofocus><ha-icon icon="mdi:close"></ha-icon></button></div>
-      <img id="picture" alt="" hidden><div class="meta"><time id="time"></time><div id="subtitle" class="muted"></div></div>
+      <img id="picture" alt="" hidden><div class="meta"><time id="time"></time><div id="subtitle" class="muted"></div>
+        <button id="delete" hidden><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>
       <section class="video"><a id="scenetrove" class="action" target="_blank" rel="noopener" hidden>
         <ha-icon icon="mdi:open-in-new"></ha-icon><span data-copy="Apri in SceneTrove">Apri in SceneTrove</span></a>
         <h3 id="video-title"></h3><div id="video"></div><p id="status" class="muted" role="status"></p>
@@ -35,6 +38,7 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$ = (id) => this.shadowRoot.getElementById(id);
     this.$("close").addEventListener("click", () => this.$("dialog").close());
     this.$("previous").addEventListener("click", () => this._move(-1));
+    this.$("delete").addEventListener("click", () => this._delete());
     this.$("next").addEventListener("click", () => this._move(1));
     this.$("dialog").addEventListener("close", () => this.$("player").close());
     this.$("dialog").addEventListener("keydown", (event) => {
@@ -45,12 +49,14 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
 
   // rows: card rows (newest first); index: the tapped one; pager: the card's
   // page loader, so the modal can step past the first or last row of a page;
-  // sceneTrove: the linked SceneTrove `{ url, device }`, when set.
-  open(hass, { entryId, alias, rows, index, pager = null, sceneTrove = null }) {
+  // sceneTrove: the linked SceneTrove `{ url, device, shared }`, when set;
+  // archived: the rows come from the event archive, so administrators may delete them.
+  open(hass, { entryId, alias, rows, index, pager = null, sceneTrove = null, archived = false }) {
     Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _pager: pager, _recordings: null, _archived: null });
-    this._sceneTrove = sceneTrove;
+    Object.assign(this, { _sceneTrove: sceneTrove, _deletable: archived && Boolean(hass?.user?.is_admin) });
+    this.$("delete").hidden = !this._deletable;
     this._opened = (this._opened || 0) + 1; // late answers of an earlier opening are ignored
-    for (const [id, label] of [["previous", "Evento più recente"], ["next", "Evento più vecchio"], ["close", "Chiudi"]]) {
+    for (const [id, label] of [["previous", "Evento più recente"], ["next", "Evento più vecchio"], ["close", "Chiudi"], ["delete", "Elimina evento"]]) {
       this.$(id).setAttribute("aria-label", copy(this, label));
     }
     this.$("video-title").textContent = copy(this, "Video");
@@ -130,6 +136,21 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
       type: "media_bridge/network_archive/list", entry_id: this._entryId, camera: this._alias, page_size: 100,
     }).then((result) => result?.items || [], () => []);
     return this._archived;
+  }
+
+  async _delete() {
+    const row = this._rows[this._index];
+    if (!row || !globalThis.confirm(copy(this, deleteEventPrompt(Boolean(this._sceneTrove?.shared))))) return;
+    try {
+      const result = await this._hass.callWS({
+        type: "media_bridge/events/delete", entry_id: this._entryId, ids: [archivedEventName(row)],
+      });
+      if (result?.deleted !== 1) throw new Error("not deleted");
+      this.dispatchEvent(new CustomEvent("alarm-deleted", { bubbles: true, composed: true }));
+      this.$("dialog").close();
+    } catch {
+      this.$("status").textContent = copy(this, "Eliminazione non riuscita.");
+    }
   }
 
   async _download(item) {

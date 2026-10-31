@@ -121,6 +121,20 @@ def event_picture(folders: Sequence[EventFolder], event: str) -> Path:
     raise ValueError("unknown event picture")
 
 
+def delete_event(folders: Sequence[EventFolder], event: str) -> bool:
+    """Delete one archived event (JSON and picture) from every folder; False when absent."""
+    match = EVENT_NAME.fullmatch(event)
+    if match is None:
+        return False
+    removed = False
+    for _folder, directory in directories(folders):
+        for suffix in (".jpg", ".json"):
+            if (path := regular_file(directory, *match.groups(), f"{event}{suffix}")) is not None:
+                path.unlink()
+                removed = True
+    return removed
+
+
 def prune_events(folders: Sequence[EventFolder], older_than: int) -> int:
     """Delete archived events (JSON and picture) older than `older_than`, by name."""
     cutoff = f"{datetime.fromtimestamp(older_than, UTC):%Y%m%dT%H%M%SZ}"

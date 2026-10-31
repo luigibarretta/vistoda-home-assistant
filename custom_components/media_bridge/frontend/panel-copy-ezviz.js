@@ -8,7 +8,9 @@ export const EZVIZ_COPY = {
   "Scarica la copia archiviata": "Download the archived copy", "Apri in SceneTrove": "Open in SceneTrove",
   "SceneTrove archivia le registrazioni delle telecamere e le mostra su una timeline. Se lo usi, imposta il suo indirizzo nelle opzioni dell’integrazione Vistoda: ogni evento si aprirà in SceneTrove al suo istante.":
     "SceneTrove archives camera recordings and shows them on a timeline. If you use it, set its address in the Vistoda integration options: each event will then open in SceneTrove at its instant.",
-  "Non mostrare più": "Don't show again",
+  "Non mostrare più": "Don't show again", "Elimina evento": "Delete event",
+  "L’evento verrà eliminato anche da SceneTrove.": "The event will also be deleted from SceneTrove.",
+  "Eliminare questo evento dall’archivio?": "Delete this event from the archive?",
   "Sensibilità di rilevamento": "Detection sensitivity", "Livello batteria": "Battery level",
   "Luce infrarossa": "Infrared light", "Spia di stato": "Status light", "Modalità privacy": "Privacy mode",
   "Modalità riposo": "Sleep mode", "Versione firmware": "Firmware version",

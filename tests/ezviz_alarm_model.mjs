@@ -11,6 +11,8 @@ import {
   navigationStep,
   neighbour,
   sceneTroveLink,
+  archivedEventName,
+  deleteEventPrompt,
   signedFresh,
   alarmPicturePath,
   alarmRows,
@@ -195,4 +197,13 @@ test("scenetrove links are escaped and utc", () => {
   );
   assert.equal(sceneTroveLink("", "front-door", 1793214000), null, "no address, no link");
   assert.equal(sceneTroveLink("https://st.example", "front-door", null), null);
+});
+
+test("archived events are named as the integration stores them", () => {
+  assert.equal(archivedEventName({ id: "evt-1", occurredAt: 1793214000 }), "20261028T190000Z-evt-1");
+});
+
+test("deleting a shared event warns that SceneTrove loses it too", () => {
+  assert.equal(deleteEventPrompt(true), "L’evento verrà eliminato anche da SceneTrove.");
+  assert.equal(deleteEventPrompt(false), "Eliminare questo evento dall’archivio?");
 });

@@ -9,7 +9,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant, callback
 
 from .const import CONF_EVENT_ARCHIVE
-from .event_archive import DAY, EVENT_NAME, event_picture, list_events
+from .event_archive import DAY, EVENT_NAME, delete_event, event_picture, list_events
 from .ezviz_alarm_api import PICTURE_CACHE, resolve
 from .ring_access import can_access_ezviz_entry
 from .shared_archive import event_folders
@@ -98,8 +98,41 @@ async def ws_list_events(hass, connection, msg: dict[str, Any]) -> None:
     )
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/events/delete",
+        vol.Required("entry_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("ids"): vol.All([vol.All(str, vol.Length(max=128))], vol.Length(max=100)),
+    }
+)
+@websocket_api.async_response
+async def ws_delete_events(hass, connection, msg: dict[str, Any]) -> None:
+    """Delete archived events from every folder of the camera, shared ones included."""
+    if not connection.user.is_admin:
+        connection.send_error(msg["id"], "unauthorized", "Administrator access required")
+        return
+    resolved = resolve(hass, msg["entry_id"])
+    if resolved is None:
+        connection.send_error(msg["id"], "not_found", "EZVIZ bridge is not loaded")
+        return
+    entry, _runtime = resolved
+    folders = event_folders(entry)
+    deleted, failed = 0, []
+    for event in msg["ids"]:
+        try:
+            removed = await hass.async_add_executor_job(delete_event, folders, event)
+        except (OSError, ValueError):
+            removed = False
+        if removed:
+            deleted += 1
+        else:
+            failed.append(event)
+    connection.send_result(msg["id"], {"deleted": deleted, "failed": failed})
+
+
 @callback
 def async_register(hass: HomeAssistant) -> None:
     """Register the archived event list and picture view once."""
     hass.http.register_view(EventPictureView)
     websocket_api.async_register_command(hass, ws_list_events)
+    websocket_api.async_register_command(hass, ws_delete_events)

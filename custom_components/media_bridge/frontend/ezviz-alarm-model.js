@@ -65,6 +65,16 @@ export function alarmIsoTime(seconds) {
   return Number.isFinite(seconds) ? new Date(seconds * 1000).toISOString() : "";
 }
 
+// Archive name of an event, `<UTC stamp>-<alarm id>`, as the integration stores it.
+export function archivedEventName(row) {
+  return `${alarmIsoTime(row.occurredAt).replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}-${row.id}`;
+}
+
+// Confirmation before deleting an archived event; shared files leave SceneTrove too.
+export function deleteEventPrompt(shared) {
+  return shared ? "L’evento verrà eliminato anche da SceneTrove." : "Eliminare questo evento dall’archivio?";
+}
+
 // SceneTrove opened on `device` at the event: `<url>/?device=…&at=<UTC, seconds>`.
 export function sceneTroveLink(url, device, occurredAt) {
   if (!url || !device || !Number.isFinite(occurredAt)) return null;

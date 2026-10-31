@@ -15,23 +15,15 @@ class VistodaEzvizAlarms extends HTMLElement {
     // The modal outlives re-renders of the list (a new alarm while it is open).
     this.shadowRoot.innerHTML = '<div id="content"></div><vistoda-ezviz-alarm-dialog id="dialog"></vistoda-ezviz-alarm-dialog>';
     this.addEventListener("alarm-open", ({ detail }) => this.shadowRoot.getElementById("dialog").open(this._hass, {
-      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index, pager: this._pager(), sceneTrove: this._sceneTrove,
+      entryId: this._entryId, alias: this._alias, rows: detail.rows, index: detail.index, pager: this._pager(), sceneTrove: this._sceneTrove, archived: Boolean(this._archive),
     }));
-    this._entryId = "";
-    this._alias = "";
-    this._token = null;
-    this._alarms = [];
-    this._rows = [];
-    this._older = null;
-    this._generation = null;
-    this._archive = null;
-    this._page = 1;
-    this._pageSize = 10;
-    this._busy = false;
-    this._state = "idle";
-    this._pictures = new Map();
-    this._request = 0;
-    this._language = "";
+    // A deleted archived event leaves the list: reload from the first page.
+    this.addEventListener("alarm-deleted", () => this._load());
+    Object.assign(this, {
+      _entryId: "", _alias: "", _token: null, _alarms: [], _rows: [], _older: null, _generation: null,
+      _archive: null, _page: 1, _pageSize: 10, _busy: false, _state: "idle", _pictures: new Map(),
+      _request: 0, _language: "",
+    });
   }
 
   // The token is the alarm entity state: a change means a new alarm arrived.
@@ -39,7 +31,8 @@ class VistodaEzvizAlarms extends HTMLElement {
     this._hass = hass;
     const entryId = entry?.entry_id || "";
     this._alias = entry?.alias || "";
-    this._sceneTrove = entry?.scenetrove_url ? { url: entry.scenetrove_url, device: entry.scenetrove_device } : null;
+    this._sceneTrove = entry?.scenetrove_url
+      ? { url: entry.scenetrove_url, device: entry.scenetrove_device, shared: entry.scenetrove_shared } : null;
     const language = panelLanguage(hass);
     if (entryId !== this._entryId) {
       this._entryId = entryId;

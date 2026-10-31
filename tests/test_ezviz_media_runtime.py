@@ -226,5 +226,6 @@ def test_panel_metadata_publishes_the_scenetrove_link_only_when_set(monkeypatch)
     result = module.entry_metadata(SimpleNamespace(data={}), entry, "ezviz")
     assert result["scenetrove_url"] == "https://st.example"
     assert result["scenetrove_device"] == "spioncino"
+    assert result["scenetrove_shared"] is False
     entry.options = {"scenetrove_url": ""}
     assert "scenetrove_url" not in module.entry_metadata(SimpleNamespace(data={}), entry, "ezviz")

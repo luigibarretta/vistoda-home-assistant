@@ -19,6 +19,7 @@ from .ezviz_media import MICROSD_PROBLEM_SUFFIX, MICROSD_SUFFIX, media_payload
 from .ezviz_panel_metadata import panel_metadata
 from .ring_unlock import unlock_mode_unique_id
 from .runtime import entry_runtime, runtime_for
+from .shared_archive import sharing
 
 
 def entry_metadata(hass, entry, provider: str) -> dict:
@@ -35,6 +36,7 @@ def entry_metadata(hass, entry, provider: str) -> dict:
         result["scenetrove_device"] = entry.options.get(
             CONF_SCENETROVE_DEVICE, entry.data[CONF_ALIAS]
         )
+        result["scenetrove_shared"] = sharing(entry)
     for key, domain, suffix in (
         ("microsd_entity_id", "sensor", MICROSD_SUFFIX),
         ("microsd_problem_entity_id", "binary_sensor", MICROSD_PROBLEM_SUFFIX),
