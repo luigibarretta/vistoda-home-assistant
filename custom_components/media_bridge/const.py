@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.48.1"
+INTEGRATION_VERSION = "0.48.2"
 PLATFORMS = [
     "alarm_control_panel",
     "binary_sensor",
