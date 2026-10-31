@@ -56,3 +56,23 @@ def test_a_stored_invalid_shared_storage_falls_back_to_the_vistoda_archive(monke
     (only,) = module.event_folders(entry)
     assert only.parts == ("events", "ezviz", "front-door")
     assert not module.sharing(entry)
+
+
+async def test_shared_mode_checks_the_device_folder_not_the_export_root(monkeypatch):
+    # SceneTrove's share is writable only inside its device folders.
+    flow = options_flow(monkeypatch)
+    module = __import__("sys").modules[type(flow).__module__]
+    checked = []
+
+    def readiness(mount, folder=None):
+        checked.append((mount, folder))
+        return {
+            "ready": folder is not None,
+            "reason": "ready" if folder else "network_mount_not_writable",
+        }
+
+    monkeypatch.setattr(module, "storage_readiness", readiness)
+    shared = {"clip_destination": "shared", "shared_storage": "scenetrove_devices"}
+    result = await flow.async_step_init({**LINKED, **shared})
+    assert result["type"] == "create_entry"
+    assert (checked[-1][0].name, checked[-1][1].name) == ("scenetrove_devices", "spioncino")

@@ -142,7 +142,9 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
             except ValueError:
                 return "invalid_storage_name"
         if destination == "shared":
-            readiness = await self.hass.async_add_executor_job(storage_readiness, mount)
+            # The share is writable only inside SceneTrove's device folders.
+            folder = mount / options[CONF_SCENETROVE_DEVICE]
+            readiness = await self.hass.async_add_executor_job(storage_readiness, mount, folder)
             if not readiness["ready"]:
                 return readiness["reason"]
         options[CONF_CLIP_DESTINATION] = destination

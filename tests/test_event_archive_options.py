@@ -7,7 +7,7 @@ def options_flow(monkeypatch, provider="ezviz", ready=True):
     env = framework(monkeypatch)
     module = env.load("options_flow")
     readiness = {"ready": ready, "reason": "ready" if ready else "network_mount_missing"}
-    monkeypatch.setattr(module, "storage_readiness", lambda mount: readiness)
+    monkeypatch.setattr(module, "storage_readiness", lambda mount, folder=None: readiness)
     flow = module.VistodaOptionsFlow()
     flow.config_entry, flow.hass = entry(provider), env.hass
     return flow

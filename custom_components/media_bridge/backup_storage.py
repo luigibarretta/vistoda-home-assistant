@@ -81,12 +81,19 @@ def mount_filesystem(mounts: str, path: str, *, writable: bool = True) -> str | 
     return None
 
 
-def storage_readiness(mount: Path) -> dict:
-    """Return operational reasons only, without server names or mounted paths."""
+def storage_readiness(mount: Path, folder: Path | None = None) -> dict:
+    """Return operational reasons only, without server names or mounted paths.
+
+    `folder`, a directory inside the mount, is the one that must be writable when
+    only part of the storage is (SceneTrove's share writes in device folders).
+    """
     filesystem = network_filesystem(mount)
     if filesystem is None:
         return {"ready": False, "reason": "network_mount_missing"}
-    if not os.access(mount, os.W_OK | os.X_OK):
+    inside = folder is None or (
+        not folder.is_symlink() and folder.is_dir() and folder.resolve().is_relative_to(mount)
+    )
+    if not inside or not os.access(folder or mount, os.W_OK | os.X_OK):
         return {"ready": False, "reason": "network_mount_not_writable"}
     try:
         free = shutil.disk_usage(mount).free
