@@ -118,12 +118,19 @@ def _validate(manifest: object, recording_id: str, media_types) -> dict[str, Any
 
 
 async def _backup(
-    hass, provider: str, manifest: dict[str, Any], upstream, mount: Path = BACKUP_MOUNT
+    hass,
+    provider: str,
+    manifest: dict[str, Any],
+    upstream,
+    mount: Path = BACKUP_MOUNT,
+    target: Path | None = None,
 ) -> dict[str, Any]:
     try:
         if upstream.status != 200 or upstream.content_type != manifest["media_type"]:
             raise ValueError("recording media response is invalid")
-        target, existing = await hass.async_add_executor_job(_prepare, provider, manifest, mount)
+        target, existing = await hass.async_add_executor_job(
+            _prepare, provider, manifest, mount, target
+        )
         if existing:
             await hass.async_add_executor_job(
                 _write_metadata, target, _metadata(provider, manifest)
@@ -153,12 +160,14 @@ async def _backup(
 
 
 def _prepare(
-    provider: str, manifest: dict[str, Any], mount: Path = BACKUP_MOUNT
+    provider: str, manifest: dict[str, Any], mount: Path = BACKUP_MOUNT, target: Path | None = None
 ) -> tuple[Path, bool]:
-    camera = manifest["camera"]
-    extension = MEDIA_EXTENSIONS[manifest["media_type"]]
-    directory = safe_directory(mount, provider, camera)
-    target = directory / f"{manifest['recording_id']}.{extension}"
+    """The checked copy path (default `<provider>/<camera>/<id>.<ext>`) and whether it exists."""
+    if target is None:
+        camera = manifest["camera"]
+        extension = MEDIA_EXTENSIONS[manifest["media_type"]]
+        directory = safe_directory(mount, provider, camera)
+        target = directory / f"{manifest['recording_id']}.{extension}"
     if target.is_symlink() or not target.resolve().is_relative_to(mount):
         raise OSError("unsafe recording path")
     if target.is_file():

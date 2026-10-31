@@ -175,6 +175,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) 
         ezviz_alarms.start()
     if ezviz_events:
         ezviz_events.start()
+        from .shared_clip_mover import SharedClipMover
+
+        SharedClipMover(hass, entry, client).start()
     if provider == PROVIDER_BLINK:
         from .blink_usb_auto_backup import async_setup as async_setup_usb_backup
 
