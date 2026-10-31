@@ -23,7 +23,10 @@ async def async_setup_entry(
     if provider == PROVIDER_RING and runtime.ring_status is not None:
         entities.append(RingIntercomConnectivity(runtime, entry))
     if provider == PROVIDER_EZVIZ:
+        from .ezviz_event_archive_entity import EzvizEventArchiveProblem
+
         entities.append(EzvizCameraConnectivity(entry))
+        entities.append(EzvizEventArchiveProblem(entry))
     async_add_entities(entities)
     controls = getattr(runtime, "ezviz_controls", None)
     if provider == PROVIDER_EZVIZ and controls is not None and controls.data is None:

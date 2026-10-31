@@ -104,7 +104,11 @@ async def test_setup_adds_device_connectivity_and_keeps_bridge_ids(monkeypatch) 
     ids = [[entity.unique_id for entity in batch] for batch in added]
     assert ids == [
         ["ring-entry-1-bridge-connectivity", "ring-entry-1-intercom-connectivity"],
-        ["ezviz-ez-1-bridge-connectivity", "ezviz-ez-1-camera-connectivity"],
+        [
+            "ezviz-ez-1-bridge-connectivity",
+            "ezviz-ez-1-camera-connectivity",
+            "ezviz-ez-1-event-archive-problem",
+        ],
         ["blink-entrance-bridge-connectivity"],
     ]
     assert added[0][0].extra_state_attributes["connectivity_scope"] == "bridge"

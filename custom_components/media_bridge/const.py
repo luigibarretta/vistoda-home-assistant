@@ -48,6 +48,11 @@ def ring_event_signal(entry_id: str) -> str:
 EVENT_EZVIZ_ALARM = "vistoda_ezviz_alarm"
 
 
+def ezviz_event_archive_signal(entry_id: str) -> str:
+    """Dispatcher signal for event archive availability changes of one EZVIZ entry."""
+    return f"{DOMAIN}_ezviz_event_archive_{entry_id}"
+
+
 def ezviz_alarm_signal(entry_id: str) -> str:
     """Return the private dispatcher signal for one EZVIZ camera entry."""
     return f"{DOMAIN}_ezviz_alarm_{entry_id}"

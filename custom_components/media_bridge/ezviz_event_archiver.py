@@ -17,10 +17,15 @@ from datetime import timedelta
 from typing import Any
 
 from homeassistant.core import callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 
 from .backup_storage import configured_mount
-from .const import CONF_EVENT_ARCHIVE, CONF_EVENT_RETENTION_DAYS, ezviz_alarm_signal
+from .const import (
+    CONF_EVENT_ARCHIVE,
+    CONF_EVENT_RETENTION_DAYS,
+    ezviz_alarm_signal,
+    ezviz_event_archive_signal,
+)
 from .errors import BridgeError
 from .event_archive import SAFE_ID, has_event, prune_events, write_event
 
@@ -161,13 +166,17 @@ class EzvizEventArchiver:
             return None
         if self.unavailable:
             _LOGGER.info("EZVIZ event archive is available again")
-            self.unavailable = False
+            self._set_unavailable(False)
         return written
 
     def _report_unavailable(self) -> None:
         if not self.unavailable:
             _LOGGER.warning("EZVIZ event archive is unavailable; check the network storage")
-            self.unavailable = True
+            self._set_unavailable(True)
+
+    def _set_unavailable(self, value: bool) -> None:
+        self.unavailable = value
+        async_dispatcher_send(self.hass, ezviz_event_archive_signal(self.entry.entry_id))
 
 
 def _record(alarm) -> dict[str, Any]:

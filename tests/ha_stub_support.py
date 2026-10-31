@@ -51,6 +51,7 @@ class Entity:
 
 class DeviceClass(enum.StrEnum):
     CONNECTIVITY = "connectivity"
+    PROBLEM = "problem"
 
 
 def hass_callback(func):
