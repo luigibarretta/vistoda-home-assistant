@@ -120,3 +120,12 @@ export function systemScopeCopy(entry) {
     ? "Aggiorna l’app Vistoda EZVIZ alla 0.10 o attiva la delega all’integrazione EZVIZ ufficiale per il controllo del sistema."
     : "Controllo del sistema non ancora disponibile dall’app Vistoda EZVIZ.";
 }
+
+// Everything the settings card shows, as one comparable key: HA pushes a new
+// entry object on every state change, and rebuilding would steal focus.
+export function settingsRenderKey(entry, provider, sourceError) {
+  return JSON.stringify([
+    entry?.entry_id, entry?.control_source, entry?.delegate_entity_id, entry?.alarm_entity_id,
+    entry?.native_entities || [], provider || [], sourceError || null,
+  ]);
+}

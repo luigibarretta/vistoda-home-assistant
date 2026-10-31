@@ -5,6 +5,7 @@ export const EZVIZ_COPY = {
     "Wakes the camera and uses battery.", "Evento più recente": "Newer event", "Evento più vecchio": "Older event",
   "Evento appena avvenuto: riprova tra qualche secondo.": "This event just happened: try again in a few seconds.",
   "Solo un amministratore può salvare dalla microSD.": "Only an administrator can save from the microSD.",
+  "Scarica la copia archiviata": "Download the archived copy",
   "Sensibilità di rilevamento": "Detection sensitivity", "Livello batteria": "Battery level",
   "Luce infrarossa": "Infrared light", "Spia di stato": "Status light", "Modalità privacy": "Privacy mode",
   "Modalità riposo": "Sleep mode", "Versione firmware": "Firmware version",

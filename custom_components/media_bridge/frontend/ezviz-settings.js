@@ -1,7 +1,8 @@
 import { copy } from "./panel-copy.js";
 import { openMoreInfo } from "./panel-helpers.js";
 import {
-  OPTION_LABELS, controlSource, infoText, isActionable, numberValue, providerLabel, saveErrorCopy, settingsSections,
+  OPTION_LABELS, controlSource, infoText, isActionable, numberValue, providerLabel, saveErrorCopy, settingsRenderKey,
+  settingsSections,
 } from "./ezviz-settings-model.js";
 
 const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -11,7 +12,7 @@ const html = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => (
 const RELOAD_MS = 30000;
 
 class VistodaEzvizSettings extends HTMLElement {
-  constructor() { super(); this.attachShadow({ mode: "open" }); this._provider = []; this._draft = new Map(); }
+  constructor() { super(); this.attachShadow({ mode: "open" }); this._provider = []; this._draft = new Map(); this._request = 0; }
   // Called on every HA state update: reload provider values only for a new
   // camera or after a quiet interval, so staged edits are never wiped.
   configure(hass, entry) {
@@ -21,18 +22,19 @@ class VistodaEzvizSettings extends HTMLElement {
     if (changed) { this._provider = []; this._draft.clear(); this._error = false; this._sourceError = null; }
     const stale = Date.now() - (this._loadedAt || 0) > RELOAD_MS;
     if (entry?.entry_id && (changed || (stale && !this._draft.size && !this._saving))) this._loadProvider();
-    this._render();
+    if (changed || settingsRenderKey(entry, this._provider, this._sourceError) !== this._renderedKey) this._render();
   }
 
   async _loadProvider() {
     this._loadedAt = Date.now();
-    const entryId = this._entry.entry_id;
+    // A newer load (another camera or a delegation flip) supersedes this one.
+    const request = ++this._request;
     try {
       const result = await this._hass.callWS({ type: "media_bridge/ezviz/settings/info", entry_id: this._entry.entry_id });
-      if (entryId !== this._entry?.entry_id) return;
+      if (request !== this._request) return;
       this._provider = result.settings || []; this._draft.clear(); this._error = false; this._sourceError = null; this._render();
     } catch (error) {
-      if (entryId === this._entry?.entry_id) { this._provider = []; this._sourceError = error?.code; this._render(); }
+      if (request === this._request) { this._provider = []; this._sourceError = error?.code; this._render(); }
     }
   }
 
@@ -42,6 +44,7 @@ class VistodaEzvizSettings extends HTMLElement {
       || ["SELECT", "INPUT"].includes(this.shadowRoot.activeElement?.tagName)) return;
     const opened = new Set([...this.shadowRoot.querySelectorAll("details[open]")]
       .map((item) => item.dataset.group));
+    this._renderedKey = settingsRenderKey(this._entry, this._provider, this._sourceError);
     const source = controlSource(this._entry, this._sourceError);
     const sections = settingsSections(source.entities, this._provider);
     this.shadowRoot.innerHTML = `<style>

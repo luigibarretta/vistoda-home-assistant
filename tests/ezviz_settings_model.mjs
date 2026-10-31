@@ -105,3 +105,15 @@ test("the system card explains the arm/disarm source for each mode", () => {
   assert.equal(texts[3], texts[4]);
   for (const text of texts) assert.ok(Object.hasOwn(ADVANCED_COPY, text), text);
 });
+
+test("the settings re-render only when what they show changes", async () => {
+  const { settingsRenderKey } = await import("../custom_components/media_bridge/frontend/ezviz-settings-model.js");
+  const entry = { entry_id: "E1", control_source: "native", delegate_entity_id: "switch.x",
+    native_entities: [{ entity_id: "switch.a", state: "on" }] };
+  const provider = [{ key: "camera_defence", value: true }];
+  const key = settingsRenderKey(entry, provider, null);
+  assert.equal(settingsRenderKey({ ...entry }, [...provider], null), key, "a new HA update object alone does not");
+  assert.notEqual(settingsRenderKey({ ...entry, native_entities: [{ entity_id: "switch.a", state: "off" }] }, provider, null), key);
+  assert.notEqual(settingsRenderKey(entry, [{ key: "camera_defence", value: false }], null), key);
+  assert.notEqual(settingsRenderKey(entry, provider, "app_outdated"), key);
+});

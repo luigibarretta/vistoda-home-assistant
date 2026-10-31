@@ -101,15 +101,17 @@ export function recordingSpan(item) {
   return Number.isFinite(start) && Number.isFinite(length) && length > 0 ? [start, start + length] : null;
 }
 
-// The video of an event: a ready recording covering it, else the microSD window
-// to save, which never ends after `now` (epoch seconds); "wait" when the event is
+// The video of an event: a ready recording covering it, else an archived copy,
+// else the microSD window to save, which never ends after `now` (epoch seconds); "wait" when the event is
 // so recent that less than 10 s of it exist yet.
-export function alarmVideo(recordings, occurredAt, now = Infinity) {
-  const recording = (Array.isArray(recordings) ? recordings : []).find((item) => {
-    const span = recordingSpan(item);
-    return span !== null && span[0] <= occurredAt && occurredAt <= span[1];
-  });
+export function alarmVideo(recordings, occurredAt, now = Infinity, archived = []) {
+  const covers = (span) => Array.isArray(span) && span[0] <= occurredAt && occurredAt <= span[1];
+  const recording = (Array.isArray(recordings) ? recordings : []).find((item) => covers(recordingSpan(item)));
   if (recording) return { kind: "play", recording };
+  // A copy already in the network archive (download only: browsers cannot play
+  // MPEG-PS) spares waking a battery camera.
+  const item = (Array.isArray(archived) ? archived : []).find((copy) => covers(copy?.span));
+  if (item) return { kind: "download", item };
   const start = occurredAt - SD_WINDOW.before;
   const end = Math.min(occurredAt + SD_WINDOW.after, now);
   return end - start >= 10 ? { kind: "save", start, end } : { kind: "wait" };

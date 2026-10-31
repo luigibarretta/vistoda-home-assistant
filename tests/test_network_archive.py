@@ -122,3 +122,35 @@ def test_ezviz_copies_are_listed_with_their_media_type(monkeypatch, tmp_path):
         json.dumps({**metadata, "provider": "blink"})
     )
     assert len(module.inventory(tmp_path, 1, 50, "front-door")["items"]) == 1
+
+
+def test_recording_copies_carry_their_time_span(monkeypatch, tmp_path):
+    module = fixture(monkeypatch, tmp_path)
+    folder = tmp_path / "ezviz" / "front-door"
+    folder.mkdir(parents=True)
+    copies = {
+        "00000000-0000-4000-8000-0000000000a1": {"source": "sd", "sd_start": 100, "sd_end": 160},
+        "00000000-0000-4000-8000-0000000000a2": {
+            "started_at": "2026-10-28T19:00:00Z",
+            "actual_duration_seconds": 30.4,
+        },
+        "00000000-0000-4000-8000-0000000000a3": {},
+    }
+    for recording_id, extra in copies.items():
+        (folder / f"{recording_id}.mpegps").write_bytes(b"clip")
+        recording = {
+            "recording_id": recording_id,
+            "camera": "front-door",
+            "requested_at": "2026-10-28T19:00:00Z",
+            "media_type": "video/mpeg",
+            "bytes": 4,
+            "sha256": hashlib.sha256(b"clip").hexdigest(),
+            **extra,
+        }
+        metadata = {"schema_version": 1, "provider": "ezviz", "recording": recording}
+        (folder / f"{recording_id}.mpegps.json").write_text(json.dumps(metadata))
+    items = module.inventory(tmp_path, 1, 50, "front-door")["items"]
+    spans = {item["id"].rsplit("/", 1)[1][:36]: item["span"] for item in items}
+    assert spans["00000000-0000-4000-8000-0000000000a1"] == [100, 160]
+    assert spans["00000000-0000-4000-8000-0000000000a2"] == [1793214000, 1793214030]
+    assert spans["00000000-0000-4000-8000-0000000000a3"] is None

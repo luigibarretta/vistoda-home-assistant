@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 from .backup_storage import network_filesystem
@@ -76,7 +77,23 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
         "backed_up_at": metadata.get("backed_up_at", ""),
         "bytes": size,
         "media_type": media_type,
+        "span": None if usb else recording_span(source),
     }
+
+
+def recording_span(recording: dict) -> list[int] | None:
+    """[start, end] epoch seconds a provider recording covers, when its manifest says."""
+    if recording.get("source") == "sd":
+        start, end = recording.get("sd_start"), recording.get("sd_end")
+        return [start, end] if type(start) is int and type(end) is int else None
+    duration = recording.get("actual_duration_seconds")
+    try:
+        start = int(datetime.fromisoformat(recording["started_at"]).timestamp())
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not isinstance(duration, int | float) or duration <= 0:
+        return None
+    return [start, start + int(duration)]
 
 
 def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=None):

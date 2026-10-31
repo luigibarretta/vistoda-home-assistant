@@ -178,3 +178,11 @@ test("neighbour events cross page edges", () => {
   assert.deepEqual(neighbour(0, 10, -1), { page: -1 });
   assert.deepEqual(neighbour(0, 10, 0), { index: 0 });
 });
+
+test("an archived copy is offered before waking the camera", () => {
+  const copy = { id: "ezviz/front-door/a.mpegps", span: [T - 30, T + 30], media_path: "/x" };
+  const other = { id: "ezviz/front-door/b.mpegps", span: [T + 100, T + 160] };
+  assert.deepEqual(alarmVideo([], T, T + 3600, [other, copy]), { kind: "download", item: copy });
+  assert.equal(alarmVideo([live], T, T + 3600, [copy]).kind, "play", "a playable recording wins");
+  assert.equal(alarmVideo([], T, T + 3600, [{ ...copy, span: null }]).kind, "save");
+});

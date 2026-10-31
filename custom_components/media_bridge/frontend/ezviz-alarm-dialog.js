@@ -43,7 +43,8 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
   // rows: card rows (newest first); index: the tapped one; pager: the card's
   // page loader, so the modal can step past the first or last row of a page.
   open(hass, { entryId, alias, rows, index, pager = null }) {
-    Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _pager: pager, _recordings: null });
+    Object.assign(this, { _hass: hass, _entryId: entryId, _alias: alias, _rows: rows, _pager: pager, _recordings: null, _archived: null });
+    this._opened = (this._opened || 0) + 1; // late answers of an earlier opening are ignored
     for (const [id, label] of [["previous", "Evento più recente"], ["next", "Evento più vecchio"], ["close", "Chiudi"]]) {
       this.$(id).setAttribute("aria-label", copy(this, label));
     }
@@ -54,6 +55,10 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     // keyboard users (and the arrow keys) start inside it.
     this.$("close").focus({ preventScroll: true });
     this._show(index);
+  }
+
+  _current() {
+    return `${this._opened}:${this._index}`;
   }
 
   async _move(step) {
@@ -74,7 +79,8 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
   async _show(index) {
     if (!this._rows?.[index]) return;
     const row = this._rows[index];
-    const shown = (this._index = index);
+    this._index = index;
+    const shown = this._current();
     const locale = this._hass?.locale?.language || "it-IT";
     this.$("previous").disabled = this._edge(-1);
     this.$("next").disabled = this._edge(1);
@@ -87,14 +93,15 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("video").textContent = copy(this, "Caricamento…");
     this.$("picture").hidden = true;
     if (row.picture) this._picture(row, shown);
-    const video = alarmVideo(await this._loadRecordings(), row.occurredAt, Date.now() / 1000);
-    if (shown === this._index) this._renderVideo(video);
+    const [recordings, archived] = await Promise.all([this._loadRecordings(), this._loadArchived()]);
+    const video = alarmVideo(recordings, row.occurredAt, Date.now() / 1000, archived);
+    if (shown === this._current()) this._renderVideo(video);
   }
 
   async _picture(row, shown) {
     try {
       const signed = await this._hass.callWS({ type: "auth/sign_path", path: row.picture, expires: 900 });
-      if (shown !== this._index) return;
+      if (shown !== this._current()) return;
       Object.assign(this.$("picture"), { src: this._hass.hassUrl(signed.path), hidden: false,
         alt: copy(this, "Immagine evento: {p0}", { p0: copy(this, row.label) }) });
     } catch { /* The event keeps its text without a picture. */ }
@@ -105,6 +112,27 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
       type: "media_bridge/ezviz/recordings/list", entry_id: this._entryId, page: 1, page_size: 100,
     }).then((result) => result?.recordings || [], () => []);
     return this._recordings;
+  }
+
+  // Network archive copies of this camera; the inventory is administrator-only.
+  async _loadArchived() {
+    if (!this._hass?.user?.is_admin) return [];
+    this._archived ??= this._hass.callWS({
+      type: "media_bridge/network_archive/list", entry_id: this._entryId, camera: this._alias, page_size: 100,
+    }).then((result) => result?.items || [], () => []);
+    return this._archived;
+  }
+
+  async _download(item) {
+    try {
+      const signed = await this._hass.callWS({ type: "auth/sign_path", path: item.media_path, expires: 300 });
+      const link = Object.assign(document.createElement("a"), {
+        href: this._hass.hassUrl(signed.path), download: item.id.split("/").pop(),
+      });
+      link.click();
+    } catch {
+      this.$("status").textContent = copy(this, "Download non disponibile.");
+    }
   }
 
   _action(icon, label) {
@@ -121,6 +149,12 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
       const button = this._action("mdi:play", copy(this, "Riproduci la registrazione"));
       button.addEventListener("click", () => this.$("player").open(
         this._hass, { provider: "ezviz", entryId: this._entryId, alias: this._alias }, video.recording));
+      target.replaceChildren(button);
+      return;
+    }
+    if (video.kind === "download") {
+      const button = this._action("mdi:download", copy(this, "Scarica la copia archiviata"));
+      button.addEventListener("click", () => this._download(video.item));
       target.replaceChildren(button);
       return;
     }

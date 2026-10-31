@@ -13,13 +13,14 @@ import { blinkStorageRefresh } from "./blink-storage-refresh.js";
 import { blinkStorageTemplate } from "./blink-storage-template.js";
 import { bindPageSize, renderPageSize } from "./archive-page-size.js";
 import { MobileCardSelection } from "./mobile-card-selection.js";
+import { rememberOpen } from "./details-memory.js";
 
 class VistodaBlinkStorage extends HTMLElement {
   pausePlayback() { this._closePlayer(); }
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this._storages = []; this._busy = false; this._loaded = false;
+    this._storages = []; this._busy = false; this._loaded = false; this._closed = new Set();
     this._page = 1; this._pageSize = 10; this._selected = new Set();
     this._cameraFilter = new Set(); this._cameraNames = [];
     this._listManager = new ProviderRecordingListManager(this);
@@ -31,8 +32,9 @@ class VistodaBlinkStorage extends HTMLElement {
   set hass(value) { this.configure(value, this._config); }
 
   configure(hass, config) {
-    this._hass = hass; this._config = config;
-    this._render();
+    // HA pushes hass on every state change; rebuilding would steal keyboard focus.
+    const changed = !this._rendered || config?.entryId !== this._config?.entryId || hass?.locale?.language !== this._hass?.locale?.language;
+    this._hass = hass; this._config = config; if (changed) { this._rendered = true; this._render(); }
     this._listManager.configure(config);
     if (hass && !this._loaded && !this._busy) this.reload();
   }
@@ -111,7 +113,7 @@ class VistodaBlinkStorage extends HTMLElement {
   }
 
   _module(storage) {
-    const details = document.createElement("details"); details.className = "module"; details.open = true;
+    const details = document.createElement("details"); details.className = "module"; rememberOpen(details, storage.sync_module_id, this._closed);
     const summary = document.createElement("summary");
     const title = document.createElement("strong"); title.textContent = storage.network_name || copy(this, "Sistema Blink");
     const count = document.createElement("span");
