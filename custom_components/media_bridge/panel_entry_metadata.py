@@ -19,7 +19,7 @@ from .ezviz_media import MICROSD_PROBLEM_SUFFIX, MICROSD_SUFFIX, media_payload
 from .ezviz_panel_metadata import panel_metadata
 from .ring_unlock import unlock_mode_unique_id
 from .runtime import entry_runtime, runtime_for
-from .shared_archive import sharing
+from .shared_archive import shared_mount
 
 
 def entry_metadata(hass, entry, provider: str) -> dict:
@@ -36,7 +36,8 @@ def entry_metadata(hass, entry, provider: str) -> dict:
         result["scenetrove_device"] = entry.options.get(
             CONF_SCENETROVE_DEVICE, entry.data[CONF_ALIAS]
         )
-        result["scenetrove_shared"] = sharing(entry)
+        # Events may live in the shared folder even after switching back.
+        result["scenetrove_shared"] = shared_mount(entry) is not None
     for key, domain, suffix in (
         ("microsd_entity_id", "sensor", MICROSD_SUFFIX),
         ("microsd_problem_entity_id", "binary_sensor", MICROSD_PROBLEM_SUFFIX),

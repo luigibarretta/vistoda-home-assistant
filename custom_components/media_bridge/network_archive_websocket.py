@@ -125,10 +125,10 @@ def delete_copy(mount, shared, item_id: str) -> bool:
         return bool(shared) and delete_shared_clip(*shared, item_id)
     try:
         target, _item = checked_file(mount, item_id)
+        target.unlink()
+        target.with_suffix(target.suffix + ".json").unlink(missing_ok=True)
     except (ValueError, OSError, TypeError, AttributeError):
         return False
-    target.unlink()
-    target.with_suffix(target.suffix + ".json").unlink(missing_ok=True)
     return True
 
 

@@ -126,7 +126,8 @@ def shared_inventory(mount: Path, device: str, alias: str) -> list[dict]:
     if not SAFE_PART.fullmatch(device) or folder.is_symlink() or not folder.is_dir():
         return []
     items = []
-    for sidecar in sorted(folder.glob("hiv*.mpegps.json"))[:MAX_ITEMS]:
+    # Names start with the clip time: keep the newest when there are too many.
+    for sidecar in sorted(folder.glob("hiv*.mpegps.json"), reverse=True)[:MAX_ITEMS]:
         try:
             items.append(shared_clip(mount, device, alias, SHARED_PREFIX + sidecar.name[:-5])[1])
         except (ValueError, OSError, TypeError, KeyError):
@@ -140,6 +141,9 @@ def delete_shared_clip(mount: Path, device: str, alias: str, item_id: str) -> bo
         target, _item = shared_clip(mount, device, alias, item_id)
     except (ValueError, OSError, TypeError, KeyError):
         return False
-    target.unlink()
-    target.with_name(f"{target.name}.json").unlink(missing_ok=True)
+    try:
+        target.unlink()
+        target.with_name(f"{target.name}.json").unlink(missing_ok=True)
+    except OSError:
+        return False
     return True
