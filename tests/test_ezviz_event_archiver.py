@@ -171,3 +171,20 @@ def test_dispatcher_target_runs_in_the_event_loop(monkeypatch) -> None:
     # Home Assistant runs undecorated dispatcher targets in an executor thread,
     # where creating a background task fails.
     assert getattr(env.module.EzvizEventArchiver._on_alarm, "_hass_callback", False)
+
+
+async def test_invalid_vendor_ids_are_skipped_not_reported(monkeypatch, caplog) -> None:
+    env = archiver_env(monkeypatch)
+    with caplog.at_level(logging.WARNING):
+        await env.archiver.archive(live("bad/id"))
+        await env.archiver.archive(live("alarm-2"))
+    assert "unavailable" not in caplog.text
+    assert env.archiver.unavailable is False
+    assert [key[2] for key in env.archive] == ["alarm-2"]
+
+
+async def test_retention_runs_after_the_backfill(monkeypatch) -> None:
+    env = archiver_env(monkeypatch, options={"event_retention_days": 30})
+    env.client.ezviz_alarms.side_effect = [batch([1])]
+    await env.archiver.backfill()
+    env.module.prune_events.assert_called_once()

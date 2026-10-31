@@ -18,7 +18,7 @@ def events_env(monkeypatch, tmp_path, *, enabled=True):
     env = api_env(monkeypatch, SimpleNamespace(ezviz_camera_identity=AsyncMock()))
     module = load(monkeypatch, "event_archive_api")
     storage = sys.modules["custom_components.media_bridge.backup_storage"]
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs")
     monkeypatch.setattr(module, "configured_mount", lambda _entry: tmp_path)
     archive = sys.modules["custom_components.media_bridge.event_archive"]
     for alarm_id, occurred_at, jpeg in (

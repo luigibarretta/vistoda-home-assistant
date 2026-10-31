@@ -40,11 +40,11 @@ def test_missing_mount_and_symlink_escape_do_not_create_outside_directories(monk
     mount, outside = tmp_path / "mount", tmp_path / "outside"
     mount.mkdir()
     outside.mkdir()
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: None)
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: None)
     with pytest.raises(OSError):
         storage.safe_directory(mount, "blink", "front")
     assert list(mount.iterdir()) == []
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs4")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs4")
     (mount / "blink").symlink_to(outside, target_is_directory=True)
     with pytest.raises(OSError):
         storage.safe_directory(mount, "blink", "front")
@@ -67,7 +67,7 @@ async def test_backup_preserves_actual_format_checksum_and_existing_file(
     backup = env.load("recording_backup")
     mount = tmp_path / "mounted"
     mount.mkdir()
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs4")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs4")
     monkeypatch.setattr(backup.shutil, "disk_usage", lambda path: SimpleNamespace(free=10**10))
     payload = b"bounded recording bytes"
     manifest = {
@@ -125,7 +125,7 @@ async def test_options_reconnect_does_not_require_enabling_backup(monkeypatch):
 
 
 def test_readiness_is_redacted_and_reports_space(monkeypatch):
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "cifs")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "cifs")
     monkeypatch.setattr(storage.os, "access", lambda *args: True)
     monkeypatch.setattr(storage.shutil, "disk_usage", lambda path: SimpleNamespace(free=100))
     result = storage.storage_readiness(Path("/media/private_house"))
@@ -137,7 +137,7 @@ def test_readiness_is_redacted_and_reports_space(monkeypatch):
 async def test_invalid_stream_never_commits_a_backup(monkeypatch, tmp_path, fault):
     env = framework(monkeypatch)
     backup = env.load("recording_backup")
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs4")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs4")
     monkeypatch.setattr(backup.shutil, "disk_usage", lambda path: SimpleNamespace(free=10**10))
     payload = b"recording data"
     manifest = {

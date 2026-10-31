@@ -29,7 +29,7 @@ def worker_fixture(monkeypatch, tmp_path, pages):
     env.load("recording_backup")
     local = env.load("blink_local_auto_backup")
     module = env.load("blink_usb_auto_backup")
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs4")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs4")
     monkeypatch.setattr(module, "storage_readiness", lambda mount: {"ready": True})
     monkeypatch.setattr(module, "configured_mount", lambda entry: tmp_path)
 

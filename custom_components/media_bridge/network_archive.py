@@ -17,7 +17,7 @@ PROVIDERS = ("blink-usb", "blink", "ezviz")
 
 def checked_file(mount: Path, relative: str, *, checksum=False):
     """Never traverse a symlink, local fallback or unowned backup subtree."""
-    if not SAFE_PATH.fullmatch(relative) or network_filesystem(mount) is None:
+    if not SAFE_PATH.fullmatch(relative) or network_filesystem(mount, writable=False) is None:
         raise ValueError("network archive unavailable")
     target = mount
     for part in Path(relative).parts:
@@ -80,7 +80,7 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
 
 
 def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=None):
-    if network_filesystem(mount) is None:
+    if network_filesystem(mount, writable=False) is None:
         raise ValueError("network mount missing")
     items, cameras, scanned = [], set(), 0
     for provider in PROVIDERS:

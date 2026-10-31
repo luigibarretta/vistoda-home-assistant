@@ -157,7 +157,7 @@ def _atomic_write(path: Path, data: bytes) -> None:
 
 
 def _camera_directory(mount: Path, provider: str, camera: str) -> Path | None:
-    if backup_storage.network_filesystem(mount) is None:
+    if backup_storage.network_filesystem(mount, writable=False) is None:
         raise ValueError("network mount missing")
     current = mount
     for part in (ROOT, provider, camera):

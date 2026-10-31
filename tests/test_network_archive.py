@@ -12,7 +12,7 @@ from release_flow_support import framework
 
 def fixture(monkeypatch, tmp_path):
     module = framework(monkeypatch).load("network_archive")
-    monkeypatch.setattr(module, "network_filesystem", lambda path: "nfs")
+    monkeypatch.setattr(module, "network_filesystem", lambda path, **_: "nfs")
     root = tmp_path / "blink-usb" / "Kitchen"
     root.mkdir(parents=True)
     for number in range(1, 14):
@@ -68,7 +68,7 @@ def test_reject_traversal_symlink_and_absent_mount(monkeypatch, tmp_path):
     target.symlink_to(tmp_path / "blink-usb/Kitchen/1-2.mp4")
     with pytest.raises(ValueError, match="unsafe backup path"):
         module.checked_file(tmp_path, "blink-usb/Kitchen/1-1.mp4")
-    monkeypatch.setattr(module, "network_filesystem", lambda path: None)
+    monkeypatch.setattr(module, "network_filesystem", lambda path, **_: None)
     with pytest.raises(ValueError, match="network mount missing"):
         module.inventory(tmp_path, 1, 10)
 

@@ -13,7 +13,7 @@ JPEG = b"\xff\xd8\xff\xe0jpeg\xff\xd9"
 def archive(monkeypatch):
     module = framework(monkeypatch).load("event_archive")
     storage = sys.modules["custom_components.media_bridge.backup_storage"]
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: "nfs")
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs")
     return module
 
 
@@ -112,7 +112,7 @@ def test_prune_removes_only_old_events(monkeypatch, tmp_path):
 def test_absent_mount_is_an_error(monkeypatch, tmp_path):
     module = archive(monkeypatch)
     storage = sys.modules["custom_components.media_bridge.backup_storage"]
-    monkeypatch.setattr(storage, "network_filesystem", lambda path: None)
+    monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: None)
     with pytest.raises(OSError):
         module.write_event(tmp_path, "ezviz", "front-door", alarm("evt-1", DAY), None)
     with pytest.raises(ValueError):

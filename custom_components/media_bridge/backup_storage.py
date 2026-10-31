@@ -42,22 +42,30 @@ def provider_entry(hass, provider, entry_id=""):
     return entries[0]
 
 
-def network_filesystem(path: Path) -> str | None:
-    """Require the exact mounted destination; reject local folders and symlinks."""
+def network_filesystem(path: Path, *, writable: bool = True) -> str | None:
+    """Require the exact mounted destination; reject local folders and symlinks.
+
+    Writes need a read-write mount; listings and downloads also accept read-only.
+    """
     if path.is_symlink() or path.resolve() != path or not path.is_mount():
         return None
-    escaped = str(path).replace("\\", "\\134").replace(" ", "\\040")
     try:
         mounts = Path("/proc/self/mounts").read_text(encoding="utf-8")
     except OSError:
         return None
+    return mount_filesystem(mounts, str(path), writable=writable)
+
+
+def mount_filesystem(mounts: str, path: str, *, writable: bool = True) -> str | None:
+    """Network filesystem type of `path` in a /proc/self/mounts listing, else None."""
+    escaped = path.replace("\\", "\\134").replace(" ", "\\040")
     for line in mounts.splitlines():
         fields = line.split()
         if (
             len(fields) >= 4
             and fields[1] == escaped
             and fields[2] in NETWORK_FILESYSTEMS
-            and "rw" in fields[3].split(",")
+            and (not writable or "rw" in fields[3].split(","))
         ):
             return fields[2]
     return None

@@ -22,7 +22,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .backup_storage import configured_mount
 from .const import CONF_EVENT_ARCHIVE, CONF_EVENT_RETENTION_DAYS, ezviz_alarm_signal
 from .errors import BridgeError
-from .event_archive import has_event, prune_events, write_event
+from .event_archive import SAFE_ID, has_event, prune_events, write_event
 
 _LOGGER = logging.getLogger(__name__)
 PROVIDER = "ezviz"
@@ -75,7 +75,7 @@ class EzvizEventArchiver:
 
     async def archive(self, data: dict[str, Any]) -> None:
         """Archive one published alarm with its picture when it has one."""
-        if self.enabled:
+        if self.enabled and _archivable(data["alarm_id"]):
             jpeg = await self._picture(data["alarm_id"]) if data.get("picture") else None
             await self._write(data, jpeg)
 
@@ -85,6 +85,7 @@ class EzvizEventArchiver:
             return
         async with self._backfilling:
             await self._walk_history()
+        await self.prune()
 
     async def _walk_history(self) -> None:
         before = None
@@ -98,6 +99,8 @@ class EzvizEventArchiver:
             except BridgeError:
                 return
             for alarm in sorted(batch.events, key=lambda event: event.occurred_at, reverse=True):
+                if not _archivable(alarm.alarm_id):
+                    continue
                 archived = await self._archived(alarm)
                 if archived is None:  # mount unavailable: retry on the next trigger
                     return
@@ -175,3 +178,11 @@ def _record(alarm) -> dict[str, Any]:
         "alarm_type": alarm.alarm_type,
         "title": alarm.title,
     }
+
+
+def _archivable(alarm_id: str) -> bool:
+    """Vendor ids outside the archive's name rules are skipped, not an outage."""
+    if SAFE_ID.fullmatch(alarm_id):
+        return True
+    _LOGGER.debug("Skipping an EZVIZ alarm whose id cannot name an archive file")
+    return False
