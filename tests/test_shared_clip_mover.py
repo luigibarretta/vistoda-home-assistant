@@ -81,3 +81,58 @@ async def test_nothing_moves_without_sharing(monkeypatch, tmp_path):
     mover, client, _shared = mover_env(monkeypatch, tmp_path, destination="vistoda")
     await mover.run()
     client.provider_recordings.assert_not_awaited()
+
+
+async def test_an_existing_verified_copy_is_not_downloaded_again(monkeypatch, tmp_path):
+    mover, client, shared = mover_env(monkeypatch, tmp_path)
+    await mover.run()
+    client.delete_provider_recording.reset_mock()
+    client.open_provider_recording.reset_mock()
+    sidecar = shared / "spioncino" / f"{NAME}.json"
+    before = sidecar.stat().st_mtime_ns
+    await mover.run()
+    client.open_provider_recording.assert_not_awaited()
+    client.delete_provider_recording.assert_awaited_once_with(ID)
+    assert sidecar.stat().st_mtime_ns == before, "an existing sidecar is not rewritten"
+
+
+async def test_a_different_existing_copy_keeps_the_bridge_copy(monkeypatch, tmp_path):
+    mover, client, shared = mover_env(monkeypatch, tmp_path)
+    (shared / "spioncino" / NAME).write_bytes(b"another clip")
+    await mover.run()
+    assert (shared / "spioncino" / NAME).read_bytes() == b"another clip"
+    client.delete_provider_recording.assert_not_awaited()
+
+
+async def test_a_failed_bridge_delete_backs_off(monkeypatch, tmp_path):
+    mover, client, _shared = mover_env(monkeypatch, tmp_path)
+    client.delete_provider_recording.side_effect = OSError("bridge busy")
+    await mover.run()
+    await mover.run()
+    assert client.delete_provider_recording.await_count == 1
+
+
+async def test_a_broken_stream_leaves_no_file(monkeypatch, tmp_path):
+    mover, client, shared = mover_env(monkeypatch, tmp_path)
+
+    async def broken(_size):
+        yield MEDIA[:10]
+        raise OSError("connection reset")
+
+    client.open_provider_recording.return_value.content.iter_chunked = broken
+    await mover.run()
+    assert sorted(path.name for path in (shared / "spioncino").iterdir()) == []
+    client.delete_provider_recording.assert_not_awaited()
+
+
+async def test_overlapping_movers_share_one_verified_copy(monkeypatch, tmp_path):
+    import asyncio
+
+    first, client, shared = mover_env(monkeypatch, tmp_path)
+    second = type(first)(first.hass, first.entry, client)
+    client.open_provider_recording.side_effect = lambda _id: Upstream(MEDIA)
+    await asyncio.gather(first.run(), second.run())
+    assert (shared / "spioncino" / NAME).read_bytes() == MEDIA
+    assert [
+        path.name for path in (shared / "spioncino").iterdir() if path.name.startswith(".")
+    ] == []

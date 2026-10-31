@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -133,11 +134,11 @@ async def _backup(
         )
         if existing:
             await hass.async_add_executor_job(
-                _write_metadata, target, _metadata(provider, manifest)
+                _ensure_metadata, target, _metadata(provider, manifest)
             )
             return {"status": "existing", "relative_path": str(target.relative_to(mount))}
-        partial = target.with_name(f".{target.name}.partial")
-        handle = await hass.async_add_executor_job(_open_partial, partial)
+        # A partial private to this copy: concurrent copies never share one.
+        handle, partial = await hass.async_add_executor_job(_open_private_partial, target)
         digest = hashlib.sha256()
         written = 0
         try:
@@ -188,6 +189,19 @@ def _is_nfs_mount(path: Path) -> bool:
 
 def _open_partial(path: Path):
     return path.open("xb")
+
+
+def _open_private_partial(target: Path):
+    descriptor, name = tempfile.mkstemp(
+        prefix=f".{target.name}.", suffix=".partial", dir=target.parent
+    )
+    return os.fdopen(descriptor, "wb"), Path(name)
+
+
+def _ensure_metadata(target: Path, metadata: dict[str, Any]) -> None:
+    """Write the sidecar of an existing copy only when it is missing."""
+    if not target.with_suffix(f"{target.suffix}.json").exists():
+        _write_metadata(target, metadata)
 
 
 def _commit(handle, partial: Path, target: Path, metadata: dict[str, Any]) -> None:
