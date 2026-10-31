@@ -101,12 +101,20 @@ def recording_span(recording: dict) -> list[int] | None:
     return [start, start + int(duration)]
 
 
-def inventory(mount: Path, page: int, page_size: int, camera: str = "", members=None, extra=()):
-    """One page of verified copies, newest first; `extra` items join before paging."""
+def inventory(
+    mount: Path,
+    page: int,
+    page_size: int,
+    camera: str = "",
+    members=None,
+    extra=(),
+    providers=PROVIDERS,
+):
+    """One page of verified copies of `providers`, newest first; `extra` joins before paging."""
     if network_filesystem(mount, writable=False) is None:
         raise ValueError("network mount missing")
     items, cameras, scanned, found = [], set(), 0, list(extra)
-    for provider in PROVIDERS:
+    for provider in providers:
         root = mount / provider
         if root.is_symlink() or not root.is_dir():
             continue

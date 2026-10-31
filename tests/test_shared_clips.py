@@ -79,7 +79,9 @@ async def test_archive_delete_requires_admin_and_reports_failures(monkeypatch, t
         return function(*args)
 
     hass.async_add_executor_job = executor
-    monkeypatch.setattr(module, "delete_copy", lambda _mount, _shared, item: item == "keep")
+    monkeypatch.setattr(
+        module, "delete_copy", lambda _mount, _shared, item, _providers: item == "keep"
+    )
     connection = SimpleNamespace(user=SimpleNamespace(is_admin=False), send_error=Mock(),
                                  send_result=Mock())  # fmt: skip
     message = {"id": 1, "entry_id": "e", "ids": ["keep", "gone"]}
@@ -88,3 +90,15 @@ async def test_archive_delete_requires_admin_and_reports_failures(monkeypatch, t
     connection.user.is_admin = True
     await module.ws_delete(hass, connection, message)
     assert connection.send_result.call_args.args[1] == {"deleted": 1, "failed": ["gone"]}
+
+
+def test_an_entry_sees_and_deletes_only_its_own_providers_copies(monkeypatch, tmp_path):
+    module = ws_module(monkeypatch)
+    blink = SimpleNamespace(data={"provider": "blink"})
+    ezviz = SimpleNamespace(data={"provider": "ezviz"})
+    assert module.entry_providers(ezviz) == ("ezviz",)
+    assert module.entry_providers(blink) == ("blink-usb", "blink")
+    archive = __import__("sys").modules["custom_components.media_bridge.network_archive"]
+    monkeypatch.setattr(archive, "network_filesystem", lambda path, **_: "nfs")
+    assert archive.inventory(tmp_path, 1, 10, providers=("ezviz",))["items"] == []
+    assert not module.delete_copy(tmp_path, None, "blink/Kitchen/1-1.mp4", ("ezviz",))

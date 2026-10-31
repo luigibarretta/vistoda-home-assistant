@@ -65,7 +65,14 @@ async def ws_inventory(hass, connection, msg):
         shared = shared_location(entry)
         extra = await hass.async_add_executor_job(shared_inventory, *shared) if shared else ()
         result = await hass.async_add_executor_job(
-            inventory, mount, msg["page"], msg["page_size"], msg["camera"], members, extra
+            inventory,
+            mount,
+            msg["page"],
+            msg["page_size"],
+            msg["camera"],
+            members,
+            extra,
+            entry_providers(entry),
         )
         for item in result["items"]:
             item["media_path"] = (
@@ -101,13 +108,23 @@ async def ws_delete(hass, connection, msg):
         connection.send_error(msg["id"], "not_found", "Unknown archive entry")
         return
     mount, shared = configured_mount(entry), shared_location(entry)
+    providers = entry_providers(entry)
     deleted, failed = 0, []
     for item_id in msg["ids"]:
-        if await hass.async_add_executor_job(delete_copy, mount, shared, item_id):
+        if await hass.async_add_executor_job(delete_copy, mount, shared, item_id, providers):
             deleted += 1
         else:
             failed.append(item_id)
     connection.send_result(msg["id"], {"deleted": deleted, "failed": failed})
+
+
+# Copy folders each entry owns on the network archive.
+ENTRY_PROVIDERS = {"blink": ("blink-usb", "blink"), PROVIDER_EZVIZ: (PROVIDER_EZVIZ,)}
+
+
+def entry_providers(entry) -> tuple[str, ...]:
+    """The copy folders of this entry's provider: never another provider's copies."""
+    return ENTRY_PROVIDERS[entry.data[CONF_PROVIDER]]
 
 
 def shared_location(entry) -> tuple | None:
@@ -119,10 +136,12 @@ def shared_location(entry) -> tuple | None:
     return mount, entry.options.get(CONF_SCENETROVE_DEVICE) or alias, alias
 
 
-def delete_copy(mount, shared, item_id: str) -> bool:
-    """Delete one verified copy and its sidecar; False when refused or absent."""
+def delete_copy(mount, shared, item_id: str, providers: tuple[str, ...]) -> bool:
+    """Delete one verified copy of `providers` and its sidecar; False when refused or absent."""
     if item_id.startswith(SHARED_PREFIX):
         return bool(shared) and delete_shared_clip(*shared, item_id)
+    if item_id.split("/", 1)[0] not in providers:
+        return False
     try:
         target, _item = checked_file(mount, item_id)
         target.unlink()
@@ -152,6 +171,8 @@ class NetworkBackupMedia(HomeAssistantView):
             def verify():
                 if relative.startswith(SHARED_PREFIX) and shared:
                     return shared_clip(*shared, relative, checksum=True)
+                if relative.split("/", 1)[0] not in entry_providers(entry):
+                    raise ValueError("another provider's copy")
                 return checked_file(mount, relative, checksum=True)
 
             target, item = await hass.async_add_executor_job(verify)
