@@ -155,3 +155,13 @@ async def test_shared_clips_are_readable_like_other_archive_files(monkeypatch, t
     mover, _client, shared = mover_env(monkeypatch, tmp_path)
     await mover.run()
     assert oct((shared / "spioncino" / NAME).stat().st_mode & 0o777) == "0o644"
+
+
+async def test_the_rename_is_flushed_before_the_bridge_copy_goes(monkeypatch, tmp_path):
+    mover, client, shared = mover_env(monkeypatch, tmp_path)
+    backup = __import__("sys").modules["custom_components.media_bridge.recording_backup"]
+    flushed = []
+    monkeypatch.setattr(backup, "fsync_directory", flushed.append)
+    await mover.run()
+    assert shared / "spioncino" in flushed
+    client.delete_provider_recording.assert_awaited_once_with(ID)

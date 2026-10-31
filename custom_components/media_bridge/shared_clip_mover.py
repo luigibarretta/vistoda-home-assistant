@@ -16,9 +16,10 @@ from aiohttp import ClientError
 
 from .backup_storage import safe_directory, storage_mount
 from .const import CONF_ALIAS, CONF_SCENETROVE_DEVICE, CONF_SHARED_STORAGE, PROVIDER_EZVIZ
+from .durable_files import ensure_sidecar
 from .errors import BridgeError
 from .network_archive import verified
-from .recording_backup import _backup, _ensure_metadata, _metadata, _prepare, _validate
+from .recording_backup import _backup, _metadata, _prepare, _validate
 from .shared_archive import shared_clip_name, sharing
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ class SharedClipMover:
             )
             if existing:
                 metadata = _metadata(PROVIDER_EZVIZ, manifest)
-                await self.hass.async_add_executor_job(_ensure_metadata, target, metadata)
+                await self.hass.async_add_executor_job(ensure_sidecar, target, metadata)
             else:
                 upstream = await self.client.open_provider_recording(recording_id)
                 await _backup(self.hass, PROVIDER_EZVIZ, manifest, upstream, mount, target)

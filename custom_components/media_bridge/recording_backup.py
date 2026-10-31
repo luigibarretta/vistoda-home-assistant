@@ -2,11 +2,9 @@
 
 import asyncio
 import hashlib
-import json
 import os
 import re
 import shutil
-import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +23,8 @@ from .backup_storage import (
     storage_mount,
 )
 from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
+from .durable_files import ensure_sidecar, fsync_directory, open_private_partial
+from .durable_files import write_sidecar as _write_metadata
 from .ezviz_binding import async_verify_native
 from .runtime import runtime_for
 
@@ -133,12 +133,10 @@ async def _backup(
             _prepare, provider, manifest, mount, target
         )
         if existing:
-            await hass.async_add_executor_job(
-                _ensure_metadata, target, _metadata(provider, manifest)
-            )
+            await hass.async_add_executor_job(ensure_sidecar, target, _metadata(provider, manifest))
             return {"status": "existing", "relative_path": str(target.relative_to(mount))}
         # A partial private to this copy: concurrent copies never share one.
-        handle, partial = await hass.async_add_executor_job(_open_private_partial, target)
+        handle, partial = await hass.async_add_executor_job(open_private_partial, target)
         digest = hashlib.sha256()
         written = 0
         try:
@@ -192,37 +190,13 @@ def _open_partial(path: Path):
     return path.open("xb")
 
 
-def _open_private_partial(target: Path):
-    descriptor, name = tempfile.mkstemp(
-        prefix=f".{target.name}.", suffix=".partial", dir=target.parent
-    )
-    os.fchmod(descriptor, 0o644)  # like other archive files: mkstemp creates 0600
-    return os.fdopen(descriptor, "wb"), Path(name)
-
-
-def _ensure_metadata(target: Path, metadata: dict[str, Any]) -> None:
-    """Write the sidecar of an existing copy only when it is missing."""
-    if not target.with_suffix(f"{target.suffix}.json").exists():
-        _write_metadata(target, metadata)
-
-
 def _commit(handle, partial: Path, target: Path, metadata: dict[str, Any]) -> None:
     handle.flush()
     os.fsync(handle.fileno())
     handle.close()
     partial.replace(target)
     _write_metadata(target, metadata)
-
-
-def _write_metadata(target: Path, metadata: dict[str, Any]) -> None:
-    sidecar = target.with_suffix(f"{target.suffix}.json")
-    temporary = sidecar.with_name(f".{sidecar.name}.partial")
-    temporary.unlink(missing_ok=True)
-    with temporary.open("x", encoding="utf-8") as stream:
-        json.dump(metadata, stream, sort_keys=True, separators=(",", ":"))
-        stream.flush()
-        os.fsync(stream.fileno())
-    temporary.replace(sidecar)
+    fsync_directory(target.parent)
 
 
 def _discard(handle, partial: Path) -> None:
