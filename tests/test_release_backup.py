@@ -177,5 +177,7 @@ def test_readiness_measures_the_folder_it_writes_to(monkeypatch, tmp_path):
     folder.mkdir()
     monkeypatch.setattr(storage, "network_filesystem", lambda path, **_: "nfs")
     sizes = {tmp_path: 16 * 1024 * 1024, folder: 40 * 1024**3}
-    monkeypatch.setattr(storage.shutil, "disk_usage", lambda path: SimpleNamespace(free=sizes[path]))
+    monkeypatch.setattr(
+        storage.shutil, "disk_usage", lambda path: SimpleNamespace(free=sizes[path])
+    )
     assert storage.storage_readiness(tmp_path, folder)["reason"] == "ready"
