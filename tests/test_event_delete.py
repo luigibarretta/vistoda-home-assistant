@@ -27,7 +27,11 @@ async def test_deleted_events_leave_every_folder(monkeypatch, tmp_path) -> None:
     folder = tmp_path / "events" / "ezviz" / "front-door" / "2026" / "10"
     await delete(env, [EVENT, OTHER])
     assert env.connection.send_result.call_args.args[1] == {"deleted": 2, "failed": []}
-    assert not any(folder.iterdir())
+    # Only the deletion markers stay, so a backfill does not archive them again.
+    assert sorted(path.name for path in folder.iterdir()) == [
+        f"{EVENT}.deleted",
+        f"{OTHER}.deleted",
+    ]
 
 
 async def test_delete_refuses_paths_outside_the_camera(monkeypatch, tmp_path) -> None:

@@ -29,6 +29,8 @@ MAX_SCANNED = 200_000
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,96}$")
 EVENT_NAME = re.compile(r"^(\d{4})(\d{2})\d{2}T\d{6}Z-[A-Za-z0-9_-]{1,96}$")
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# Left by a deletion so a backfill never archives the event again; never pruned.
+DELETED = ".deleted"
 
 
 def event_id(occurred_at: int, alarm_id: str) -> str:
@@ -69,12 +71,13 @@ def write_event(where: EventFolder, alarm: dict[str, Any], jpeg: bytes | None) -
 
 
 def has_event(folders: Sequence[EventFolder], occurred_at: int, alarm_id: str) -> bool:
-    """Whether this alarm is archived in any folder (no listing, no directory created)."""
+    """Whether this alarm is archived, or was deleted, in any folder (no listing)."""
     name = event_id(occurred_at, alarm_id)
     moment = datetime.fromtimestamp(occurred_at, UTC)
     return any(
-        regular_file(directory, f"{moment:%Y}", f"{moment:%m}", f"{name}.json") is not None
+        regular_file(directory, f"{moment:%Y}", f"{moment:%m}", f"{name}{suffix}") is not None
         for _folder, directory in directories(folders)
+        for suffix in (".json", DELETED)
     )
 
 
@@ -122,16 +125,22 @@ def event_picture(folders: Sequence[EventFolder], event: str) -> Path:
 
 
 def delete_event(folders: Sequence[EventFolder], event: str) -> bool:
-    """Delete one archived event (JSON and picture) from every folder; False when absent."""
+    """Delete one of this camera's archived events from every folder, leaving a marker.
+
+    False when absent; a record of another camera sharing the folder is kept.
+    """
     match = EVENT_NAME.fullmatch(event)
     if match is None:
         return False
     removed = False
-    for _folder, directory in directories(folders):
-        for suffix in (".jpg", ".json"):
-            if (path := regular_file(directory, *match.groups(), f"{event}{suffix}")) is not None:
-                path.unlink()
-                removed = True
+    for folder, directory in directories(folders):
+        record = regular_file(directory, *match.groups(), f"{event}.json")
+        if record is None or _read(record, folder) is None:
+            continue
+        record.with_suffix(".jpg").unlink(missing_ok=True)
+        _atomic_write(record.with_suffix(DELETED), b"")
+        record.unlink()
+        removed = True
     return removed
 
 
@@ -139,8 +148,8 @@ def prune_events(folders: Sequence[EventFolder], older_than: int) -> int:
     """Delete archived events (JSON and picture) older than `older_than`, by name."""
     cutoff = f"{datetime.fromtimestamp(older_than, UTC):%Y%m%dT%H%M%SZ}"
     removed = 0
-    for _folder, path in _event_paths(folders):
-        if path.stem[:16] < cutoff:
+    for folder, path in _event_paths(folders):
+        if path.stem[:16] < cutoff and _read(path, folder) is not None:
             path.with_suffix(".jpg").unlink(missing_ok=True)
             path.unlink(missing_ok=True)
             removed += 1

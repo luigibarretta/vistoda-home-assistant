@@ -61,3 +61,23 @@ def test_without_sharing_only_the_vistoda_folder_is_used(monkeypatch, tmp_path):
     plain = SimpleNamespace(data={"provider": "ezviz", "alias": "front-door"}, options={})
     (only,) = shared.event_folders(plain)
     assert only.parts == ("events", "ezviz", "front-door")
+
+
+def test_deleted_events_are_not_archived_again(monkeypatch, tmp_path):
+    module, (shared, vistoda) = folders(monkeypatch, tmp_path, "shared")
+    module.write_event(shared, alarm("evt-1", DAY), JPEG)
+    assert module.delete_event((shared, vistoda), "20261028T190000Z-evt-1")
+    assert module.has_event((shared, vistoda), DAY, "evt-1"), "a backfill must skip it"
+    assert module.list_events((shared, vistoda), 1, 10)["items"] == []
+    module.prune_events((shared, vistoda), older_than=DAY + 86_400)
+    assert module.has_event((shared, vistoda), DAY, "evt-1"), "retention keeps the marker"
+
+
+def test_another_cameras_shared_events_are_left_alone(monkeypatch, tmp_path):
+    module, (shared, _vistoda) = folders(monkeypatch, tmp_path, "shared")
+    other = module.shared_folder(shared.mount, "spioncino", "ezviz", "back-door")
+    module.write_event(other, alarm("theirs", DAY), JPEG)
+    assert not module.delete_event((shared,), "20261028T190000Z-theirs")
+    assert module.prune_events((shared,), older_than=DAY + 86_400) == 0
+    assert module.has_event((other,), DAY, "theirs")
+    assert module.list_events((other,), 1, 10)["pagination"]["total_items"] == 1
