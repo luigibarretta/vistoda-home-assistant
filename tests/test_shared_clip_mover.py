@@ -149,3 +149,9 @@ async def test_headroom_is_measured_in_the_device_folder(monkeypatch, tmp_path):
     await mover.run()
     assert (shared / "spioncino" / NAME).read_bytes() == MEDIA
     client.delete_provider_recording.assert_awaited_once_with(ID)
+
+
+async def test_shared_clips_are_readable_like_other_archive_files(monkeypatch, tmp_path):
+    mover, _client, shared = mover_env(monkeypatch, tmp_path)
+    await mover.run()
+    assert oct((shared / "spioncino" / NAME).stat().st_mode & 0o777) == "0o644"

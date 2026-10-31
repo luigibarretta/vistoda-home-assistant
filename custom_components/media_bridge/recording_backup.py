@@ -196,6 +196,7 @@ def _open_private_partial(target: Path):
     descriptor, name = tempfile.mkstemp(
         prefix=f".{target.name}.", suffix=".partial", dir=target.parent
     )
+    os.fchmod(descriptor, 0o644)  # like other archive files: mkstemp creates 0600
     return os.fdopen(descriptor, "wb"), Path(name)
 
 
