@@ -81,3 +81,10 @@ def test_another_cameras_shared_events_are_left_alone(monkeypatch, tmp_path):
     assert module.prune_events((shared,), older_than=DAY + 86_400) == 0
     assert module.has_event((other,), DAY, "theirs")
     assert module.list_events((other,), 1, 10)["pagination"]["total_items"] == 1
+
+
+def test_event_files_are_readable_by_scenetrove(monkeypatch, tmp_path):
+    module, (shared, _vistoda) = folders(monkeypatch, tmp_path, "shared")
+    module.write_event(shared, alarm("evt-1", DAY), JPEG)
+    folder = tmp_path / "scenetrove_devices" / "spioncino" / "_events" / "2026" / "10"
+    assert {oct(path.stat().st_mode & 0o777) for path in folder.iterdir()} == {"0o644"}

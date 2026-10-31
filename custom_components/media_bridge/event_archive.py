@@ -163,6 +163,8 @@ def _atomic_write(path: Path, data: bytes) -> None:
     )
     try:
         with os.fdopen(descriptor, "wb") as stream:
+            # Readable by SceneTrove, which serves the shared folder's events.
+            os.fchmod(stream.fileno(), 0o644)
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())

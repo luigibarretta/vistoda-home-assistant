@@ -133,13 +133,15 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
         """Store the clip destination; sharing needs SceneTrove and ready storage."""
         destination = user_input.get(CONF_CLIP_DESTINATION, CLIP_DESTINATIONS[0])
         storage = user_input.get(CONF_SHARED_STORAGE, "").strip()
-        if destination == "shared":
-            if not options[CONF_SCENETROVE_URL]:
-                return "shared_needs_scenetrove"
+        if destination == "shared" and not options[CONF_SCENETROVE_URL]:
+            return "shared_needs_scenetrove"
+        if storage or destination == "shared":
+            # Shared events are read in any mode, so a name is checked whenever set.
             try:
                 mount = storage_mount(storage)
             except ValueError:
                 return "invalid_storage_name"
+        if destination == "shared":
             readiness = await self.hass.async_add_executor_job(storage_readiness, mount)
             if not readiness["ready"]:
                 return readiness["reason"]

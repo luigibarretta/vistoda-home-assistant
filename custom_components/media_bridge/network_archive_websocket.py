@@ -8,19 +8,24 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import callback
 
-from .backup_storage import archive_entry, configured_mount, storage_mount, storage_readiness
+from .backup_storage import archive_entry, configured_mount, storage_readiness
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
 from .const import (
     CONF_ALIAS,
     CONF_PROVIDER,
     CONF_SCENETROVE_DEVICE,
-    CONF_SHARED_STORAGE,
     PROVIDER_EZVIZ,
 )
 from .network_archive import checked_file, inventory
 from .provider_recording_lists import async_get_provider_recording_lists
 from .runtime import entry_runtime
-from .shared_archive import SHARED_PREFIX, delete_shared_clip, shared_clip, shared_inventory
+from .shared_archive import (
+    SHARED_PREFIX,
+    delete_shared_clip,
+    shared_clip,
+    shared_inventory,
+    shared_mount,
+)
 
 
 @callback
@@ -107,11 +112,11 @@ async def ws_delete(hass, connection, msg):
 
 def shared_location(entry) -> tuple | None:
     """(mount, device, alias) of an EZVIZ entry's shared SceneTrove folder, when set."""
-    storage = entry.options.get(CONF_SHARED_STORAGE)
-    if entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ or not storage:
+    mount = shared_mount(entry)
+    if entry.data.get(CONF_PROVIDER) != PROVIDER_EZVIZ or mount is None:
         return None
     alias = entry.data[CONF_ALIAS]
-    return storage_mount(storage), entry.options.get(CONF_SCENETROVE_DEVICE) or alias, alias
+    return mount, entry.options.get(CONF_SCENETROVE_DEVICE) or alias, alias
 
 
 def delete_copy(mount, shared, item_id: str) -> bool:

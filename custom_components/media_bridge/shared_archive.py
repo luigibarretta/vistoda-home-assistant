@@ -41,10 +41,20 @@ def shared_clip_name(recording: dict) -> str | None:
     return f"hiv{stamp}-{recording['recording_id']}.mpegps"
 
 
+def shared_mount(entry) -> Path | None:
+    """The network storage holding SceneTrove's device folders, when validly set."""
+    try:
+        return storage_mount(entry.options[CONF_SHARED_STORAGE])
+    except (KeyError, ValueError):
+        return None
+
+
 def sharing(entry) -> bool:
     """Whether the entry writes its clips and events into SceneTrove's folder."""
-    return entry.options.get(CONF_CLIP_DESTINATION) == "shared" and bool(
-        entry.options.get(CONF_SCENETROVE_URL) and entry.options.get(CONF_SHARED_STORAGE)
+    return (
+        entry.options.get(CONF_CLIP_DESTINATION) == "shared"
+        and bool(entry.options.get(CONF_SCENETROVE_URL))
+        and shared_mount(entry) is not None
     )
 
 
@@ -56,11 +66,11 @@ def event_folders(entry) -> tuple[EventFolder, ...]:
     """
     alias = entry.data[CONF_ALIAS]
     vistoda = vistoda_folder(configured_mount(entry), PROVIDER_EZVIZ, alias)
-    storage = entry.options.get(CONF_SHARED_STORAGE)
-    if not storage:
+    mount = shared_mount(entry)
+    if mount is None:
         return (vistoda,)
     device = entry.options.get(CONF_SCENETROVE_DEVICE) or alias
-    shared = shared_folder(storage_mount(storage), device, PROVIDER_EZVIZ, alias)
+    shared = shared_folder(mount, device, PROVIDER_EZVIZ, alias)
     return (shared, vistoda) if sharing(entry) else (vistoda, shared)
 
 

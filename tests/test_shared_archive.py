@@ -36,3 +36,23 @@ async def test_shared_mode_needs_a_link_and_ready_storage(monkeypatch):
     assert saved["data"]["shared_storage"] == "scenetrove_devices"
     missing = await options_flow(monkeypatch, ready=False).async_step_init({**LINKED, **shared})
     assert missing["errors"] == {"base": "network_mount_missing"}
+
+
+async def test_an_invalid_shared_storage_is_refused_in_any_mode(monkeypatch):
+    result = await options_flow(monkeypatch).async_step_init(
+        {**LINKED, "shared_storage": "scenetrove devices"}
+    )
+    assert result["errors"] == {"base": "invalid_storage_name"}
+
+
+def test_a_stored_invalid_shared_storage_falls_back_to_the_vistoda_archive(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    module = framework(monkeypatch).load("shared_archive")
+    monkeypatch.setattr(module, "configured_mount", lambda _entry: tmp_path)
+    entry = SimpleNamespace(data={"provider": "ezviz", "alias": "front-door"},
+                            options={"shared_storage": "../etc", "clip_destination": "shared",
+                                     "scenetrove_url": "https://st.example"})  # fmt: skip
+    (only,) = module.event_folders(entry)
+    assert only.parts == ("events", "ezviz", "front-door")
+    assert not module.sharing(entry)
