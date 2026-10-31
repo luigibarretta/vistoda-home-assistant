@@ -14,9 +14,11 @@ all’app. Ogni riga apre il controllo nativo di HA; le impostazioni non esposte
 restano dichiarate non disponibili. Le impostazioni cloud verificate ma omesse
 da HA vengono lette dal coordinator EZVIZ nativo associato esattamente e salvate
 solo dopo conferma amministratore, controllo di concorrenza e verifica
-read-after-write con rollback. Lo swipe non trasforma mai lo snapshot fermo e
-l’intera card della telecamera.
-non aggiorna immagini di altre camere se l’associazione è ambigua. Aprire il
+read-after-write; le scritture delegate non vengono annullate alla cieca. Lo
+swipe non trasforma mai lo snapshot fermo né l’intera card della telecamera.
+Un’installazione con una sola camera e una sola voce resta compatibile; con
+più camere senza alias esatto il pannello non aggiorna immagini di altre camere
+se l’associazione è ambigua. Aprire il
 pannello legge soltanto immagini già salvate, senza risvegliare dispositivi.
 
 ## Italiano e inglese
