@@ -96,7 +96,7 @@ def test_registry_migration_preserves_entity_ids_and_other_entry(monkeypatch):
     env.registry.async_update_entity = Mock()
     original = SimpleNamespace(
         id="shared",
-        config_entries={"a", "b"},
+        config_entry_id="b",
         identifiers={("media_bridge", "ring:entrance")},
         name="Ring",
         name_by_user="Front",

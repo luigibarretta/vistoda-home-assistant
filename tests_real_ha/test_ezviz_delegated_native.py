@@ -90,7 +90,8 @@ async def official(hass, *, poll_applies=True):
 
 def connection():
     return SimpleNamespace(
-        user=SimpleNamespace(is_admin=True),
+        # Mirrors the homeassistant.auth.models.User fields the access checks read.
+        user=SimpleNamespace(is_active=True, is_admin=True),
         send_result=Mock(),
         send_error=Mock(),
         async_handle_exception=Mock(),
@@ -102,6 +103,10 @@ async def call(hass, handler, msg):
     conn = connection()
     handler(hass, conn, {"id": 7, **msg})
     await hass.async_block_till_done(wait_background_tasks=True)
+    # async_response hands handler exceptions to the connection; surface them
+    # instead of letting a mocked handler turn them into "called 0 times".
+    if conn.async_handle_exception.called:
+        raise conn.async_handle_exception.call_args.args[1]
     return conn
 
 

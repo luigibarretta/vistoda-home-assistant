@@ -23,7 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        homeassistant: ["2026.8.0", "2026.9.1"]
+        # Exact pins: the minimum in hacs.json, an intermediate release and the
+        # Core version the homelab runs (ha_core_target_version for iot-01).
+        homeassistant: ["2026.8.0", "2026.9.1", "2026.10.4"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

@@ -49,7 +49,9 @@ def async_migrate_registry(hass, entry) -> None:
     legacy = DOMAIN, f"ezviz:{entry.data[CONF_ALIAS]}"
     device = devices.async_get_device_by_identifier(legacy, entry.entry_id)
     if device is not None:
-        if device.config_entries == {entry.entry_id}:
+        # A device has exactly one config entry since HA 2026.8; the
+        # DeviceEntry.config_entries shim is deprecated from 2026.10.
+        if device.config_entry_id == entry.entry_id:
             devices.async_update_device(
                 device.id,
                 new_identifiers=(device.identifiers - {legacy}) | {device_identifier(entry)},

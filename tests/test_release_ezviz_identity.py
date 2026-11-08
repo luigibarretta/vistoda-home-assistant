@@ -14,7 +14,8 @@ def registry_environment(monkeypatch, shared=False):
     device = SimpleNamespace(
         id="old-device",
         identifiers={("media_bridge", "ezviz:entrance")},
-        config_entries={"entry-a", "other"} if shared else {"entry-a"},
+        # A legacy device not owned by this entry alone stands for a shared one.
+        config_entry_id="other" if shared else "entry-a",
         name_by_user="My camera",
         area_id="hall",
     )

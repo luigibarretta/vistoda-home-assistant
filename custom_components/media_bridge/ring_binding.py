@@ -68,8 +68,9 @@ def async_migrate_registry(hass, entry) -> None:
     if device is None:
         return
     # Older duplicate aliases could share a device. Split only the current entry;
-    # the legacy device and every other entry remain intact.
-    if device.config_entries == {entry.entry_id}:
+    # the legacy device and every other entry remain intact. A device has one
+    # config entry since HA 2026.8 (DeviceEntry.config_entries is deprecated).
+    if device.config_entry_id == entry.entry_id:
         devices.async_update_device(
             device.id, new_identifiers=(device.identifiers - {legacy}) | {device_identifier(entry)}
         )

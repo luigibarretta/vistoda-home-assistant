@@ -56,8 +56,8 @@ Vistoda is not a complete replacement for every vendor app. Keep the official
 apps for account recovery and unsupported administration. Controls that a
 provider or model cannot verify are hidden or disabled.
 
-Home Assistant 2026.8.0 or newer is required. CI also tests 2026.9.1 with real
-Home Assistant imports, config entries, coordinators, registries and config
+Home Assistant 2026.8.0 or newer is required. CI also tests 2026.9.1 and
+2026.10.4 with real Home Assistant imports, config entries, coordinators, registries and config
 flows on Python 3.14.
 
 ## Install on Home Assistant OS
