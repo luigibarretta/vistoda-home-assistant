@@ -40,11 +40,7 @@ a vendor account or network connection.
 
 ```bash
 python -m pip install -e '.[dev]'
-python -m ruff format --check .
-python -m ruff check .
-python -m pytest
-python scripts/check_loc.py
-node --test tests/*.mjs
+node third_party/repo-tooling/ci-local.mjs   # ruff, compile, LOC/NASA ratchets, pytest, node --test
 npm install --no-save --package-lock=false playwright@1.61.1
 npx playwright install chromium firefox webkit
 for engine in chromium firefox webkit; do
@@ -56,32 +52,23 @@ done
 
 ```bash
 python -m pip install '.[dev]'
-python -m ruff format --check .
-python -m ruff check .
-python -m pytest
-python scripts/check_loc.py
-cargo fmt --manifest-path addon/vistoda_blink_engine/Cargo.toml --check
-cargo clippy --manifest-path addon/vistoda_blink_engine/Cargo.toml --all-targets --all-features -- -D warnings
-cargo test --manifest-path addon/vistoda_blink_engine/Cargo.toml
+node third_party/repo-tooling/ci-local.mjs --quick   # Python checks, kit, LOC/NASA, fmt, audit
+node third_party/repo-tooling/ci-local.mjs           # full gate (clippy and tests)
 ```
 
 ### Vistoda Ring
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo test --locked --all-targets
-cargo audit --deny warnings
+node third_party/repo-tooling/ci-local.mjs --quick   # kit, release, LOC/NASA, fmt, audit
+node third_party/repo-tooling/ci-local.mjs           # full gate (clippy and tests)
 docker build -t ring-intercom-bridge:test .
 ```
 
 ### Vistoda EZVIZ
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo test --locked --all-targets
-cargo audit --deny warnings
+node third_party/repo-tooling/ci-local.mjs --quick   # kit, release, LOC/NASA, fmt, audit
+node third_party/repo-tooling/ci-local.mjs           # full gate (clippy and tests)
 docker build -t ezviz-vtm-bridge:test .
 ```
 

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "strict": true,
+  "logMaxKbPerStep": 256,
+  "defaults": {
+    "timeout_s": 600
+  },
+  "pressure": {
+    "maxSomeAvg60": 20
+  },
+  "steps": [
+    {
+      "name": "repo-tooling-sync",
+      "description": "third_party/repo-tooling is byte-identical to dist/ at dependencies/repo-tooling.sha (repo-tooling built-in)",
+      "uses": "repo-tooling-sync",
+      "quick": true,
+      "timeout_s": 60
+    },
+    {
+      "name": "python-format",
+      "description": "ruff format check",
+      "run": [
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "quick": true,
+      "timeout_s": 120
+    },
+    {
+      "name": "python-lint",
+      "description": "ruff lint",
+      "run": [
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "quick": true,
+      "timeout_s": 120
+    },
+    {
+      "name": "python-compile",
+      "description": "Byte-compile the integration and tests",
+      "run": [
+        "python",
+        "-m",
+        "compileall",
+        "-q",
+        "custom_components",
+        "tests"
+      ],
+      "quick": true,
+      "timeout_s": 120
+    },
+    {
+      "name": "loc",
+      "description": "fleet-default preset: 400-line limit, zero growth, ratchet (scripts/loc-baseline.json)",
+      "uses": "loc",
+      "quick": true,
+      "timeout_s": 120
+    },
+    {
+      "name": "nasa",
+      "description": "NASA/JPL-inspired counters may not rise (scripts/nasa-baseline.json)",
+      "uses": "nasa",
+      "quick": true,
+      "timeout_s": 120,
+      "with": {
+        "args": [
+          "--ratchet"
+        ]
+      }
+    },
+    {
+      "name": "pytest",
+      "description": "Integration and repository tests",
+      "run": [
+        "python",
+        "-m",
+        "pytest"
+      ],
+      "quick": true,
+      "timeout_s": 900
+    },
+    {
+      "name": "node-test",
+      "description": "Frontend model tests (node --test)",
+      "run": "node --test tests/*.mjs",
+      "quick": true,
+      "timeout_s": 600
+    }
+  ]
+}

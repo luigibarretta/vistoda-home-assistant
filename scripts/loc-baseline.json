@@ -1,0 +1,28 @@
+{
+  "extends": "fleet-default",
+  "roots": [
+    "."
+  ],
+  "ignore": {
+    "third_party": {
+      "kind": "third_party",
+      "reason": "vendored repo-tooling dist/, byte-verified against dependencies/repo-tooling.sha"
+    },
+    ".ci": {
+      "kind": "third_party",
+      "optional": true,
+      "reason": "pinned repo-tooling checkout that CI uses to verify the vendored copy"
+    },
+    ".venv": {
+      "kind": "third_party",
+      "optional": true,
+      "reason": "local Python virtual environment (gitignored)"
+    },
+    "build": {
+      "kind": "generated",
+      "optional": true,
+      "reason": "setuptools build output (gitignored)"
+    }
+  },
+  "allow": {}
+}

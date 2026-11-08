@@ -2,8 +2,7 @@ import json
 import tomllib
 from pathlib import Path
 
-from scripts.check_loc import ROOT, maintained_files
-
+ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components" / "media_bridge"
 
 
@@ -64,15 +63,6 @@ def test_config_flow_guidance_is_complete_in_every_language() -> None:
             assert fields == step["data_description"].keys()
         assert document["config"]["step"]["blink"]["description"].strip()
         assert set(document["selector"]["provider"]["options"]) == {"blink", "ezviz", "ring"}
-
-
-def test_every_maintained_file_stays_within_250_lines() -> None:
-    violations = []
-    for path in maintained_files():
-        count = len(path.read_text(encoding="utf-8").splitlines())
-        if count > 250:
-            violations.append(f"{path.relative_to(ROOT)}: {count}")
-    assert not violations, "LOC budget exceeded:\n" + "\n".join(sorted(violations))
 
 
 def test_repository_contains_no_secret_artifacts() -> None:

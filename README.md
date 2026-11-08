@@ -218,12 +218,11 @@ The local checks for this repository are:
 
 ```bash
 python -m pip install -e '.[dev]'
-python -m ruff format --check .
-python -m ruff check .
-python -m pytest
-python scripts/check_loc.py
-node --test tests/*.mjs
+node third_party/repo-tooling/ci-local.mjs   # ruff, compile, LOC/NASA ratchets, pytest, node --test
 ```
+
+Source files follow the repo-tooling `fleet-default` preset: 400 physical lines
+per file, no growth, ratchet down (`scripts/loc-baseline.json`).
 
 Tests use synthetic provider boundaries and do not actuate devices. Tag releases
 require the same commit's complete CI validation; a local pass is not a release

@@ -1,6 +1,8 @@
 """Static Ring facade and entity contract checks."""
 
-from scripts.check_loc import ROOT
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
 
 COMPONENT = ROOT / "custom_components" / "media_bridge"
 

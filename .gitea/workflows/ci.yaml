@@ -3,23 +3,31 @@ on:
   push:
     branches: [main]
   pull_request:
+# Quality checks come from ci-local.json through the vendored ci-local runner,
+# the same entry point used before a push
+# (node third_party/repo-tooling/ci-local.mjs); the workflow never repeats a
+# manifest command.
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The repo-tooling-sync step compares third_party/repo-tooling with this
+      # checkout of the commit pinned in dependencies/repo-tooling.sha.
+      - name: Checkout pinned repository tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: luigibarretta/repo-tooling
+          ref: b8ee6b7218d4d01c90403d1d24826006242a6a23
+          path: .ci/repo-tooling
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pip
       - run: python -m pip install pip==26.2.2
       - run: python -m pip install ".[dev]"
-      - run: python -m ruff format --check .
-      - run: python -m ruff check .
-      - run: python -m compileall -q custom_components tests scripts
-      - run: python scripts/check_loc.py
-      - run: python -m pytest
-      - run: node --test tests/*.mjs
+      - name: Vendored tooling, Python checks, LOC and NASA ratchets, tests
+        run: node third_party/repo-tooling/ci-local.mjs --ci --only repo-tooling-sync,python-format,python-lint,python-compile,loc,nasa,pytest,node-test
   secret-scan:
     # Mirrors the GitHub secret-scan job. It runs the gitleaks binary directly so
     # the scan does not depend on GitHub's API; version and checksum are pinned.
