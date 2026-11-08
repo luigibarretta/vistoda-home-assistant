@@ -127,7 +127,13 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                     description={"suggested_value": current.get(CONF_SHARED_STORAGE, "")},
                 )
             ] = str
-        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema), errors=errors)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema),
+            errors=errors,
+            # hassfest rejects URLs inside translation strings.
+            description_placeholders={"scenetrove_example_url": "https://scenetrove.example"},
+        )
 
     async def _shared_options(self, user_input: dict, options: dict) -> str | None:
         """Store the clip destination; sharing needs SceneTrove and ready storage."""
