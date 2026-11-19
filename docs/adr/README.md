@@ -30,5 +30,6 @@
 | [0026](0026-atomic-bulk-provider-list-membership.md) | Atomic bulk list membership for provider archives |
 | [0027](0027-mobile-archive-settings-backups-and-provider-themes.md) | Mobile archive selection, fail-closed Blink settings backups and selectable provider themes |
 | [0028](0028-event-archive.md) | EZVIZ event archive on network storage, retention and the event modal |
+| [0029](0029-scenetrove-microsd-sync-schedule.md) | SceneTrove microSD sync schedule set from the EZVIZ details page with a narrow SceneTrove token |
 
 Accepted ADRs are immutable. A changed decision receives a new superseding ADR.

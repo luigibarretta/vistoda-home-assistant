@@ -3,6 +3,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .backup_storage import (
     CONF_BACKUP_STORAGE,
@@ -19,6 +20,7 @@ from .const import (
     CONF_EVENT_RETENTION_DAYS,
     CONF_PROVIDER,
     CONF_SCENETROVE_DEVICE,
+    CONF_SCENETROVE_TOKEN,
     CONF_SCENETROVE_URL,
     CONF_SHARED_STORAGE,
     PROVIDER_BLINK,
@@ -26,6 +28,8 @@ from .const import (
     PROVIDER_RING,
 )
 from .managed_devices import SAFE_ALIAS
+from .scenetrove_sync import TOKEN as SCENETROVE_TOKEN
+from .scenetrove_sync import verify_sync_token
 
 CONF_AUTO_BACKUP = "blink_usb_auto_backup"
 
@@ -63,8 +67,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                                 errors["base"] = error
             if provider == PROVIDER_EZVIZ and not errors:
                 alias = self.config_entry.data[CONF_ALIAS]
-                if (error := _scenetrove_options(user_input, alias, options)) or (
-                    error := await self._shared_options(user_input, options)
+                if (
+                    (error := _scenetrove_options(user_input, alias, options))
+                    or (error := await self._verify_scenetrove_token(options))
+                    or (error := await self._shared_options(user_input, options))
                 ):
                     errors["base"] = error
             if not errors:
@@ -111,6 +117,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                 (CONF_SCENETROVE_DEVICE, current.get(CONF_SCENETROVE_DEVICE, alias)),
             ):
                 schema[vol.Optional(key, description={"suggested_value": suggested})] = str
+            # Write-only: never suggested back to the browser; empty keeps the saved one.
+            schema[vol.Optional(CONF_SCENETROVE_TOKEN)] = selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            )
             schema[
                 vol.Optional(
                     CONF_CLIP_DESTINATION,
@@ -134,6 +144,18 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
             # hassfest rejects URLs inside translation strings.
             description_placeholders={"scenetrove_example_url": "https://scenetrove.example"},
         )
+
+    async def _verify_scenetrove_token(self, options: dict) -> str | None:
+        """A new token, or the saved one sent to a new address, is stored only
+        when SceneTrove proves it narrow (ADR 0029)."""
+        token = options.get(CONF_SCENETROVE_TOKEN)
+        url = options[CONF_SCENETROVE_URL]
+        saved = self.config_entry.options
+        if not token or (
+            token == saved.get(CONF_SCENETROVE_TOKEN) and url == saved.get(CONF_SCENETROVE_URL)
+        ):
+            return None
+        return await verify_sync_token(async_get_clientsession(self.hass), url, token)
 
     async def _shared_options(self, user_input: dict, options: dict) -> str | None:
         """Store the clip destination; sharing needs SceneTrove and ready storage."""
@@ -172,13 +194,16 @@ def _event_archive_options(user_input: dict, readiness: dict, options: dict) -> 
 
 
 def _scenetrove_options(user_input: dict, alias: str, options: dict) -> str | None:
-    """Store the SceneTrove address (empty turns the link off) and device folder."""
+    """Store the SceneTrove address (empty turns the link off), device folder and token."""
     url = user_input.get(CONF_SCENETROVE_URL, "").strip()
     if url:
         try:
             url = normalize_url(url)
         except ValueError:
             return "invalid_scenetrove_url"
+    token = user_input.get(CONF_SCENETROVE_TOKEN, "").strip()
+    if token and not SCENETROVE_TOKEN.fullmatch(token):
+        return "invalid_scenetrove_token"
     # SceneTrove folders follow the alias rules, so the alias is a valid default;
     # without a link the folder is unused and never blocks the other options.
     device = user_input.get(CONF_SCENETROVE_DEVICE, "").strip() or alias
@@ -188,4 +213,9 @@ def _scenetrove_options(user_input: dict, alias: str, options: dict) -> str | No
         device = alias
     options[CONF_SCENETROVE_URL] = url
     options[CONF_SCENETROVE_DEVICE] = device
+    if not url:
+        # Unlinking forgets the token too; it is useless without the address.
+        options.pop(CONF_SCENETROVE_TOKEN, None)
+    elif token:
+        options[CONF_SCENETROVE_TOKEN] = token
     return None

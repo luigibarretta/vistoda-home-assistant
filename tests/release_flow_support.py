@@ -80,6 +80,9 @@ def framework(monkeypatch):
         "homeassistant.helpers.selector",
         SelectSelector=lambda config: config,
         SelectSelectorConfig=lambda **config: config,
+        TextSelector=lambda config: config,
+        TextSelectorConfig=lambda **config: config,
+        TextSelectorType=SimpleNamespace(PASSWORD="password"),
     )
     module("homeassistant.helpers", selector=selector)
     module("homeassistant.helpers.aiohttp_client", async_get_clientsession=lambda hass: None)

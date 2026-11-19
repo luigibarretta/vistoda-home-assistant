@@ -81,6 +81,25 @@ to 20 s for its state to show the new value; otherwise the panel reports
 does not expose (notifications, WDR, distortion correction, logo, human
 detection, detection mode) are available only in standalone mode.
 
+### microSD sync with SceneTrove
+
+With the SceneTrove address set, the details page also shows how often
+SceneTrove copies this camera's microSD clips (ADR 0029): **Off**, or every 1,
+3, 6, 12 or 24 hours, with the last sync, its result, the last success and the
+next run. Each sync wakes a battery camera, so 6 hours is recommended for a
+camera that reports a battery level. SceneTrove keeps the value; a change here
+applies at its next minute, without restarting anything.
+
+To enable the card, a SceneTrove administrator creates a personal token with
+only the `devices:sd-sync` scope (SceneTrove > Security > API tokens) and
+pastes it in the Vistoda integration options. Before saving, Vistoda checks
+with SceneTrove that the token cannot read the device list: a broader token,
+or a SceneTrove that cannot be reached, is refused and nothing is saved. The
+field is never shown again;
+leave it empty to keep the saved token, or clear the SceneTrove address to
+remove it. Everyone who may see the camera sees the schedule; only Home
+Assistant administrators change it.
+
 ## Account alarm panel
 
 One `alarm_control_panel` per Vistoda EZVIZ app reads and sets

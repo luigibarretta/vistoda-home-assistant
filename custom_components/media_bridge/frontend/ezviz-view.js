@@ -11,6 +11,7 @@ import "./ezviz-settings.js";
 import "./ezviz-alarms.js";
 import "./ezviz-media.js";
 import "./scenetrove-card.js";
+import "./scenetrove-sync-card.js";
 import "./network-archive.js";
 import {
   devicesWithDomain,
@@ -100,7 +101,8 @@ class VistodaEzvizView extends HTMLElement {
       <section class="card" id="details-page" hidden><div class="detail-head"><button id="details-back"
         aria-label="Torna alla telecamera" title="Torna alla telecamera"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
         <h2 id="details-title">EZVIZ</h2></div><vistoda-ezviz-settings id="settings"></vistoda-ezviz-settings>
-        <vistoda-scenetrove-card id="scenetrove"></vistoda-scenetrove-card></section>
+        <vistoda-scenetrove-card id="scenetrove"></vistoda-scenetrove-card>
+        <vistoda-scenetrove-sync id="scenetrove-sync"></vistoda-scenetrove-sync></section>
       <nav class="pager" id="pager" aria-label="Seleziona telecamera" data-i18n-aria-label="cameraSelect">
         <button data-i18n-aria-label="cameraPrevious" id="previous" aria-label="Telecamera precedente">
           <ha-icon icon="mdi:chevron-left"></ha-icon></button><div class="dots" id="dots"></div>
@@ -189,6 +191,7 @@ class VistodaEzvizView extends HTMLElement {
     setText(this.shadowRoot, "details-title", entry?.device_name || device.name);
     this.$("settings").configure(this._hass, entry);
     this.$("scenetrove").configure(this._hass, entry);
+    this.$("scenetrove-sync").configure(this._hass, entry);
     setText(this.shadowRoot, "camera-position", copy(this, "{p0} di {p1}", {
       p0: this._cameraIndex + 1, p1: cameras.length,
     }));

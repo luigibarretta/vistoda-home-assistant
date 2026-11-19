@@ -1,7 +1,7 @@
 """Constants for Vistoda."""
 
 DOMAIN = "media_bridge"
-INTEGRATION_VERSION = "0.51.0"
+INTEGRATION_VERSION = "0.52.0"
 PLATFORMS = [
     "alarm_control_panel",
     "binary_sensor",
@@ -27,6 +27,8 @@ CONF_EVENT_ARCHIVE = "event_archive"
 CONF_EVENT_RETENTION_DAYS = "event_retention_days"
 CONF_SCENETROVE_URL = "scenetrove_url"
 CONF_SCENETROVE_DEVICE = "scenetrove_device"
+# SceneTrove token limited to the devices:sd-sync scope (ADR 0029); never sent to the panel.
+CONF_SCENETROVE_TOKEN = "scenetrove_token"
 CONF_CLIP_DESTINATION = "clip_destination"
 CONF_SHARED_STORAGE = "shared_storage"
 CLIP_DESTINATIONS = ("vistoda", "shared")

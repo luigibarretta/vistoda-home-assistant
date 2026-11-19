@@ -47,6 +47,7 @@ def async_register(hass: HomeAssistant) -> None:
     from .blink_auto_backup_websocket import async_register as register_blink_auto_backup
     from .network_archive_websocket import async_register as register_network_archive
     from .ring_camera_websocket import async_register as register_cameras
+    from .scenetrove_sync_websocket import async_register as register_scenetrove_sync
 
     register_network_archive(hass)
     register_blink_auto_backup(hass)
@@ -61,6 +62,7 @@ def async_register(hass: HomeAssistant) -> None:
     async_register_recording_lists(hass)
     async_register_provider_recordings(hass)
     async_register_ezviz_settings(hass)
+    register_scenetrove_sync(hass)
     async_register_ezviz_media(hass)
     async_register_provider_recording_lists(hass)
     async_register_blink_usb_backup(hass)

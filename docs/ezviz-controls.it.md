@@ -87,6 +87,27 @@ non annulla nulla. Le impostazioni che l'integrazione ufficiale non espone
 (notifiche, WDR, correzione distorsione, logo, rilevamento sagoma umana,
 modalità di rilevamento) sono disponibili solo in modalità autonoma.
 
+### Sincronizzazione microSD con SceneTrove
+
+Con l'indirizzo di SceneTrove impostato, la pagina dei dettagli mostra anche
+ogni quanto SceneTrove copia le clip della microSD di questa telecamera
+(ADR 0029): **Disattivata**, oppure ogni 1, 3, 6, 12 o 24 ore, con l'ultima
+sincronizzazione, il suo esito, l'ultima riuscita e la prossima. Ogni
+sincronizzazione sveglia una telecamera a batteria, quindi per una telecamera
+che riporta il livello della batteria sono consigliate 6 ore. Il valore resta
+in SceneTrove; una modifica fatta qui vale dal minuto successivo, senza
+riavviare nulla.
+
+Per attivare la scheda, un amministratore di SceneTrove crea un token
+personale con il solo scope `devices:sd-sync` (SceneTrove > Sicurezza > Token
+API) e lo incolla nelle opzioni dell'integrazione Vistoda. Prima di salvarlo,
+Vistoda verifica con SceneTrove che il token non possa leggere l'elenco dei
+dispositivi: un token più ampio, o un SceneTrove non raggiungibile, viene
+rifiutato e non viene salvato nulla. Il campo non viene
+più mostrato; lascialo vuoto per mantenere il token salvato, oppure svuota
+l'indirizzo di SceneTrove per rimuoverlo. Chi può vedere la telecamera vede la
+pianificazione; solo gli amministratori di Home Assistant la cambiano.
+
 ## Pannello d'allarme dell'account
 
 Un `alarm_control_panel` per ogni app Vistoda EZVIZ legge e imposta
