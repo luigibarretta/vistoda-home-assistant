@@ -15,7 +15,7 @@ class ArchiveTabs extends HTMLElement {
       @media (max-width:600px) { button { font-size:14px; padding:8px 4px; line-height:1.3; } }
     </style><nav role="tablist"></nav>`;
     this.keys = ["usb", "local", "network"];
-    this.features = null;
+    this._features = null;
     this.labels = ["USB Blink", "Locale HA", "Backup NFS"];
     for (const [index, key] of this.keys.entries()) {
       const tab = document.createElement("button"); tab.id = `tab-${key}`;
