@@ -7,7 +7,11 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .backup_storage import (
     CONF_BACKUP_ALLOW_LOCAL,
+    CONF_BACKUP_MINUTES,
     CONF_BACKUP_STORAGE,
+    CONF_MOVE_AFTER_BACKUP,
+    CONF_USE_USB,
+    DEFAULT_BACKUP_MINUTES,
     DEFAULT_BACKUP_STORAGE,
     allow_local_destination,
     prepare_local_destination,
@@ -76,6 +80,13 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                                 errors["base"] = readiness["reason"]
                             else:
                                 options[CONF_AUTO_BACKUP] = enabled
+                            options[CONF_USE_USB] = bool(user_input.get(CONF_USE_USB, True))
+                            options[CONF_MOVE_AFTER_BACKUP] = bool(
+                                user_input.get(CONF_MOVE_AFTER_BACKUP, False)
+                            )
+                            options[CONF_BACKUP_MINUTES] = int(
+                                user_input.get(CONF_BACKUP_MINUTES, DEFAULT_BACKUP_MINUTES)
+                            )
                         if provider == PROVIDER_EZVIZ:
                             error = _event_archive_options(user_input, readiness, options)
                             if error:
@@ -119,6 +130,19 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                     CONF_AUTO_BACKUP, default=self.config_entry.options.get(CONF_AUTO_BACKUP, False)
                 )
             ] = bool
+            current = self.config_entry.options
+            schema[vol.Optional(CONF_USE_USB, default=current.get(CONF_USE_USB, True))] = bool
+            schema[
+                vol.Optional(
+                    CONF_MOVE_AFTER_BACKUP, default=current.get(CONF_MOVE_AFTER_BACKUP, False)
+                )
+            ] = bool
+            schema[
+                vol.Optional(
+                    CONF_BACKUP_MINUTES,
+                    default=current.get(CONF_BACKUP_MINUTES, DEFAULT_BACKUP_MINUTES),
+                )
+            ] = vol.All(vol.Coerce(int), vol.Range(min=1, max=60))
         if provider == PROVIDER_EZVIZ:
             current = self.config_entry.options
             schema[

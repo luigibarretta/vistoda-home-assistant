@@ -9,6 +9,10 @@ from .const import CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
 
 CONF_BACKUP_STORAGE = "backup_storage"
 CONF_BACKUP_ALLOW_LOCAL = "backup_allow_local"
+CONF_USE_USB = "blink_use_usb"
+CONF_MOVE_AFTER_BACKUP = "blink_move_after_backup"
+CONF_BACKUP_MINUTES = "blink_backup_minutes"
+DEFAULT_BACKUP_MINUTES = 60
 DEFAULT_BACKUP_STORAGE = "vistoda_archives"
 MEDIA_ROOT = Path("/media")
 MAX_STORAGE_DEPTH = 4

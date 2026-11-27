@@ -7,7 +7,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
-from .backup_storage import configured_mount, provider_entry, storage_readiness
+from .backup_storage import CONF_USE_USB, configured_mount, provider_entry, storage_readiness
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
 from .runtime import entry_runtime
 
@@ -15,6 +15,24 @@ from .runtime import entry_runtime
 @callback
 def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_set_auto_backup)
+    websocket_api.async_register_command(hass, ws_recording_options)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "media_bridge/blink/recording_options",
+        vol.Optional("entry_id", default=""): vol.All(str, vol.Length(max=64)),
+    }
+)
+@websocket_api.async_response
+async def ws_recording_options(hass, connection, msg: dict[str, Any]) -> None:
+    """Tell the live panel whether Blink's USB storage destination is in use."""
+    try:
+        entry = provider_entry(hass, "blink", msg["entry_id"])
+    except ValueError:
+        connection.send_error(msg["id"], "not_found", "Blink entry is not available")
+        return
+    connection.send_result(msg["id"], {"use_usb": bool(entry.options.get(CONF_USE_USB, True))})
 
 
 @websocket_api.websocket_command(

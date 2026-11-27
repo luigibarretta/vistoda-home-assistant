@@ -42,8 +42,24 @@ export class LiveRecordingMenu {
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); this.close(); view.$("record-live").focus(); }
     });
   }
+  // Whether Blink's own (USB) archive is offered is an integration option; without it
+  // the menu only offers the Home Assistant archive and starts on it.
+  async _loadOptions() {
+    if (this.optionsLoaded || !this.view._hass) return;
+    this.optionsLoaded = true;
+    try {
+      const options = await this.view._hass.callWS({ type: "media_bridge/blink/recording_options" });
+      if (options?.use_usb !== false) return;
+    } catch { return; }
+    const destination = this.root.getElementById("destination");
+    destination.querySelector('option[value="provider"]').remove();
+    destination.value = "ha";
+    this.providerSaving = false;
+    this._destination();
+  }
   toggle() {
     this.host.hidden = !this.host.hidden;
+    if (!this.host.hidden) this._loadOptions();
     this.view.$("record-live").setAttribute("aria-expanded", String(!this.host.hidden));
     localizeCopy(this.root, this.view);
     this._destination();

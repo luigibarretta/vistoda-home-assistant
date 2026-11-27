@@ -3,9 +3,17 @@
 import asyncio
 import logging
 import re
+import time
 from datetime import UTC, datetime, timedelta
 
-from .backup_storage import configured_mount, storage_readiness
+from .backup_storage import (
+    CONF_BACKUP_MINUTES,
+    CONF_MOVE_AFTER_BACKUP,
+    CONF_USE_USB,
+    DEFAULT_BACKUP_MINUTES,
+    configured_mount,
+    storage_readiness,
+)
 from .blink_local_auto_backup import MAX_CREATED, local_pass
 from .blink_usb_backup import LOCK_KEY, _backup_clip
 from .const import DOMAIN
@@ -20,7 +28,8 @@ def async_setup(hass, entry):
     from homeassistant.helpers.event import async_track_time_interval
 
     worker = UsbAutoBackup(hass, entry)
-    entry.async_on_unload(async_track_time_interval(hass, worker.tick, timedelta(hours=1)))
+    # Ticks every minute; the configured interval (1-60 minutes) decides when a pass runs.
+    entry.async_on_unload(async_track_time_interval(hass, worker.tick, timedelta(minutes=1)))
     entry.async_on_unload(worker.cancel)
 
 
@@ -32,21 +41,30 @@ class UsbAutoBackup:
         self.task = None
         self.page = 1
         self.local_page = 1
+        self.last_started = None
 
     def cancel(self):
         if self.task is not None:
             self.task.cancel()
 
+    def due(self):
+        """Whether the configured interval has passed since the last pass started."""
+        if self.last_started is None:
+            return True
+        minutes = self.entry.options.get(CONF_BACKUP_MINUTES, DEFAULT_BACKUP_MINUTES)
+        return time.monotonic() - self.last_started >= max(1, int(minutes)) * 60 - 5
+
     async def tick(self, _now):
-        if self.running or not self.enabled():
+        if self.running or not self.enabled() or not self.due():
             return
+        self.last_started = time.monotonic()
         self.running = True
         self.task = asyncio.current_task()
         try:
             result = await self.run()
         except Exception:
             result = {"status": "unavailable"}
-            _LOGGER.warning("Blink automatic network backup could not complete; retrying next hour")
+            _LOGGER.warning("Blink automatic network backup could not complete; will retry")
         finally:
             self.running = False
             self.task = None
@@ -56,6 +74,13 @@ class UsbAutoBackup:
 
     def enabled(self):
         return bool(self.entry.options.get(CONF_AUTO_BACKUP, False))
+
+    def move_enabled(self):
+        """Delete a recording from the app's own archive once its copy is verified."""
+        return bool(self.entry.options.get(CONF_MOVE_AFTER_BACKUP, False))
+
+    def uses_usb(self):
+        return bool(self.entry.options.get(CONF_USE_USB, True))
 
     async def run(self):
         """Read bounded pages and create at most 20 files per hourly pass."""
@@ -69,11 +94,11 @@ class UsbAutoBackup:
         local = ("skipped", 0, 0)
         async with asyncio.timeout(600):
             try:
-                usb = await self.usb_pass(runtime)
+                usb = await self.usb_pass(runtime) if self.uses_usb() else ("skipped", 0, 0)
             except Exception:
                 # USB depends on Blink cloud; HA-local recordings must still be copied.
                 usb = ("unavailable", 0, 0)
-                _LOGGER.warning("Blink automatic USB backup could not complete; retrying next hour")
+                _LOGGER.warning("Blink automatic USB backup could not complete; will retry")
             if usb[0] != "disabled" and usb[1] < MAX_CREATED:
                 local = await local_pass(self, runtime, mount, usb[1])
         statuses = {usb[0], local[0]}
