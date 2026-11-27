@@ -25,17 +25,24 @@ async def backup_local_recording(hass, mount, item):
     manifest = _validate(item, recording_id, MEDIA_EXTENSIONS)
     target, existing = await hass.async_add_executor_job(_prepare, "blink", manifest, mount)
     if existing:
-        await hass.async_add_executor_job(_write_metadata, target, _metadata("blink", manifest))
+        if target.suffix != ".mp4":
+            await hass.async_add_executor_job(_write_metadata, target, _metadata("blink", manifest))
         return {"status": "existing", "relative_path": str(target.relative_to(mount))}
     manifest, upstream = await _source(hass, {"provider": "blink", "recording_id": recording_id})
     return await _backup(hass, "blink", manifest, upstream, mount)
 
 
 async def local_pass(worker, runtime, mount, created):
-    """Copy ready recordings in bounded pages while sharing the hourly new-file cap."""
+    """Copy ready recordings in bounded pages while sharing the new-file cap per pass.
+
+    With "move" on, a recording is deleted from the app's own archive only after its
+    copy was written and its checksum verified (or an identical copy already existed).
+    """
     lock = worker.hass.data.setdefault(DOMAIN, {}).setdefault(LOCK_KEY, asyncio.Lock())
+    move = worker.move_enabled()
     new = checked = 0
-    for page in range(worker.local_page, worker.local_page + MAX_PAGES):
+    page = worker.local_page
+    for _ in range(MAX_PAGES):
         if not worker.enabled():
             return "disabled", new, checked
         batch = await runtime.client.get_json(f"/v1/recordings?page={page}&page_size={PAGE_SIZE}")
@@ -46,19 +53,27 @@ async def local_pass(worker, runtime, mount, created):
             or not isinstance(pagination, dict)
         ):
             raise ValueError("invalid local recording page")
+        deleted = 0
         for item in recordings:
             if not isinstance(item, dict) or item.get("status") != "ready":
                 continue
             # Same lock as the manual action: both write the same target paths.
             async with lock, asyncio.timeout(180):
                 result = await backup_local_recording(worker.hass, mount, item)
+                if move and result["status"] in {"created", "existing"}:
+                    await runtime.client.delete(f"/v1/recordings/{item['recording_id']}")
+                    deleted += 1
             checked += 1
             new += result["status"] == "created"
             if created + new >= MAX_CREATED:
                 worker.local_page = page
                 return "pending", new, checked
+        if deleted:
+            # Deleting shifted the later recordings up: read the same page again.
+            continue
         if not pagination.get("has_next", False):
             worker.local_page = 1
             return "complete", new, checked
-        worker.local_page = page + 1
+        page += 1
+        worker.local_page = page
     return "pending", new, checked

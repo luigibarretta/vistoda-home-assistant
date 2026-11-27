@@ -1,6 +1,8 @@
 import { copy, localizeCopy } from "./panel-copy.js";
+import { newRequestId } from "./request-id.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { LiveRecordingDeadline } from "./live-recording-deadline.js";
+import { normalizeFeatures, preferredTarget, recordTargets } from "./archive-features-model.js";
 
 // The floating controls reuse the archive's recording action and validation.
 export class LiveRecordingMenu {
@@ -42,8 +44,33 @@ export class LiveRecordingMenu {
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); this.close(); view.$("record-live").focus(); }
     });
   }
+  // Which destinations exist is the user's choice (the panel's "Archivi attivi" switches): Blink's
+  // own (USB) archive and the Home Assistant archive can each be off, and with both off there is no REC.
+  canRecord() { return this.features ? recordTargets(this.features).any : true; }
+  applyFeatures(features) {
+    this.features = normalizeFeatures(features);
+    const destination = this.root.getElementById("destination");
+    const targets = recordTargets(this.features);
+    for (const value of ["provider", "ha"]) {
+      const option = destination.querySelector(`option[value="${value}"]`);
+      option.hidden = option.disabled = !targets[value];
+    }
+    const wanted = preferredTarget(this.features, destination.value);
+    if (wanted && wanted !== destination.value) { destination.value = wanted; this.providerSaving = false; }
+    if (!targets.any) this.close();
+    this._destination();
+    this.view._renderLive?.();
+  }
+  async _loadOptions() {
+    if (this.optionsLoaded || this.features || !this.view._hass) return;
+    this.optionsLoaded = true;
+    try {
+      this.applyFeatures(await this.view._hass.callWS({ type: "media_bridge/blink/recording_options" }));
+    } catch { this.optionsLoaded = false; }
+  }
   toggle() {
     this.host.hidden = !this.host.hidden;
+    if (!this.host.hidden) this._loadOptions();
     this.view.$("record-live").setAttribute("aria-expanded", String(!this.host.hidden));
     localizeCopy(this.root, this.view);
     this._destination();
@@ -105,7 +132,7 @@ export class LiveRecordingMenu {
         if (!alias) throw new Error("missing camera alias");
         if (!globalThis.confirm(copy(this.view, "Registrare {p0} secondi del live in archivio locale?", { p0: duration }))) return;
         await this.view._hass.callWS({ type: "blink_live_bridge/recordings/create", alias,
-          duration_seconds: duration, request_id: globalThis.crypto.randomUUID() });
+          duration_seconds: duration, request_id: newRequestId() });
         if (generation !== this.generation) return;
         this.root.getElementById("status").textContent = copy(this.view,
           "Registrazione di {p0} secondi avviata.", { p0: duration });

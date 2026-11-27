@@ -8,9 +8,10 @@ import { CHECKLIST_COPY } from "./panel-copy-checklist.js";
 import { DEVICE_COPY } from "./panel-copy-devices.js";
 import { EZVIZ_COPY } from "./panel-copy-ezviz.js";
 import { SCENETROVE_COPY } from "./panel-copy-scenetrove.js";
+import { ARCHIVE_COPY } from "./panel-copy-archives.js";
 
 export const ADVANCED_COPY = Object.freeze({ ...COMMON_COPY, ...RING_COPY, ...BLINK_COPY, ...STORAGE_COPY,
-  ...CHECKLIST_COPY, ...DEVICE_COPY, ...EZVIZ_COPY, ...SCENETROVE_COPY });
+  ...CHECKLIST_COPY, ...DEVICE_COPY, ...EZVIZ_COPY, ...SCENETROVE_COPY, ...ARCHIVE_COPY });
 export function copyLocale(context) {
   return context?._hass || context?.hass || context?.host?._hass || context?.host?.hass || context;
 }

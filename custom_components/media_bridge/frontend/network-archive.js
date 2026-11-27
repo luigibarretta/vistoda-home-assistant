@@ -123,7 +123,7 @@ class NetworkArchive extends HTMLElement {
       const button = document.createElement("button"), glyph = document.createElement("ha-icon");
       button.className = "icon-action";
       glyph.setAttribute("icon", icon); button.append(glyph); button.title = copy(this, label);
-      button.setAttribute("aria-label", copy(this, label)); button.disabled = play && item.media_type !== "video/mp4";
+      button.setAttribute("aria-label", copy(this, label)); button.disabled = play && !["video/mp4", "video/mp2t"].includes(item.media_type);
       button.onclick = () => this.open(item, play); actions.append(button);
     }
     const remove = document.createElement("button"), bin = document.createElement("ha-icon");
@@ -158,7 +158,9 @@ class NetworkArchive extends HTMLElement {
   async open(item, play) {
     const generation = this.generation;
     try {
-      const signed = await this._hass.callWS({ type: "auth/sign_path", path: item.media_path, expires: 300 });
+      // Playing converts MPEG-TS to MP4 (`play=1`); downloading keeps the original file.
+      const path = play ? `${item.media_path}&play=1` : item.media_path;
+      const signed = await this._hass.callWS({ type: "auth/sign_path", path, expires: 300 });
       if (generation !== this.generation) return;
       const url = this._hass.hassUrl(signed.path);
       if (play) { this.$("video").src = url; this.$("player").hidden = false; this.$("video").load(); }

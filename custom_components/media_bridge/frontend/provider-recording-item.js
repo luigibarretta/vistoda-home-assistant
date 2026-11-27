@@ -42,11 +42,14 @@ export function recordingItem(item, context) {
   const tags = context.tags?.(); if (tags) detail.append(tags);
   const actions = document.createElement("div"); actions.className = "item-actions";
   if (item.status === "ready") {
-    if (context.provider === "ezviz") {
+    // Blink keeps MPEG-TS, which the server converts to MP4 for playback.
+    if (context.provider === "ezviz" || context.provider === "blink") {
       actions.append(button("mdi:play", copy(context, "Riproduci"), context.play, context.busy));
     }
     actions.append(button("mdi:download", copy(context, "Scarica"), context.download, context.busy));
-    actions.append(button("mdi:cloud-upload", copy(context, "Backup NFS"), context.backup, context.busy));
+    if (context.backupEnabled !== false) {
+      actions.append(button("mdi:cloud-upload", copy(context, "Backup NFS"), context.backup, context.busy));
+    }
     actions.append(button("mdi:playlist-plus", copy(context, "Aggiungi alle liste"), context.lists, context.busy));
   }
   if (!["pending", "recording"].includes(item.status)) {

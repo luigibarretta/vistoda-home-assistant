@@ -12,7 +12,7 @@ from release_flow_support import entry, framework
 from custom_components.media_bridge import backup_storage as storage
 
 
-@pytest.mark.parametrize("name", ["../elsewhere", "/media/nas", "a/b", "", "nas space", "a\\b"])
+@pytest.mark.parametrize("name", ["../elsewhere", "/media/nas", "a/../b", "", "nas space", "a\\b"])
 def test_storage_names_cannot_escape_supervisor_media(name):
     with pytest.raises(ValueError):
         storage.storage_mount(name)

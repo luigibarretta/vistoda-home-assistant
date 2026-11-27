@@ -116,6 +116,7 @@ export const BLINK_VIEW_TEMPLATE = `<style>${BASE_STYLES}${MEDIA_STYLES}${ARCHIV
   <ha-icon icon="mdi:chevron-right"></ha-icon></button></nav>
 <section class="card" id="archives">
   <h2 data-copy="Archivio registrazioni">Archivio registrazioni</h2>
+  <vistoda-archive-features id="archive-features"></vistoda-archive-features>
   <vistoda-archive-tabs id="archive-tabs">
     <section slot="usb" id="usb-archive-panel">
       <div class="archive-filter"><label for="module-filter">Sync Module</label>

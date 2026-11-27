@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant, callback
 from . import BridgeRuntime
 from .backup_storage import (
     MIN_FREE_BYTES,
+    archive_features,
     configured_mount,
     network_filesystem,
     provider_entry,
@@ -26,6 +27,7 @@ from .const import CONF_ALIAS, CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_E
 from .durable_files import ensure_sidecar, fsync_directory, open_private_partial
 from .durable_files import write_sidecar as _write_metadata
 from .ezviz_binding import async_verify_native
+from .recording_mp4 import existing_mp4, store_mp4, wants_mp4
 from .runtime import runtime_for
 
 BACKUP_MOUNT = storage_mount()
@@ -61,6 +63,8 @@ async def ws_backup_recording(hass, connection, msg: dict[str, Any]) -> None:
         lock = hass.data.setdefault(DOMAIN, {}).setdefault(LOCK_KEY, asyncio.Lock())
         async with lock, asyncio.timeout(180):
             entry = provider_entry(hass, msg["provider"], msg.get("entry_id", ""))
+            if not archive_features(entry.options)["nfs"]:
+                raise ValueError("network backup is turned off")
             mount = configured_mount(entry)
             manifest, upstream = await _source(hass, {**msg, "entry_id": entry.entry_id})
             result = await _backup(hass, msg["provider"], manifest, upstream, mount)
@@ -133,8 +137,13 @@ async def _backup(
             _prepare, provider, manifest, mount, target
         )
         if existing:
-            await hass.async_add_executor_job(ensure_sidecar, target, _metadata(provider, manifest))
+            if target.suffix != ".mp4":  # An MP4's metadata also records the MP4 itself.
+                await hass.async_add_executor_job(
+                    ensure_sidecar, target, _metadata(provider, manifest)
+                )
             return {"status": "existing", "relative_path": str(target.relative_to(mount))}
+        if wants_mp4(provider, manifest) and target.suffix == ".mp4":
+            return await store_mp4(hass, provider, manifest, upstream, mount, target)
         # A partial private to this copy: concurrent copies never share one.
         handle, partial = await hass.async_add_executor_job(open_private_partial, target)
         digest = hashlib.sha256()
@@ -167,9 +176,14 @@ def _prepare(
         extension = MEDIA_EXTENSIONS[manifest["media_type"]]
         directory = safe_directory(mount, provider, camera)
         target = directory / f"{manifest['recording_id']}.{extension}"
+        if wants_mp4(provider, manifest) and not target.is_file():
+            target = target.with_suffix(".mp4")  # An earlier copy made as TS still counts.
     if target.is_symlink() or not target.resolve().is_relative_to(mount):
         raise OSError("unsafe recording path")
-    if target.is_file():
+    if wants_mp4(provider, manifest) and target.suffix == ".mp4":
+        if existing_mp4(target, manifest):
+            return target, True
+    elif target.is_file():
         if _sha256(target) != manifest["sha256"]:
             raise OSError("existing backup has a different checksum")
         return target, True

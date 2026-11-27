@@ -89,12 +89,20 @@ class VistodaBlinkStorage extends HTMLElement {
     } finally { this._busy = false; this._render(); }
   }
 
+  /** False while the user keeps the network backup switched off: no backup buttons, no setup link. */
+  set backupEnabled(value) {
+    if (value === this._backupEnabled) return;
+    this._backupEnabled = value; if (this.shadowRoot.getElementById("backup-all")) this._render();
+  }
+  get backupEnabled() { return this._backupEnabled; }
   _render() {
     if (localizeCopy(this.shadowRoot, this)) this._listManager.update(this._listManager.lists);
     this.$("reload").disabled = this._busy || !this._hass;
     renderPageSize(this.shadowRoot, this._pageSize, this._busy, this._hass?.locale?.language);
     this._renderCameraFilter();
     this.$("backup-all").disabled = this._busy || !this._hass;
+    this.$("backup-all").hidden = this.backupEnabled === false;
+    this.shadowRoot.querySelector(".settings-link").closest("p").hidden = this.backupEnabled === false;
     const visible = this._storages.filter((item) => !this._moduleFilter || String(item.sync_module_id) === this._moduleFilter);
     const nodes = visible.map((storage) => this._module(storage));
     if (!nodes.length && this._loaded) {
@@ -180,7 +188,9 @@ class VistodaBlinkStorage extends HTMLElement {
     const actions = document.createElement("div"); actions.className = "clip-actions";
     actions.append(this._icon("mdi:play", copy(this, "Riproduci"), () => this._play(storage, clip), !clip.media_available));
     actions.append(this._icon("mdi:download", copy(this, "Scarica"), () => this._download(storage, clip), !clip.media_available));
-    actions.append(this._icon("mdi:cloud-upload", copy(this, "Backup NFS"), () => this._backupSingle(storage, clip), !clip.media_available));
+    if (this.backupEnabled !== false) {
+      actions.append(this._icon("mdi:cloud-upload", copy(this, "Backup NFS"), () => this._backupSingle(storage, clip), !clip.media_available));
+    }
     actions.append(this._icon("mdi:playlist-plus", copy(this, "Aggiungi alle liste"),
       () => this._listManager.toggle(mediaId), false));
     actions.append(this._icon("mdi:delete-outline", copy(this, "Elimina clip"),

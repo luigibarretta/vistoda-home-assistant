@@ -43,12 +43,10 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
         if usb
         else f"{source.get('recording_id')}{target.suffix}"
     )
-    media_type = "video/mp4" if usb else RECORDING_TYPES.get(target.suffix[1:])
-    if not usb and source.get("media_type", media_type) != media_type:
-        raise ValueError("backup media type mismatch")
+    media_type, integrity = _media(usb, target, source, metadata)
     if target.name != expected_name or target.parent.name != source.get("camera"):
         raise ValueError("backup identity mismatch")
-    size = verified(target, metadata if usb else source, checksum=checksum)
+    size = verified(target, integrity, checksum=checksum)
     media_id = (
         "usb:"
         + ":".join(
@@ -70,6 +68,20 @@ def checked_file(mount: Path, relative: str, *, checksum=False):
         "media_type": media_type,
         "span": None if usb else recording_span(source),
     }
+
+
+def _media(usb: bool, target: Path, source: dict, metadata: dict) -> tuple[str, dict]:
+    """The media type of a copy and the record (size, checksum) its file is verified against."""
+    stored = None if usb else metadata.get("stored")
+    media_type = "video/mp4" if usb else RECORDING_TYPES.get(target.suffix[1:])
+    if stored is not None:
+        # A Blink recording stored as MP4: the MP4's own size and checksum are verified.
+        if target.suffix != ".mp4" or not isinstance(stored, dict):
+            raise ValueError("backup media type mismatch")
+        return "video/mp4", stored
+    if not usb and source.get("media_type", media_type) != media_type:
+        raise ValueError("backup media type mismatch")
+    return media_type, (metadata if usb else source)
 
 
 def verified(target: Path, integrity: dict, *, checksum: bool) -> int:
