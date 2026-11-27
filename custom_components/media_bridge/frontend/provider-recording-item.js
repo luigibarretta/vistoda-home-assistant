@@ -47,7 +47,9 @@ export function recordingItem(item, context) {
       actions.append(button("mdi:play", copy(context, "Riproduci"), context.play, context.busy));
     }
     actions.append(button("mdi:download", copy(context, "Scarica"), context.download, context.busy));
-    actions.append(button("mdi:cloud-upload", copy(context, "Backup NFS"), context.backup, context.busy));
+    if (context.backupEnabled !== false) {
+      actions.append(button("mdi:cloud-upload", copy(context, "Backup NFS"), context.backup, context.busy));
+    }
     actions.append(button("mdi:playlist-plus", copy(context, "Aggiungi alle liste"), context.lists, context.busy));
   }
   if (!["pending", "recording"].includes(item.status)) {

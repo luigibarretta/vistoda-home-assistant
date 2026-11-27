@@ -36,6 +36,12 @@ class VistodaProviderRecordings extends HTMLElement {
   }
 
   set hass(value) { this._hass = value; this._render(); }
+  /** False while the user keeps the network backup switched off: no backup buttons. */
+  set backupEnabled(value) {
+    if (value === this._backupEnabled) return;
+    this._backupEnabled = value; if (this._mounted) this._render();
+  }
+  get backupEnabled() { return this._backupEnabled; }
 
   connectedCallback() {
     if (!this._mounted) this._mount();
@@ -159,6 +165,7 @@ class VistodaProviderRecordings extends HTMLElement {
     this.$("start").disabled = this._busy || !this._config;
     this.$("reload").disabled = this._busy || !this._config;
     this.$("backup-all").disabled = this._busy || !this._config;
+    this.$("backup-all").hidden = this.backupEnabled === false;
     const providerStorage = this.$("provider-storage");
     providerStorage.textContent = this._config?.provider === "blink"
       ? copy(this, "Chiavetta Blink") : copy(this, "MicroSD EZVIZ");
@@ -186,7 +193,8 @@ class VistodaProviderRecordings extends HTMLElement {
       return recordingItem(item, {
       hass: this._hass, provider: this._config.provider, busy: this._busy,
       play: () => this._play(item), download: () => this._download(item),
-      backup: () => this._backup(item), remove: () => this._delete(item),
+      backup: () => this._backup(item), backupEnabled: this.backupEnabled !== false,
+      remove: () => this._delete(item),
       selected: this._selected.has(item.recording_id),
       select: (selected) => this._select(item.recording_id, selected),
       lists: () => this._listManager.toggle(mediaId),

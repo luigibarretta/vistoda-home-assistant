@@ -10,6 +10,8 @@ from .backup_storage import (
     CONF_BACKUP_MINUTES,
     CONF_BACKUP_STORAGE,
     CONF_MOVE_AFTER_BACKUP,
+    CONF_USE_LOCAL_HA,
+    CONF_USE_NFS,
     CONF_USE_USB,
     DEFAULT_BACKUP_MINUTES,
     DEFAULT_BACKUP_STORAGE,
@@ -81,6 +83,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                             else:
                                 options[CONF_AUTO_BACKUP] = enabled
                             options[CONF_USE_USB] = bool(user_input.get(CONF_USE_USB, True))
+                            options[CONF_USE_LOCAL_HA] = bool(
+                                user_input.get(CONF_USE_LOCAL_HA, True)
+                            )
+                            options[CONF_USE_NFS] = bool(user_input.get(CONF_USE_NFS, True))
                             options[CONF_MOVE_AFTER_BACKUP] = bool(
                                 user_input.get(CONF_MOVE_AFTER_BACKUP, False)
                             )
@@ -132,6 +138,10 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
             ] = bool
             current = self.config_entry.options
             schema[vol.Optional(CONF_USE_USB, default=current.get(CONF_USE_USB, True))] = bool
+            schema[
+                vol.Optional(CONF_USE_LOCAL_HA, default=current.get(CONF_USE_LOCAL_HA, True))
+            ] = bool
+            schema[vol.Optional(CONF_USE_NFS, default=current.get(CONF_USE_NFS, True))] = bool
             schema[
                 vol.Optional(
                     CONF_MOVE_AFTER_BACKUP, default=current.get(CONF_MOVE_AFTER_BACKUP, False)

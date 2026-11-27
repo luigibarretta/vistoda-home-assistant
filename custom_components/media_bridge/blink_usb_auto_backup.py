@@ -9,6 +9,8 @@ from datetime import UTC, datetime, timedelta
 from .backup_storage import (
     CONF_BACKUP_MINUTES,
     CONF_MOVE_AFTER_BACKUP,
+    CONF_USE_LOCAL_HA,
+    CONF_USE_NFS,
     CONF_USE_USB,
     DEFAULT_BACKUP_MINUTES,
     configured_mount,
@@ -73,7 +75,12 @@ class UsbAutoBackup:
             runtime.usb_backup_status = {**result, "checked_at": datetime.now(UTC).isoformat()}
 
     def enabled(self):
-        return bool(self.entry.options.get(CONF_AUTO_BACKUP, False))
+        """On only when asked for and the network backup itself is in use."""
+        options = self.entry.options
+        return bool(options.get(CONF_AUTO_BACKUP, False) and options.get(CONF_USE_NFS, True))
+
+    def uses_local(self):
+        return bool(self.entry.options.get(CONF_USE_LOCAL_HA, True))
 
     def move_enabled(self):
         """Delete a recording from the app's own archive once its copy is verified."""
@@ -99,7 +106,7 @@ class UsbAutoBackup:
                 # USB depends on Blink cloud; HA-local recordings must still be copied.
                 usb = ("unavailable", 0, 0)
                 _LOGGER.warning("Blink automatic USB backup could not complete; will retry")
-            if usb[0] != "disabled" and usb[1] < MAX_CREATED:
+            if usb[0] != "disabled" and usb[1] < MAX_CREATED and self.uses_local():
                 local = await local_pass(self, runtime, mount, usb[1])
         statuses = {usb[0], local[0]}
         return {

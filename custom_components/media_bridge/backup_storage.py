@@ -10,6 +10,10 @@ from .const import CONF_PROVIDER, DOMAIN, PROVIDER_BLINK, PROVIDER_EZVIZ
 CONF_BACKUP_STORAGE = "backup_storage"
 CONF_BACKUP_ALLOW_LOCAL = "backup_allow_local"
 CONF_USE_USB = "blink_use_usb"
+CONF_USE_LOCAL_HA = "blink_use_local_ha"
+CONF_USE_NFS = "blink_use_nfs"
+# Archive name (as the panel calls it) → the option that turns it on or off.
+FEATURE_OPTIONS = {"usb": CONF_USE_USB, "local_ha": CONF_USE_LOCAL_HA, "nfs": CONF_USE_NFS}
 CONF_MOVE_AFTER_BACKUP = "blink_move_after_backup"
 CONF_BACKUP_MINUTES = "blink_backup_minutes"
 DEFAULT_BACKUP_MINUTES = 60
@@ -38,6 +42,11 @@ def storage_mount(name: str = DEFAULT_BACKUP_STORAGE) -> Path:
     if len(parts) > MAX_STORAGE_DEPTH or not all(SAFE_STORAGE.fullmatch(part) for part in parts):
         raise ValueError("invalid network storage name")
     return MEDIA_ROOT.joinpath(*parts)
+
+
+def archive_features(options) -> dict[str, bool]:
+    """Which Blink archives are in use: Blink USB, HA-local recordings, network backup."""
+    return {name: bool(options.get(key, True)) for name, key in FEATURE_OPTIONS.items()}
 
 
 def configured_mount(entry) -> Path:

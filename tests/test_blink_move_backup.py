@@ -90,9 +90,9 @@ async def test_panel_learns_whether_usb_is_in_use(monkeypatch):
     env, module, configured, connection = ws_fixture(monkeypatch)
     message = {"id": 1, "entry_id": configured.entry_id}
     await module.ws_recording_options(env.hass, connection, message)
-    assert connection.send_result.call_args.args[1] == {"use_usb": True}
+    assert connection.send_result.call_args.args[1]["use_usb"] is True
     configured.options["blink_use_usb"] = False
     await module.ws_recording_options(env.hass, connection, message)
-    assert connection.send_result.call_args.args[1] == {"use_usb": False}
+    assert connection.send_result.call_args.args[1]["use_usb"] is False
     await module.ws_recording_options(env.hass, connection, {"id": 2, "entry_id": "missing"})
     assert connection.send_error.call_args.args[1] == "not_found"

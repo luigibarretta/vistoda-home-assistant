@@ -13,7 +13,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .backup_storage import configured_mount, provider_entry, safe_directory
+from .backup_storage import archive_features, configured_mount, provider_entry, safe_directory
 from .recording_backup import (
     BACKUP_MOUNT,
     MAX_BACKUP_BYTES,
@@ -64,7 +64,10 @@ async def ws_backup_blink_usb(hass, connection, msg: dict[str, Any]) -> None:
 
 
 async def _backup_clip(hass: HomeAssistant, msg: dict[str, Any]) -> dict[str, Any]:
-    mount = configured_mount(provider_entry(hass, "blink"))
+    entry = provider_entry(hass, "blink")
+    if not archive_features(entry.options)["nfs"]:
+        raise ValueError("network backup is turned off")
+    mount = configured_mount(entry)
     runtime = hass.data.get("blink_live_bridge", {}).get("runtime")
     if runtime is None:
         raise ValueError("Blink runtime unavailable")

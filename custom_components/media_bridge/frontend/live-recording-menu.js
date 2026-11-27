@@ -2,6 +2,7 @@ import { copy, localizeCopy } from "./panel-copy.js";
 import { newRequestId } from "./request-id.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { LiveRecordingDeadline } from "./live-recording-deadline.js";
+import { normalizeFeatures, preferredTarget, recordTargets } from "./archive-features-model.js";
 
 // The floating controls reuse the archive's recording action and validation.
 export class LiveRecordingMenu {
@@ -43,20 +44,29 @@ export class LiveRecordingMenu {
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); this.close(); view.$("record-live").focus(); }
     });
   }
-  // Whether Blink's own (USB) archive is offered is an integration option; without it
-  // the menu only offers the Home Assistant archive and starts on it.
+  // Which destinations exist is the user's choice (the panel's "Archivi attivi" switches): Blink's
+  // own (USB) archive and the Home Assistant archive can each be off, and with both off there is no REC.
+  canRecord() { return this.features ? recordTargets(this.features).any : true; }
+  applyFeatures(features) {
+    this.features = normalizeFeatures(features);
+    const destination = this.root.getElementById("destination");
+    const targets = recordTargets(this.features);
+    for (const value of ["provider", "ha"]) {
+      const option = destination.querySelector(`option[value="${value}"]`);
+      option.hidden = option.disabled = !targets[value];
+    }
+    const wanted = preferredTarget(this.features, destination.value);
+    if (wanted && wanted !== destination.value) { destination.value = wanted; this.providerSaving = false; }
+    if (!targets.any) this.close();
+    this._destination();
+    this.view._renderLive?.();
+  }
   async _loadOptions() {
-    if (this.optionsLoaded || !this.view._hass) return;
+    if (this.optionsLoaded || this.features || !this.view._hass) return;
     this.optionsLoaded = true;
     try {
-      const options = await this.view._hass.callWS({ type: "media_bridge/blink/recording_options" });
-      if (options?.use_usb !== false) return;
-    } catch { return; }
-    const destination = this.root.getElementById("destination");
-    destination.querySelector('option[value="provider"]').remove();
-    destination.value = "ha";
-    this.providerSaving = false;
-    this._destination();
+      this.applyFeatures(await this.view._hass.callWS({ type: "media_bridge/blink/recording_options" }));
+    } catch { this.optionsLoaded = false; }
   }
   toggle() {
     this.host.hidden = !this.host.hidden;

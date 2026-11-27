@@ -1,11 +1,13 @@
 import { copy } from "./panel-copy.js";
 import { entityState, firstEntity } from "./panel-helpers.js";
 import "./blink-motion-recording.js";
+import "./archive-features.js";
 
 export class BlinkArchives {
   constructor(view) {
     this.view = view;
     view.$("local-camera-filter").addEventListener("change", () => this.local());
+    view.$("archive-features").addEventListener("archive-features-change", (event) => this.applyFeatures(event.detail));
     view.$("local-archive-panel").pausePlayback = () => view.$("recordings").pausePlayback();
     view.$("usb-archive-panel").pausePlayback = () => view.$("storage").pausePlayback();
     view.$("module-filter").addEventListener("change", () => {
@@ -13,8 +15,16 @@ export class BlinkArchives {
       storage._moduleFilter = view.$("module-filter").value; storage._render();
     });
   }
+  /** Switching an archive off hides its tab and the buttons that depend on it. */
+  applyFeatures(features) {
+    const view = this.view; this.features = features;
+    view.$("archive-tabs").features = features;
+    for (const id of ["storage", "recordings"]) view.$(id).backupEnabled = features.nfs;
+    view._recordingMenu?.applyFeatures(features);
+  }
   configure(entry, cameras) {
     const view = this.view; this.entry = entry;
+    view.$("archive-features").configure(view._hass, entry?.entry_id);
     view.$("archives").hidden = view._detailOpen;
     view.$("archive-tabs").hass = view._hass;
     const config = entry ? { provider: "blink", entryId: entry.entry_id } : null;

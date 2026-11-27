@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant, callback
 from . import BridgeRuntime
 from .backup_storage import (
     MIN_FREE_BYTES,
+    archive_features,
     configured_mount,
     network_filesystem,
     provider_entry,
@@ -62,6 +63,8 @@ async def ws_backup_recording(hass, connection, msg: dict[str, Any]) -> None:
         lock = hass.data.setdefault(DOMAIN, {}).setdefault(LOCK_KEY, asyncio.Lock())
         async with lock, asyncio.timeout(180):
             entry = provider_entry(hass, msg["provider"], msg.get("entry_id", ""))
+            if not archive_features(entry.options)["nfs"]:
+                raise ValueError("network backup is turned off")
             mount = configured_mount(entry)
             manifest, upstream = await _source(hass, {**msg, "entry_id": entry.entry_id})
             result = await _backup(hass, msg["provider"], manifest, upstream, mount)
