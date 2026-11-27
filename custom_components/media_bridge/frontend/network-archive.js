@@ -123,7 +123,7 @@ class NetworkArchive extends HTMLElement {
       const button = document.createElement("button"), glyph = document.createElement("ha-icon");
       button.className = "icon-action";
       glyph.setAttribute("icon", icon); button.append(glyph); button.title = copy(this, label);
-      button.setAttribute("aria-label", copy(this, label)); button.disabled = play && item.media_type !== "video/mp4";
+      button.setAttribute("aria-label", copy(this, label)); button.disabled = play && !["video/mp4", "video/mp2t"].includes(item.media_type);
       button.onclick = () => this.open(item, play); actions.append(button);
     }
     const remove = document.createElement("button"), bin = document.createElement("ha-icon");

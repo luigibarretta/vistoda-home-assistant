@@ -42,7 +42,8 @@ export function recordingItem(item, context) {
   const tags = context.tags?.(); if (tags) detail.append(tags);
   const actions = document.createElement("div"); actions.className = "item-actions";
   if (item.status === "ready") {
-    if (context.provider === "ezviz") {
+    // Blink keeps MPEG-TS, which the server converts to MP4 for playback.
+    if (context.provider === "ezviz" || context.provider === "blink") {
       actions.append(button("mdi:play", copy(context, "Riproduci"), context.play, context.busy));
     }
     actions.append(button("mdi:download", copy(context, "Scarica"), context.download, context.busy));
