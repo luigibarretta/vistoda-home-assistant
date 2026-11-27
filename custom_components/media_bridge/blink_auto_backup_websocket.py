@@ -7,13 +7,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from . import BridgeRuntime
-from .backup_storage import (
-    CONF_BACKUP_STORAGE,
-    DEFAULT_BACKUP_STORAGE,
-    provider_entry,
-    storage_mount,
-    storage_readiness,
-)
+from .backup_storage import configured_mount, provider_entry, storage_readiness
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
 from .runtime import entry_runtime
 
@@ -46,7 +40,7 @@ async def ws_set_auto_backup(hass, connection, msg: dict[str, Any]) -> None:
     if msg["enabled"]:
         # Same gate as the options flow: never enable copies onto an unready mount.
         try:
-            mount = storage_mount(entry.options.get(CONF_BACKUP_STORAGE, DEFAULT_BACKUP_STORAGE))
+            mount = configured_mount(entry)
         except ValueError:
             readiness = {"ready": False, "reason": "invalid_storage_name"}
         else:

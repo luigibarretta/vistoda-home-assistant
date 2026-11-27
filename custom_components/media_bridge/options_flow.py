@@ -6,8 +6,11 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .backup_storage import (
+    CONF_BACKUP_ALLOW_LOCAL,
     CONF_BACKUP_STORAGE,
     DEFAULT_BACKUP_STORAGE,
+    allow_local_destination,
+    prepare_local_destination,
     storage_mount,
     storage_readiness,
 )
@@ -47,14 +50,26 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                 except ValueError:
                     errors["base"] = "invalid_storage_name"
                 else:
+                    local = bool(user_input.get(CONF_BACKUP_ALLOW_LOCAL, False))
+                    if local:
+                        # A plain folder below /media on the Home Assistant disk or any
+                        # storage mounted there: create it, then check it like a mount.
+                        try:
+                            await self.hass.async_add_executor_job(prepare_local_destination, mount)
+                        except OSError:
+                            errors["base"] = "network_mount_not_writable"
+                    allow_local_destination(mount, local and not errors)
                     readiness = await self.hass.async_add_executor_job(storage_readiness, mount)
                     previous = self.config_entry.options.get(
                         CONF_BACKUP_STORAGE, DEFAULT_BACKUP_STORAGE
                     )
-                    if not readiness["ready"] and user_input[CONF_BACKUP_STORAGE] != previous:
+                    if errors:
+                        pass
+                    elif not readiness["ready"] and user_input[CONF_BACKUP_STORAGE] != previous:
                         errors["base"] = readiness["reason"]
                     else:
                         options[CONF_BACKUP_STORAGE] = user_input[CONF_BACKUP_STORAGE]
+                        options[CONF_BACKUP_ALLOW_LOCAL] = local
                         if provider == PROVIDER_BLINK:
                             enabled = user_input.get(CONF_AUTO_BACKUP, False)
                             if enabled and not readiness["ready"]:
@@ -90,6 +105,12 @@ class VistodaOptionsFlow(config_entries.OptionsFlow):
                     ),
                 )
             ] = str
+            schema[
+                vol.Optional(
+                    CONF_BACKUP_ALLOW_LOCAL,
+                    default=self.config_entry.options.get(CONF_BACKUP_ALLOW_LOCAL, False),
+                )
+            ] = bool
         if provider in {PROVIDER_RING, PROVIDER_EZVIZ}:
             schema[vol.Optional("reconnect_account", default=False)] = bool
         if provider == PROVIDER_BLINK:
