@@ -25,7 +25,8 @@ async def backup_local_recording(hass, mount, item):
     manifest = _validate(item, recording_id, MEDIA_EXTENSIONS)
     target, existing = await hass.async_add_executor_job(_prepare, "blink", manifest, mount)
     if existing:
-        await hass.async_add_executor_job(_write_metadata, target, _metadata("blink", manifest))
+        if target.suffix != ".mp4":
+            await hass.async_add_executor_job(_write_metadata, target, _metadata("blink", manifest))
         return {"status": "existing", "relative_path": str(target.relative_to(mount))}
     manifest, upstream = await _source(hass, {"provider": "blink", "recording_id": recording_id})
     return await _backup(hass, "blink", manifest, upstream, mount)
