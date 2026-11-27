@@ -1,4 +1,5 @@
 import { copy, localizeCopy } from "./panel-copy.js";
+import { newRequestId } from "./request-id.js";
 import { BASE_STYLES } from "./panel-styles.js";
 import { LiveRecordingDeadline } from "./live-recording-deadline.js";
 
@@ -121,7 +122,7 @@ export class LiveRecordingMenu {
         if (!alias) throw new Error("missing camera alias");
         if (!globalThis.confirm(copy(this.view, "Registrare {p0} secondi del live in archivio locale?", { p0: duration }))) return;
         await this.view._hass.callWS({ type: "blink_live_bridge/recordings/create", alias,
-          duration_seconds: duration, request_id: globalThis.crypto.randomUUID() });
+          duration_seconds: duration, request_id: newRequestId() });
         if (generation !== this.generation) return;
         this.root.getElementById("status").textContent = copy(this.view,
           "Registrazione di {p0} secondi avviata.", { p0: duration });

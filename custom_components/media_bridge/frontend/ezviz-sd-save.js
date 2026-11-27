@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { newRequestId } from "./request-id.js";
 
 // The bridge's default recording bound; a longer clip is saved from its start.
 export const SD_SAVE_SECONDS = 120;
@@ -27,7 +28,7 @@ export const SD_SAVE = {
     status.textContent = copy(this, "Salvataggio della clip…");
     try {
       await this._hass.callWS({ type: "media_bridge/ezviz/recordings/create_sd", entry_id: this._entryId,
-        ...saveInterval(row), request_id: globalThis.crypto.randomUUID() });
+        ...saveInterval(row), request_id: newRequestId() });
       status.textContent = copy(this, "Clip in salvataggio: comparirà nelle registrazioni locali.");
       this.dispatchEvent(new CustomEvent("vistoda-sd-saved", { bubbles: true, composed: true }));
     } catch (error) {

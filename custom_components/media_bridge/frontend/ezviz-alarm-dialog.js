@@ -2,6 +2,7 @@
 // previous/next event, and the video of that moment — a ready recording that
 // covers it, else saving that minute from the microSD (which wakes the camera).
 import { copy, localizeCopy } from "./panel-copy.js";
+import { newRequestId } from "./request-id.js";
 import {
   alarmIsoTime, alarmTimeText, alarmVideo, archivedEventName, deleteCopyPrompt, deleteEventPrompt, navigationStep, neighbour, sceneTroveLink,
 } from "./ezviz-alarm-model.js";
@@ -224,7 +225,7 @@ class VistodaEzvizAlarmDialog extends HTMLElement {
     this.$("status").textContent = copy(this, "Salvataggio della clip…");
     try {
       await this._hass.callWS({ type: "media_bridge/ezviz/recordings/create_sd", entry_id: this._entryId,
-        start: video.start, end: video.end, request_id: globalThis.crypto.randomUUID() });
+        start: video.start, end: video.end, request_id: newRequestId() });
       this.$("status").textContent = copy(this, "Clip in salvataggio: comparirà nelle registrazioni locali.");
       this._recordings = null;
     } catch (error) {

@@ -1,4 +1,5 @@
 import { copy } from "./panel-copy.js";
+import { newRequestId } from "./request-id.js";
 import { backupRecording, readyRecordings } from "./provider-recording-backup.js";
 import { recordingMediaPath } from "./provider-recording-model.js";
 
@@ -11,7 +12,7 @@ export const providerRecordingActions = {
     this._busy = true; this._setMessage(copy(this, "Avvio registrazione…")); this._render();
     try {
       await context.hass.callWS({ ...this._message("create", context.config), duration_seconds: duration,
-        request_id: globalThis.crypto.randomUUID() });
+        request_id: newRequestId() });
       if (!this._isCurrent(context)) return;
       this._setMessage(copy(this, "Registrazione di {p0} secondi avviata.", { p0: duration }));
     } catch (_error) {
