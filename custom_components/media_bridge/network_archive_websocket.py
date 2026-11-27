@@ -9,6 +9,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import callback
 
 from .backup_storage import archive_entry, configured_mount, storage_readiness
+from .blink_playback import BlinkRecordingPlayback, mp4_response
 from .blink_usb_auto_backup import CONF_AUTO_BACKUP
 from .const import (
     CONF_ALIAS,
@@ -26,6 +27,7 @@ from .shared_archive import (
     shared_inventory,
     shared_mount,
 )
+from .ts_remux import ts_to_mp4
 
 
 @callback
@@ -33,6 +35,7 @@ def async_register(hass):
     websocket_api.async_register_command(hass, ws_inventory)
     websocket_api.async_register_command(hass, ws_delete)
     hass.http.register_view(NetworkBackupMedia)
+    hass.http.register_view(BlinkRecordingPlayback)
 
 
 @websocket_api.websocket_command(
@@ -176,8 +179,14 @@ class NetworkBackupMedia(HomeAssistantView):
                 return checked_file(mount, relative, checksum=True)
 
             target, item = await hass.async_add_executor_job(verify)
+            playable = None
+            if request.query.get("play") == "1" and item["media_type"] == "video/mp2t":
+                # Browsers cannot play MPEG-TS: convert this checked file to MP4.
+                playable = await hass.async_add_executor_job(ts_to_mp4, target)
         except (ValueError, OSError, TypeError):
             raise web.HTTPNotFound from None
+        if playable is not None:
+            return mp4_response(request, playable)
         return web.FileResponse(
             target,
             headers={

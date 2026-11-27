@@ -42,6 +42,10 @@ test("signed media paths stay on Home Assistant", () => {
     "/api/blink_live_bridge/v1/recordings/id/media",
   );
   assert.equal(
+    model.recordingMediaPath({ provider: "blink" }, "id", true),
+    "/api/media_bridge/blink/recordings/id/playback.mp4",
+  );
+  assert.equal(
     model.recordingMediaPath({ provider: "ezviz", entryId: "entry" }, "id"),
     "/api/media_bridge/ezviz/recordings/entry/id",
   );

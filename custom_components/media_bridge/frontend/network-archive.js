@@ -158,7 +158,9 @@ class NetworkArchive extends HTMLElement {
   async open(item, play) {
     const generation = this.generation;
     try {
-      const signed = await this._hass.callWS({ type: "auth/sign_path", path: item.media_path, expires: 300 });
+      // Playing converts MPEG-TS to MP4 (`play=1`); downloading keeps the original file.
+      const path = play ? `${item.media_path}&play=1` : item.media_path;
+      const signed = await this._hass.callWS({ type: "auth/sign_path", path, expires: 300 });
       if (generation !== this.generation) return;
       const url = this._hass.hassUrl(signed.path);
       if (play) { this.$("video").src = url; this.$("player").hidden = false; this.$("video").load(); }

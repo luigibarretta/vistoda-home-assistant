@@ -10,7 +10,9 @@ export function recordingCommand(config, action) {
 
 export function recordingMediaPath(config, recordingId, playback = false) {
   if (config.provider === "blink") {
-    return `/api/blink_live_bridge/v1/recordings/${recordingId}/media`;
+    // The archive keeps MPEG-TS, which browsers cannot play: playback asks for MP4.
+    return playback ? `/api/media_bridge/blink/recordings/${recordingId}/playback.mp4`
+      : `/api/blink_live_bridge/v1/recordings/${recordingId}/media`;
   }
   const base = `/api/media_bridge/ezviz/recordings/${config.entryId}/${recordingId}`;
   return playback ? `${base}/playback.mp4` : base;
