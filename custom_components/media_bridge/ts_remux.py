@@ -56,7 +56,10 @@ def ts_to_mp4(source: bytes | Path) -> bytes:
 
     Raises ValueError when the input has no playable video or cannot be read.
     """
-    import av
+    try:
+        import av
+    except ImportError as error:  # See required_modules: Home Assistant installs it on demand.
+        raise ValueError("PyAV is not installed") from error
 
     if isinstance(source, bytes):
         size = len(source)

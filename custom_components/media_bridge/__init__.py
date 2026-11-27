@@ -180,8 +180,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: MediaBridgeConfigEntry) 
         SharedClipMover(hass, entry, client).start()
     if provider == PROVIDER_BLINK:
         from .blink_usb_auto_backup import async_setup as async_setup_usb_backup
+        from .required_modules import async_ensure_modules
 
         async_setup_usb_backup(hass, entry)
+        # Installs PyAV if it is missing, in the background so startup never waits for pip.
+        entry.async_create_background_task(
+            hass, async_ensure_modules(hass), f"Vistoda required modules {entry.entry_id}"
+        )
     return True
 
 
