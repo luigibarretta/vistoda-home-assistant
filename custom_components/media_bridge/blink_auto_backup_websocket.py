@@ -81,9 +81,17 @@ async def _stop_motion_recording(hass: HomeAssistant) -> None:
     if runtime is None:
         return
     try:
-        current = await runtime.client.get_json("/v1/motion/recording")
-        if current.get("enabled"):
-            await runtime.client.put_json("/v1/motion/recording", {**current, "enabled": False})
+        reply = await runtime.client.get_json("/v1/motion/recording")
+        settings = reply.get(
+            "settings", {}
+        )  # {"settings": {...}, "cameras": [...], "poller": {...}}
+        if settings.get("enabled"):
+            payload = {
+                "enabled": False,
+                "duration_seconds": settings["duration_seconds"],
+                "cameras": settings["cameras"],
+            }
+            await runtime.client.put_json("/v1/motion/recording", payload)
     except Exception:  # The provider client raises its own error types.
         logging.getLogger(__name__).warning("Motion recording could not be switched off")
 

@@ -54,11 +54,13 @@ async def test_turning_the_network_backup_off_turns_the_automatic_backup_off(mon
 async def test_turning_ha_local_off_stops_motion_recording_once(monkeypatch):
     env, module, entry, connection = ws_fixture(monkeypatch)
     update_entry(env)
-    current = {"enabled": True, "duration_seconds": 30, "cameras": ["front"]}
-    client = SimpleNamespace(get_json=AsyncMock(return_value=current), put_json=AsyncMock())
+    settings = {"enabled": True, "duration_seconds": 30, "cameras": ["front"]}
+    # The provider answers with the settings next to the camera list and the poller state.
+    reply = {"settings": settings, "cameras": [{"alias": "front"}], "poller": {"state": "idle"}}
+    client = SimpleNamespace(get_json=AsyncMock(return_value=reply), put_json=AsyncMock())
     env.hass.data = {"blink_live_bridge": {"runtime": SimpleNamespace(client=client)}}
     await call_set(module, env, connection, entry, local_ha=False)
-    client.put_json.assert_awaited_once_with("/v1/motion/recording", {**current, "enabled": False})
+    client.put_json.assert_awaited_once_with("/v1/motion/recording", {**settings, "enabled": False})
     await call_set(module, env, connection, entry, local_ha=False)  # Already off: left alone.
     assert client.put_json.await_count == 1
     # A failing provider never blocks the switch.
